@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APTOS_ROOT="${SCRIPT_DIR}/../../aptos-core"
 BASE_DIR="${1:-/tmp/aptos-dstest}"
 NUM_NODES="${2:-4}"
-BASE_PORT="${3:-7000}"
+BASE_PORT="${3:-8000}"
 
 GENESIS_DIR="${BASE_DIR}/genesis"
 NODES_DIR="${BASE_DIR}/nodes"
@@ -58,11 +58,14 @@ for i in $(seq 0 $((NUM_NODES - 1))); do
   API_PORT=$((BASE_PORT + i*10 + 0))
   VFN_PORT=$((BASE_PORT + i*10 + 2))
   VAL_PORT=$((BASE_PORT + i*10 + 3))
+  WARP_PORT=$((BASE_PORT + i*10 + 6))      # inspection_service (warp) replaces default 6186
+  ADMIN_PORT=$((BASE_PORT + i*10 + 7))     # admin_service replaces default port(s)
+  BACKUP_PORT=$((BASE_PORT + i*10 + 8))
 
   # Start from template and patch paths/ports.
   # We use python to safely edit YAML rather than sed.
-python3 - <<PY
-import yaml, pathlib
+  python3 - <<PY
+import yaml, pathlib, re
 
 tmpl = pathlib.Path("${TEMPLATE}")
 outp = pathlib.Path("${NODE_DIR}/node.yaml")
@@ -112,6 +115,27 @@ api = cfg.get("api")
 if isinstance(api, dict):
   api["address"] = f"0.0.0.0:{${API_PORT}}"
 
+# --- Force internal service ports that otherwise default & collide
+warp_port = ${WARP_PORT}         # replaces default 6186
+admin_port = ${ADMIN_PORT}    # replaces default 9101/6180-ish
+backup_port = ${BACKUP_PORT}
+
+# inspection_service
+cfg["inspection_service"] = cfg.get("inspection_service") or {}
+if isinstance(cfg["inspection_service"], dict):
+    cfg["inspection_service"].pop("address", None)
+    cfg["inspection_service"]["port"] = int(warp_port)
+
+# admin_service
+cfg["admin_service"] = cfg.get("admin_service") or {}
+if isinstance(cfg["admin_service"], dict):
+    cfg["admin_service"].pop("address", None)
+    cfg["admin_service"]["port"] = int(admin_port)
+
+# backup service address lives under storage
+cfg.setdefault("storage", {})
+cfg["storage"]["backup_service_address"] = f"127.0.0.1:{backup_port}"
+
 # Fullnode / VFN listen address (if present)
 fns = cfg.get("full_node_networks")
 if isinstance(fns, list) and len(fns) > 0:
@@ -125,12 +149,11 @@ if isinstance(fns, list) and len(fns) > 0:
         net["listen_address"] = f"{base}/tcp/{${VFN_PORT}}"
 
 # Validator network listen (if present)
-vn = cfg.get("validator_network")
-if isinstance(vn, dict) and "listen_address" in vn:
-  la = vn["listen_address"]
-  if isinstance(la, str) and "/tcp/" in la:
-    base = la.rsplit("/tcp/", 1)[0]
-    vn["listen_address"] = f"{base}/tcp/{${VAL_PORT}}"
+vn = cfg.get("validator_network") or {}
+cfg["validator_network"] = vn
+
+# Force validator network listen address (otherwise it defaults to :6180)
+vn["listen_address"] = f"/ip4/0.0.0.0/tcp/{${VAL_PORT}}"
 
 # Write
 outp.write_text(yaml.safe_dump(cfg, sort_keys=False))
