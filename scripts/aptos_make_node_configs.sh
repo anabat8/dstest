@@ -57,7 +57,7 @@ for i in $(seq 0 $((NUM_NODES - 1))); do
 
   API_PORT=$((BASE_PORT + i*10 + 0))
   VFN_PORT=$((BASE_PORT + i*10 + 2))
-  VAL_PORT=$((BASE_PORT + i*10 + 3))
+  VAL_PORT=$((6100 + i))
   WARP_PORT=$((BASE_PORT + i*10 + 6))      # inspection_service (warp) replaces default 6186
   ADMIN_PORT=$((BASE_PORT + i*10 + 7))     # admin_service replaces default port(s)
   BACKUP_PORT=$((BASE_PORT + i*10 + 8))
