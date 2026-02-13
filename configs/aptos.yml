@@ -1,0 +1,37 @@
+TestConfig:
+  Name: aptos-localnet
+  Experiments: 1
+  Iterations: 10
+  WaitDuration: 50
+  StartupDuration: 1
+
+SchedulerConfig:
+  Type: "pct"
+  Steps: 50
+  Seed: 42
+  Params: {"client_request_probability": 0.01, "d": 2} 
+
+NetworkConfig:
+  BaseReplicaPort: 8000
+  BaseInterceptorPort: 10000
+  Protocol: "tcp"
+  MessageType: TCP
+
+FaultConfig:
+  Faults: []
+
+ProcessConfig:
+  NumReplicas: 4
+  Timeout: 10
+  OutputDir: output/aptos
+  ReplicaScript: scripts/aptos_server.sh
+  ClientScripts: []
+  CleanScript: scripts/aptos_clean.sh
+
+  # Each line here becomes "$@" to aptos_server.sh
+  # We pass: <NODE_INDEX>
+  ReplicaParams:
+    - "0 /tmp/aptos-dstest"
+    - "1 /tmp/aptos-dstest"
+    - "2 /tmp/aptos-dstest"
+    - "3 /tmp/aptos-dstest"
