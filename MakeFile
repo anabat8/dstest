@@ -19,10 +19,11 @@ PIP      := $(VENV_DIR)/bin/pip
 BASE_DIR ?= /tmp/aptos-dstest
 
 # dsTest config path
-CONFIG ?= $(DSTEST_ROOT)/aptos/aptos.yml
+CONFIG ?= $(DSTEST_ROOT)/aptos/configs/aptos.yml
 
-# number of replicas for dsTest
 NUM_REPLICAS ?= 4
+CHAIN_ID ?= 42
+EPOCH_DURATION_SECS ?= 7200
 
 # Genesis artifacts
 GENESIS_DIR  := $(BASE_DIR)/genesis
@@ -30,6 +31,11 @@ FRAMEWORK_MRB := $(GENESIS_DIR)/framework.mrb
 
 # node config ports
 BASE_PORT ?= 8000
+
+# logs output directory
+RUN_ID ?= $(shell date +"%Y%m%d_%H%M%S")
+OUTPUT_BASE ?= output/aptos
+OUTPUT_DIR ?= $(OUTPUT_BASE)/$(RUN_ID)
 
 # logging pass-through (empty by default)
 RUST_LOG ?=
@@ -90,9 +96,9 @@ build: build-aptos build-dstest
 	@test -x $(APTOS_CLI)  || (echo "Missing $(APTOS_CLI)  (build-aptos failed?)"; exit 1)
 	@test -x $(DSTEST_BIN) || (echo "Missing $(DSTEST_BIN) (build-dstest failed?)"; exit 1)
 
-# ============================================================
+# -----------------------------
 # Aptos Framework MRB
-# ============================================================
+# -----------------------------
 
 $(FRAMEWORK_MRB):
 	@mkdir -p "$(GENESIS_DIR)"
@@ -115,14 +121,26 @@ framework: $(FRAMEWORK_MRB)
 .PHONY: genesis
 genesis: framework setup build
 	@mkdir -p $(BASE_DIR)
-	BASE_DIR=$(BASE_DIR) \
-	NUM_NODES=$(NUM_REPLICAS) \
+	BASE_DIR="$(BASE_DIR)" \
+	GENESIS_DIR="$(GENESIS_DIR)" \
+	FRAMEWORK_MRB="$(FRAMEWORK_MRB)" \
+	NUM_NODES="$(NUM_REPLICAS)" \
+	CHAIN_ID="$(CHAIN_ID)" \
+	EPOCH_DURATION_SECS="$(EPOCH_DURATION_SECS)" \
+	APTOS_CORE="$(APTOS_CORE)" \
+	APTOS_CLI="$(APTOS_CLI)" \
+	PYTHON_BIN="$(VENV_PY)" \
 	bash $(APTOS_DIR)/aptos_prepare_localnet.sh
 
 .PHONY: node-configs
 node-configs: genesis
 	BASE_DIR=$(BASE_DIR) \
-	bash $(APTOS_DIR)/aptos_make_node_configs.sh $(BASE_DIR) $(NUM_REPLICAS) $(BASE_PORT)
+	GENESIS_DIR="$(GENESIS_DIR)" \
+	APTOS_CORE="$(APTOS_CORE)" \
+	NUM_NODES="$(NUM_REPLICAS)" \
+	BASE_PORT="${BASE_PORT}" \
+	PYTHON_BIN="$(VENV_PY)" \
+	bash $(APTOS_DIR)/aptos_make_node_configs.sh
 
 # Seed patch
 .PHONY: seeds
@@ -135,15 +153,15 @@ seeds: setup
 # -----------------------------
 .PHONY: config
 config:
-	@mkdir -p $(DSTEST_ROOT)/configs
+	@mkdir -p $(APTOS_DIR)/configs
 	@echo "Writing $(CONFIG)"
 	@{ \
 	echo "TestConfig:"; \
 	echo "  Name: aptos-localnet"; \
-	echo "  Experiments: 1"; \
-	echo "  Iterations: 1"; \
-	echo "  WaitDuration: 200"; \
-	echo "  StartupDuration: 300"; \
+	echo "  Experiments: 3"; \
+	echo "  Iterations: 10"; \
+	echo "  WaitDuration: 100"; \
+	echo "  StartupDuration: 1"; \
 	echo ""; \
 	echo "SchedulerConfig:"; \
 	echo "  Type: \"pct\""; \
@@ -162,11 +180,11 @@ config:
 	echo ""; \
 	echo "ProcessConfig:"; \
 	echo "  NumReplicas: $(NUM_REPLICAS)"; \
-	echo "  Timeout: 300"; \
-	echo "  OutputDir: output/aptos"; \
-	echo "  ReplicaScript: $(APTOS_DIR)/aptos_server.sh"; \
+	echo "  Timeout: 100"; \
+	echo "  OutputDir:  $(OUTPUT_DIR)"; \
+	echo "  ReplicaScript: aptos/aptos_server.sh"; \
 	echo "  ClientScripts: []"; \
-	echo "  CleanScript: $(APTOS_DIR)/aptos_clean.sh"; \
+	echo "  CleanScript: aptos/aptos_clean.sh"; \
 	echo "  ReplicaParams:"; \
 	for i in $$(seq 0 $$(( $(NUM_REPLICAS) - 1 ))); do \
 	  echo "    - \"$$i $(BASE_DIR)\""; \
@@ -190,9 +208,9 @@ run: build
 	@echo "  BASE_DIR=$(BASE_DIR)"
 	@echo "  RUST_LOG=$(RUST_LOG)"
 	@echo "  LOG_LEVEL=$(LOG_LEVEL)"
-	# Pass env vars so aptos_server.sh children inherit them
-	RUST_LOG="$(RUST_LOG)" LOG_LEVEL="$(LOG_LEVEL)" BASE_DIR="$(BASE_DIR)" \
-	cd $(DSTEST_ROOT)/cmd/dstest && ./main run -c $(CONFIG)
+	cd $(DSTEST_ROOT)/cmd/dstest && \
+	  RUST_LOG="$(RUST_LOG)" LOG_LEVEL="$(LOG_LEVEL)" BASE_DIR="$(BASE_DIR)" \
+	  ./main run -c "$(CONFIG)"
 
 .PHONY: all
 all: node-configs config clean run

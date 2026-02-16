@@ -24,9 +24,9 @@ ProcessConfig:
   NumReplicas: 4
   Timeout: 10
   OutputDir: output/aptos
-  ReplicaScript: scripts/aptos_server.sh
+  ReplicaScript: aptos/aptos_server.sh
   ClientScripts: []
-  CleanScript: scripts/aptos_clean.sh
+  CleanScript: aptos/aptos_clean.sh
 
   # Each line here becomes "$@" to aptos_server.sh
   # We pass: <NODE_INDEX>
