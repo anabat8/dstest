@@ -1,14 +1,16 @@
 package network
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"sync"
 )
 
 type TCPInterceptor struct {
 	BaseInterceptor
+	Listener net.Listener
 }
 
 // Check if BaseInterceptor implements Interceptor interface
@@ -26,84 +28,84 @@ func (ni *TCPInterceptor) Run() (err error) {
 		return err
 	}
 
-	// log the port
 	ni.Log.Printf("Running TCP interceptor on port %d\n", ni.Port)
 
-	// Start listening on the port
 	portSpecification := fmt.Sprintf(":%d", ni.Port)
-	listener, err := net.Listen("tcp", portSpecification)
+	ni.Listener, err = net.Listen("tcp", portSpecification)
 
-	// Check for errors
 	if err != nil {
-		ni.Log.Fatalf("Error listening on port %d: %s\n", ni.Port, err.Error())
+		ni.Log.Printf("Error listening on port %d: %s\n", ni.Port, err.Error())
 		return err
 	}
 
 	ni.Log.Printf("Listening on port %d\n", ni.Port)
 
-	// Close the listener when the function returns
-	defer func(listener net.Listener) {
-		err := listener.Close()
-		if err != nil {
-			ni.Log.Fatalf("Error closing listener on port %d: %s\n", ni.Port, err.Error())
+	go func() {
+		for {
+			conn, err := ni.Listener.Accept()
+			if err != nil {
+				ni.Log.Printf("Error accepting connection: %s\n", err.Error())
+				return
+			}
+			go ni.handleConnection(conn)
 		}
-	}(listener)
+	}()
 
-	// Accept connections
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			ni.Log.Fatalf("Error accepting connection on port %d: %s\n", ni.Port, err.Error())
-		}
-
-		go ni.handleConnection(conn)
-	}
+	return nil
 }
 
 func (ni *TCPInterceptor) Shutdown() {
-	
+	if ni.Listener != nil {
+		ni.Listener.Close()
+	}
 }
 
-func (ni *TCPInterceptor) handleConnection(conn net.Conn) {
-	for {
-		var received int
-		i := 0
-		buffer := bytes.NewBuffer(nil)
+func (ni *TCPInterceptor) handleConnection(clientConn net.Conn) {
+	defer clientConn.Close()
 
-		// read message in chunks
-		for {
-			// echo back the message
-			chunk := make([]byte, 64*1024)
-			read, err := conn.Read(chunk)
-			if err != nil {
-				ni.Log.Fatalf("Error reading from connection: %s\n", err.Error())
-				break
-			}
-			received += read
-			buffer.Write(chunk[:read])
-
-			if read == 0 || read < len(chunk) {
-				break
-			}
-
-			ni.Log.Printf("Msg#%d from %s: %s\n", i, conn.RemoteAddr().String(), string(chunk[:read]))
-		}
-
-		// Push the message to the receiver's message queue
-		ni.NetworkManager.Router.QueueMessage(&Message{
-			Sender:   conn.RemoteAddr().(*net.TCPAddr).Port - ni.NetworkManager.Config.NetworkConfig.BaseReplicaPort,
-			Receiver: ni.ID,
-			Payload:  buffer.Bytes(),
-			Type: "",
-			Name: "",
-			MessageId: ni.NetworkManager.GenerateUniqueId(),
-		})
+	// Get sender/receiver mapping based on interceptor port
+	pair, ok := ni.NetworkManager.PortMap[ni.Port]
+	if !ok {
+		ni.Log.Printf("No port mapping found for port %d\n", ni.Port)
+		return
 	}
 
-	err := conn.Close()
+	sender := pair.Sender
+	receiver := pair.Receiver
+
+	// Calculate the actual listening port of the target node
+	// The receiver node listens on BaseReplicaPort + receiver + 1
+	targetPort := ni.NetworkManager.Config.NetworkConfig.BaseReplicaPort + receiver + 1
+	targetAddr := fmt.Sprintf("127.0.0.1:%d", targetPort)
+
+	ni.Log.Printf("Proxying connection: node%d -> node%d (target %s)\n", sender, receiver, targetAddr)
+
+	// Connect to the target node (forward immediately; the TCP proxy bypasses the scheduler)
+	targetConn, err := net.Dial("tcp", targetAddr)
 	if err != nil {
-		ni.Log.Fatalf("Error closing connection: %s\n", err.Error())
+		ni.Log.Printf("Error connecting to target %s: %s\n", targetAddr, err.Error())
+		return
 	}
+	defer targetConn.Close()
 
-	ni.Log.Printf("Connection closed\n")
+	// Two-way proxy
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	// client -> target
+	go func() {
+		defer wg.Done()
+		io.Copy(targetConn, clientConn)
+		targetConn.(*net.TCPConn).CloseWrite()
+	}()
+
+	// target -> client
+	go func() {
+		defer wg.Done()
+		io.Copy(clientConn, targetConn)
+		clientConn.(*net.TCPConn).CloseWrite()
+	}()
+
+	wg.Wait()
+	ni.Log.Printf("Connection closed: node%d -> node%d\n", sender, receiver)
 }

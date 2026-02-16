@@ -1,9 +1,10 @@
 package network
 
 import (
+	"bytes"
 	"log"
-	"strings"
 	"os"
+	"strings"
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
@@ -33,7 +34,20 @@ func newGRPCTranslator() *GRPCTranslator {
 }
 
 func (t *GRPCTranslator) Translate(message *Message) *Message {
-	f := message.Payload.(*http2.Framer)
+	// Convert payload bytes to http2.Framer
+	var payload []byte
+	switch p := message.Payload.(type) {
+	case []byte:
+		payload = p
+	case *http2.Framer:
+		// Already a framer, skip conversion
+		return message
+	default:
+		t.Log.Printf("Unknown payload type: %T\n", message.Payload)
+		return message
+	}
+
+	f := http2.NewFramer(nil, bytes.NewReader(payload))
 
 	message.Type = GRPC
 
@@ -56,7 +70,7 @@ func (t *GRPCTranslator) Translate(message *Message) *Message {
 					path := strings.Split(v.Value, "/")
 					message.Name = path[len(path)-1]
 				}
-				
+
 			}
 		}
 	}

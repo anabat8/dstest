@@ -65,6 +65,7 @@ test -f "${GENESIS_DIR}/waypoint.txt"  || {
 # - VFN listen:        BASE_PORT + i*10 + 2
 # - Validator net:     BASE_PORT + i*10 + 3
 # - Validator net pub: BASE_PORT + i*10 + 4 (if used)
+# - VAL_LISTEN_PORT    BASE_PORT + i + 1
 
 mkdir -p "${NODES_DIR}"
 
@@ -92,111 +93,99 @@ for i in $(seq 0 $((NUM_NODES - 1))); do
   fi
 
   API_PORT=$((BASE_PORT + i*10 + 0))
-  VFN_PORT=$((BASE_PORT + i*10 + 2))
-  VAL_PORT=$((6100 + i))
+  #VFN_PORT=$((BASE_PORT + i*10 + 2))
+  #VAL_PORT=$((6100 + i))
   WARP_PORT=$((BASE_PORT + i*10 + 6))      # inspection_service (warp) replaces default 6186
   ADMIN_PORT=$((BASE_PORT + i*10 + 7))     # admin_service replaces default port(s)
   BACKUP_PORT=$((BASE_PORT + i*10 + 8))
+  VAL_LISTEN_PORT=$((BASE_PORT + i + 1))
 
   # Start from template and patch paths/ports.
   "${PYTHON_BIN}" - <<PY
-import yaml, pathlib, re
+import yaml, pathlib
 
 tmpl = pathlib.Path("${TEMPLATE}")
 outp = pathlib.Path("${NODE_DIR}/node.yaml")
 
-cfg = yaml.safe_load(tmpl.read_text())
+cfg = yaml.safe_load(tmpl.read_text()) or {}
+
+node_dir = pathlib.Path("${NODE_DIR}")
 
 # --- Paths
-node_dir = pathlib.Path("${NODE_DIR}")
 cfg.setdefault("base", {})
 cfg["base"]["data_dir"] = str(node_dir / "data")
 
-# Waypoint / genesis locations (common locations in validator template)
 cfg.setdefault("execution", {})
 cfg["execution"]["genesis_file_location"] = str(node_dir / "genesis" / "genesis.blob")
 
 cfg["base"].setdefault("waypoint", {})
 cfg["base"]["waypoint"]["from_file"] = str(node_dir / "genesis" / "waypoint.txt")
 
-# Identity blob path: usually used by validator network mutual auth and/or safety rules
 identity_path = str(node_dir / "genesis" / "validator-identity.yaml")
 
-# Try to patch common identity locations if present
 # validator_network.identity.path
 vn = cfg.get("validator_network")
 if isinstance(vn, dict):
-  ident = vn.get("identity")
-  if isinstance(ident, dict):
-    ident["path"] = identity_path
+    ident = vn.get("identity")
+    if isinstance(ident, dict):
+        ident["path"] = identity_path
 
-# consensus.safety_rules...identity_blob_path (some templates)
+# consensus.safety_rules...identity_blob_path
 cons = cfg.get("consensus")
 if isinstance(cons, dict):
-  sr = cons.get("safety_rules")
-  if isinstance(sr, dict):
-    init = sr.get("initial_safety_rules_config")
-    if isinstance(init, dict):
-      ff = init.get("from_file")
-      if isinstance(ff, dict):
-        ff["identity_blob_path"] = identity_path
-        wp = ff.get("waypoint")
-        if isinstance(wp, dict):
-          wp["from_file"] = str(node_dir / "genesis" / "waypoint.txt")
+    sr = cons.get("safety_rules")
+    if isinstance(sr, dict):
+        init = sr.get("initial_safety_rules_config")
+        if isinstance(init, dict):
+            ff = init.get("from_file")
+            if isinstance(ff, dict):
+                ff["identity_blob_path"] = identity_path
+                wp = ff.get("waypoint")
+                if isinstance(wp, dict):
+                    wp["from_file"] = str(node_dir / "genesis" / "waypoint.txt")
 
 # --- Ports
-# REST API
 api = cfg.get("api")
 if isinstance(api, dict):
-  api["address"] = f"0.0.0.0:{${API_PORT}}"
+    api["enabled"] = False
+    api["address"] = f"0.0.0.0:{${API_PORT}}"
 
-# --- Force internal service ports that otherwise default & collide
-warp_port = ${WARP_PORT}         # replaces default 6186
-admin_port = ${ADMIN_PORT}    # replaces default 9101/6180-ish
-backup_port = ${BACKUP_PORT}
-
-# inspection_service
+# internal services to avoid collisions
 cfg["inspection_service"] = cfg.get("inspection_service") or {}
 if isinstance(cfg["inspection_service"], dict):
     cfg["inspection_service"].pop("address", None)
-    cfg["inspection_service"]["port"] = int(warp_port)
+    cfg["inspection_service"]["port"] = int(${WARP_PORT})
 
-# admin_service
 cfg["admin_service"] = cfg.get("admin_service") or {}
 if isinstance(cfg["admin_service"], dict):
     cfg["admin_service"].pop("address", None)
-    cfg["admin_service"]["port"] = int(admin_port)
+    cfg["admin_service"]["port"] = int(${ADMIN_PORT})
 
-# backup service address lives under storage
 cfg.setdefault("storage", {})
-cfg["storage"]["backup_service_address"] = f"127.0.0.1:{backup_port}"
+cfg["storage"]["backup_service_address"] = f"127.0.0.1:{${BACKUP_PORT}}"
 
-# Fullnode / VFN listen address (if present)
-fns = cfg.get("full_node_networks")
-if isinstance(fns, list) and len(fns) > 0:
-  for net in fns:
-    if isinstance(net, dict) and "listen_address" in net:
-      # keep format, just replace tcp port at end
-      la = net["listen_address"]
-      # replace trailing /tcp/<port>
-      if isinstance(la, str) and "/tcp/" in la:
-        base = la.rsplit("/tcp/", 1)[0]
-        net["listen_address"] = f"{base}/tcp/{${VFN_PORT}}"
+# Disable VFN/fullnode networks to avoid port collisions and keep dsTest focused on validator network
+cfg["full_node_networks"] = []
 
-# Validator network listen (if present)
+# --- Validator network
 vn = cfg.get("validator_network") or {}
 cfg["validator_network"] = vn
 
-# Force validator network listen address (otherwise it defaults to :6180)
-vn["listen_address"] = f"/ip4/0.0.0.0/tcp/{${VAL_PORT}}"
+# Turn off on-chain discovery; dsTest + patched seeds will handle peering
+vn["discovery_method"] = "none"
 
-# Write
+# Bind validator network to dsTest replica listen port (BASE_PORT + i + 1)
+vn["listen_address"] = f"/ip4/0.0.0.0/tcp/{${VAL_LISTEN_PORT}}"
+
+# Ensure these exist (seed patcher will overwrite seeds)
+vn.setdefault("seed_addrs", {})
+vn.setdefault("seeds", {})
+
 outp.write_text(yaml.safe_dump(cfg, sort_keys=False))
 print("Wrote", outp)
-
 PY
 
 done
 
 echo "Generated node configs under: ${NODES_DIR}"
-echo "Try: ls -ლა ${NODES_DIR}/v0 && head -n 40 ${NODES_DIR}/v0/node.yaml"
+echo "Try: ls -la ${NODES_DIR}/v0 && sed -n '1,120p' ${NODES_DIR}/v0/node.yaml"

@@ -144,9 +144,9 @@ node-configs: genesis
 
 # Seed patch
 .PHONY: seeds
-seeds: setup
-	@echo "Seed patching is currently not used; keeping target for later."
-	@echo "When ready: use $(VENV_PY) $(APTOS_DIR)/update_seed_addrs.py $(APTOS_DIR)"
+seeds: node-configs
+	BASE_DIR="$(BASE_DIR)" CONFIG="$(CONFIG)" \
+	"$(VENV_PY)" "$(APTOS_DIR)/aptos_update_seeds.py"
 
 # -----------------------------
 # dsTest config generation
@@ -213,4 +213,4 @@ run: build
 	  ./main run -c "$(CONFIG)"
 
 .PHONY: all
-all: node-configs config clean run
+all: node-configs seeds config clean run

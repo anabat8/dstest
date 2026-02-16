@@ -32,8 +32,25 @@ func (s *PCT) Init(config *config.Config) {
 	s.Rand = rand.New(rand.NewSource(int64(s.Config.SchedulerConfig.Seed)))
 	s.RequestQuota = config.SchedulerConfig.ClientRequests
 	s.NumClientTypes = len(config.ProcessConfig.ClientScripts)
-	s.ClientRequestProbability = config.SchedulerConfig.Params["client_request_probability"].(float64)
-	s.Depth = config.SchedulerConfig.Params["d"].(int)
+
+	// Handle both int and float64 for client_request_probability
+	if prob, ok := config.SchedulerConfig.Params["client_request_probability"].(float64); ok {
+		s.ClientRequestProbability = prob
+	} else if probInt, ok := config.SchedulerConfig.Params["client_request_probability"].(int); ok {
+		s.ClientRequestProbability = float64(probInt)
+	} else {
+		s.ClientRequestProbability = 0.01 // default
+	}
+
+	// Handle both int and float64 for d
+	if d, ok := config.SchedulerConfig.Params["d"].(float64); ok {
+		s.Depth = int(d)
+	} else if dInt, ok := config.SchedulerConfig.Params["d"].(int); ok {
+		s.Depth = dInt
+	} else {
+		s.Depth = 2 // default
+	}
+
 	s.NumPriorityChange = 0
 	s.Step = 0
 	s.PriorityChangePoints = make([]int, 0)
