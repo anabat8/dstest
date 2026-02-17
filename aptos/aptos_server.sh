@@ -31,6 +31,7 @@ echo "Data:   ${NODE_DIR}/data"
 PID=$!
 
 cleanup() {
+  echo "Stopping Aptos validator v${NODE_INDEX} (pid $PID)"
   kill -TERM "$PID" 2>/dev/null || true
   wait "$PID" 2>/dev/null || true
 }
