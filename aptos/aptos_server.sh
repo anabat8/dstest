@@ -27,4 +27,13 @@ echo "Starting Aptos validator v${NODE_INDEX}"
 echo "Config: ${NODE_DIR}/node.yaml"
 echo "Data:   ${NODE_DIR}/data"
 
-exec "${APTOS_NODE_BIN}" -f "${NODE_DIR}/node.yaml"
+"${APTOS_NODE_BIN}" -f "${NODE_DIR}/node.yaml" &
+PID=$!
+
+cleanup() {
+  kill -TERM "$PID" 2>/dev/null || true
+  wait "$PID" 2>/dev/null || true
+}
+trap cleanup INT TERM EXIT
+
+wait "$PID"

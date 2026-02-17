@@ -21,6 +21,7 @@ BASE_DIR ?= /tmp/aptos-dstest
 # dsTest config path
 CONFIG ?= $(DSTEST_ROOT)/aptos/configs/aptos.yml
 
+# localnet config
 NUM_REPLICAS ?= 4
 CHAIN_ID ?= 42
 EPOCH_DURATION_SECS ?= 7200
@@ -37,8 +38,18 @@ RUN_ID ?= $(shell date +"%Y%m%d_%H%M%S")
 OUTPUT_BASE ?= output/aptos
 OUTPUT_DIR ?= $(OUTPUT_BASE)/$(RUN_ID)
 
+# for filtering the logs output
+FILTER_OUT ?= $(OUTPUT_DIR)/consensus_filtered.jsonl
+FILTER_TEXT ?= $(OUTPUT_DIR)/consensus_filtered.log
+
+# for generating a config
+# TEST_NAME is an experiment's name, can be anything
+# SCHED_TYPE can be random, pct, ql
+TEST_NAME ?= aptos-localnet
+SCHED_TYPE ?= pct
+
 # logging pass-through (empty by default)
-RUST_LOG ?=
+RUST_LOG ?= warn,aptos_consensus=debug,aptos_network=info
 LOG_LEVEL ?=
 
 # -----------------------------
@@ -56,7 +67,9 @@ help:
 	@echo "  make config                # generate config file aptos.yml for dsTest"
 	@echo "  make clean                 # kill nodes + wipe state"
 	@echo "  make run                   # run dsTest with CONFIG"
-	@echo "  make all                   # build + genesis + node-configs + config + run"
+	@echo "  make all                   # build + genesis + node-configs + seeds + config + run"
+	@echo "  make filter-logs           # filter the consensus log output
+	@echo "  make run-and-filter        # run dsTest with CONFIG and filter the logs
 	@echo ""
 	@echo "Vars:"
 	@echo "  APTOS_CORE=$(APTOS_CORE)"
@@ -153,18 +166,19 @@ seeds: node-configs
 # -----------------------------
 .PHONY: config
 config:
+	@mkdir -p "$(OUTPUT_DIR)"
 	@mkdir -p $(APTOS_DIR)/configs
 	@echo "Writing $(CONFIG)"
 	@{ \
 	echo "TestConfig:"; \
-	echo "  Name: aptos-localnet"; \
-	echo "  Experiments: 3"; \
-	echo "  Iterations: 10"; \
+	echo "  Name: $(TEST_NAME)"; \
+	echo "  Experiments: 1"; \
+	echo "  Iterations: 2"; \
 	echo "  WaitDuration: 100"; \
 	echo "  StartupDuration: 1"; \
 	echo ""; \
 	echo "SchedulerConfig:"; \
-	echo "  Type: \"pct\""; \
+	echo "  Type: \"$(SCHED_TYPE)\""; \
 	echo "  Steps: 50"; \
 	echo "  Seed: 42"; \
 	echo "  Params: {\"client_request_probability\": 0.01, \"d\": 2}"; \
@@ -194,10 +208,15 @@ config:
 # -----------------------------
 # Clean + run
 # -----------------------------
-.PHONY: clean
+.PHONY: clean clean-outputs
+
 clean:
 	@chmod +x $(APTOS_DIR)/aptos_clean.sh $(APTOS_DIR)/aptos_server.sh || true
 	BASE_DIR=$(BASE_DIR) bash $(APTOS_DIR)/aptos_clean.sh $(BASE_DIR) || true
+	@# DO NOT delete dsTest outputs here (keep all runs)
+
+# Only run this when you explicitly want to wipe all previous runs
+clean-outputs:
 	rm -rf $(DSTEST_ROOT)/output || true
 
 .PHONY: run
@@ -213,4 +232,19 @@ run: build
 	  ./main run -c "$(CONFIG)"
 
 .PHONY: all
-all: node-configs seeds config clean run
+all: clean node-configs seeds config run
+
+.PHONY: filter-logs
+filter-logs:
+	TEST_NAME="$(TEST_NAME)" SCHED_TYPE="$(SCHED_TYPE)" \
+	"$(VENV_PY)" "$(APTOS_DIR)/filter_consensus_logs.py" "$(OUTPUT_DIR)" --levels INFO,DEBUG
+
+.PHONY: run-and-filter
+run-and-filter:
+	@set -e; \
+	RUN_ID=$$(date +"%Y%m%d_%H%M%S"); \
+	echo "[run-and-filter] RUN_ID=$$RUN_ID"; \
+	$(MAKE) RUN_ID=$$RUN_ID clean; \
+	$(MAKE) RUN_ID=$$RUN_ID config; \
+	$(MAKE) RUN_ID=$$RUN_ID run; \
+	$(MAKE) RUN_ID=$$RUN_ID filter-logs
