@@ -61,10 +61,9 @@ test -f "${GENESIS_DIR}/waypoint.txt"  || {
 
 # Port plan per node i:
 # - REST API:          BASE_PORT + i*10 + 0
-# - Metrics (optional) BASE_PORT + i*10 + 1
-# - VFN listen:        BASE_PORT + i*10 + 2
-# - Validator net:     BASE_PORT + i*10 + 3
-# - Validator net pub: BASE_PORT + i*10 + 4 (if used)
+# - WARP PORT:         BASE_PORT + i*10 + 6
+# - ADMIN PORT:        BASE_PORT + i*10 + 7
+# - BACKUP PORT:       BASE_PORT + i*10 + 8
 # - VAL_LISTEN_PORT    BASE_PORT + i + 1
 
 mkdir -p "${NODES_DIR}"
@@ -93,8 +92,6 @@ for i in $(seq 0 $((NUM_NODES - 1))); do
   fi
 
   API_PORT=$((BASE_PORT + i*10 + 0))
-  #VFN_PORT=$((BASE_PORT + i*10 + 2))
-  #VAL_PORT=$((6100 + i))
   WARP_PORT=$((BASE_PORT + i*10 + 6))      # inspection_service (warp) replaces default 6186
   ADMIN_PORT=$((BASE_PORT + i*10 + 7))     # admin_service replaces default port(s)
   BACKUP_PORT=$((BASE_PORT + i*10 + 8))
