@@ -117,3 +117,9 @@ fabric.properties
 
 # Output directories
 output/
+
+# Python venv
+.venv/
+
+# Ignore dstest built binary
+cmd/dstest/main*

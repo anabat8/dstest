@@ -55,6 +55,14 @@ func (r *Router) QueueMessage(m *Message) {
 	// decode the message
 	tm := r.MessageTranslator.Translate(m)
 	// tm :=  m
+
+	// Validate sender and receiver IDs
+	if tm.Sender < 0 || tm.Sender >= len(r.RoutingTable) ||
+		tm.Receiver < 0 || tm.Receiver >= len(r.RoutingTable) {
+		r.Log.Printf("Ignoring message with invalid node IDs: from %d to %d\n", tm.Sender, tm.Receiver)
+		return
+	}
+
 	if r.HasConnectivity(tm.Sender, tm.Receiver) {
 		r.NetworkManager.MessageQueues[tm.Receiver].PushBack(tm)
 		// r.NetworkManager.UpdateChainClocks(tm.Sender, tm.Receiver, tm.MessageId, tm.Name)
