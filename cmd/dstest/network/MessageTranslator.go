@@ -18,6 +18,8 @@ func NewMessageTranslator(messageType MessageType) MessageTranslator {
 	switch messageType {
 	case GRPC:
 		return newGRPCTranslator()
+	case AptosNoise:
+		return newAptosNoiseTranslator()
 	default:
 		return nil
 	}
@@ -74,5 +76,19 @@ func (t *GRPCTranslator) Translate(message *Message) *Message {
 			}
 		}
 	}
+	return message
+}
+
+type AptosNoiseTranslator struct {
+	Log *log.Logger
+}
+
+func newAptosNoiseTranslator() *AptosNoiseTranslator {
+	translator := new(AptosNoiseTranslator)
+	translator.Log = log.New(os.Stdout, "[AptosNoiseTranslator]", log.LstdFlags)
+	return translator
+}
+
+func (t *AptosNoiseTranslator) Translate(message *Message) *Message {
 	return message
 }

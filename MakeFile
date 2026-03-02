@@ -49,7 +49,7 @@ TEST_NAME ?= aptos-localnet
 SCHED_TYPE ?= pct
 
 # logging pass-through (empty by default)
-RUST_LOG ?= warn,aptos_consensus=debug,aptos_network=info
+RUST_LOG ?= byzzfuzz.noise=info,info
 LOG_LEVEL ?=
 
 # -----------------------------
@@ -96,7 +96,7 @@ setup: $(VENV_PY)
 # -----------------------------
 .PHONY: build-aptos
 build-aptos:
-	cd $(APTOS_CORE) && cargo build --release -p aptos-node
+	cd $(APTOS_CORE) && cargo build --release -p aptos-node --features byzzfuzz
 	cd $(APTOS_CORE) && cargo build -p aptos --profile cli
 
 .PHONY: build-dstest
@@ -186,7 +186,7 @@ config:
 	echo "NetworkConfig:"; \
 	echo "  BaseReplicaPort: $(BASE_PORT)"; \
 	echo "  BaseInterceptorPort: 10000"; \
-	echo "  Protocol: \"tcp\""; \
+	echo "  Protocol: \"aptostcp\""; \
 	echo "  MessageType: TCP"; \
 	echo ""; \
 	echo "FaultConfig:"; \

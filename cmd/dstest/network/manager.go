@@ -45,7 +45,7 @@ func (nm *Manager) Init(config *config.Config, replicaIds []int) error {
 	nm.Config = config
 	nm.MessageType = MessageType(config.NetworkConfig.MessageType)
 	nm.Router = new(Router)
-	nm.Interceptors = make([]Interceptor, numReplicas * (numReplicas - 1))
+	nm.Interceptors = make([]Interceptor, numReplicas*(numReplicas-1))
 	nm.MessageQueues = make([]*MessageQueue, numReplicas)
 	nm.ReplicaIds = replicaIds
 	// nm.VectorClocks = make(map[int]map[int]int)
