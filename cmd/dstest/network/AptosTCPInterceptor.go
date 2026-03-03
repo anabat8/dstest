@@ -7,13 +7,13 @@ import (
 	"log"
 	"net"
 	"os"
-	"path/filepath"
 	"sync"
 )
 
 type AptosTCPInterceptor struct {
 	BaseInterceptor
 	Listener net.Listener
+	keyReg   *KeyRegistry // For keeping track of all sessions keys
 }
 
 // Check if BaseInterceptor implements Interceptor interface
@@ -23,6 +23,14 @@ func (ni *AptosTCPInterceptor) Init(id int, port int, nm *Manager) {
 	logPrefix := fmt.Sprintf("[AptosTCP Interceptor %d] ", id)
 	logger := log.New(log.Writer(), logPrefix, log.LstdFlags)
 	ni.BaseInterceptor.Init(id, port, nm, logger)
+
+	// Secrets files written by aptos_server.sh:
+	//   ${BASE_DIR}/nodes/v${NODE_INDEX}/noise_secrets.jsonl
+	baseDir := os.Getenv("BASE_DIR")
+	if baseDir == "" {
+		baseDir = "/tmp/aptos-dstest"
+	}
+	ni.keyReg = NewKeyRegistry(baseDir)
 }
 
 func (ni *AptosTCPInterceptor) Run() (err error) {
@@ -91,18 +99,7 @@ func (ni *AptosTCPInterceptor) handleConnection(clientConn net.Conn) {
 	}
 	defer targetConn.Close()
 
-	// Secrets files written by aptos_server.sh:
-	//   ${BASE_DIR}/nodes/v${NODE_INDEX}/noise_secrets.jsonl
-	baseDir := os.Getenv("BASE_DIR")
-	if baseDir == "" {
-		baseDir = "/tmp/aptos-dstest"
-	}
-	senderSecrets := filepath.Join(baseDir, "nodes", fmt.Sprintf("v%d", sender), "noise_secrets.jsonl")
-	receiverSecrets := filepath.Join(baseDir, "nodes", fmt.Sprintf("v%d", receiver), "noise_secrets.jsonl")
-
-	// One framer per direction (directions have independent streams)
-	framerCT := NewU16Framer() // client -> target
-	framerTC := NewU16Framer() // target -> client
+	var dumpOnce sync.Once // Var used for debugging purposes
 
 	// Two-way proxy
 	var wg sync.WaitGroup
@@ -111,49 +108,61 @@ func (ni *AptosTCPInterceptor) handleConnection(clientConn net.Conn) {
 	// client -> target
 	go func() {
 		defer wg.Done()
-		if tcp, ok := targetConn.(*net.TCPConn); ok {
-			defer tcp.CloseWrite()
-		}
-		secretsReady := false
-		ni.proxyAndTap(clientConn, targetConn, func(chunk []byte) {
-			if !secretsReady {
-				secretsReady = fileHasData(senderSecrets) || fileHasData(receiverSecrets)
-				if !secretsReady {
-					return
-				}
-			}
-			frames := framerCT.Parse(chunk)
-			for _, fr := range frames {
-				ni.Log.Printf("[node%d->node%d c->t] extracted frame len=%d head=%s\n",
-					sender, receiver, len(fr), headHex(fr, 16))
-			}
-		})
+		ni.session(clientConn, targetConn, sender, receiver, true, &dumpOnce)
 	}()
 
 	// target -> client
 	go func() {
 		defer wg.Done()
-		if tcp, ok := clientConn.(*net.TCPConn); ok {
-			defer tcp.CloseWrite()
-		}
-		secretsReady := false
-		ni.proxyAndTap(targetConn, clientConn, func(chunk []byte) {
-			if !secretsReady {
-				secretsReady = fileHasData(senderSecrets) || fileHasData(receiverSecrets)
-				if !secretsReady {
-					return
-				}
-			}
-			frames := framerTC.Parse(chunk)
-			for _, fr := range frames {
-				ni.Log.Printf("[node%d->node%d t->c] extracted frame len=%d head=%s\n",
-					sender, receiver, len(fr), headHex(fr, 16))
-			}
-		})
+		ni.session(targetConn, clientConn, sender, receiver, false, &dumpOnce)
 	}()
 
 	wg.Wait()
 	ni.Log.Printf("Connection closed: node%d -> node%d\n", sender, receiver)
+}
+
+func (ni *AptosTCPInterceptor) session(
+	from, to net.Conn,
+	sender, receiver int,
+	forwardDir bool,
+	dumpOnce *sync.Once) {
+
+	framer := NewU16Framer()
+
+	if tcp, ok := to.(*net.TCPConn); ok {
+		defer tcp.CloseWrite()
+	}
+
+	bound := false
+	var linkKeys LinkKeys
+	ni.proxyAndTap(from, to, func(chunk []byte) {
+		if !bound {
+			lk, ok := ni.keyReg.GetKeysForLink(sender, receiver)
+			if !ok {
+				//still handshaking / keys not written yet
+				return
+			}
+			linkKeys = lk
+			bound = true
+
+			ni.Log.Printf(
+				"Bound link node%d->node%d: sender(initiator)->remote=%s receiver(responder)->remote=%s",
+				sender, receiver,
+				hex.EncodeToString(linkKeys.SenderInitiator.RemoteStatic[:])[:16],
+				hex.EncodeToString(linkKeys.ReceiverResponder.RemoteStatic[:])[:16],
+			)
+
+			// only once per connection (shared across both directions)
+			dumpOnce.Do(func() {
+				ni.debugKeysForPair(sender, receiver)
+			})
+		}
+		framer.Parse(chunk)
+		//for _, fr := range frames {
+		//	ni.Log.Printf("[node%d->node%d t->c] extracted frame len=%d head=%s\n",
+		//		sender, receiver, len(fr), headHex(fr, 16))
+		//}
+	})
 }
 
 // proxyAndTap forwards raw bytes immediately (so handshake is never blocked)
@@ -182,6 +191,22 @@ func (ni *AptosTCPInterceptor) proxyAndTap(inConn net.Conn, outConn net.Conn, ta
 			// io.EOF or connection error
 			return
 		}
+	}
+}
+
+func (ni *AptosTCPInterceptor) debugKeysForPair(sender, receiver int) {
+	ni.keyReg.mu.RLock()
+	defer ni.keyReg.mu.RUnlock()
+
+	ni.Log.Printf("=== KeyRegistry relevant dump for link node%d<->node%d (total=%d) ===",
+		sender, receiver, len(ni.keyReg.sessions))
+
+	for k, v := range ni.keyReg.sessions {
+		if k.node != sender && k.node != receiver {
+			continue
+		}
+		ni.Log.Printf("node=%d event=%s remote=%s write_nonce0=%d read_nonce0=%d",
+			k.node, k.event, k.rsHex[:16], v.WriteNonce0, v.ReadNonce0)
 	}
 }
 

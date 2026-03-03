@@ -112,7 +112,6 @@ build: build-aptos build-dstest
 # -----------------------------
 # Aptos Framework MRB
 # -----------------------------
-
 $(FRAMEWORK_MRB):
 	@mkdir -p "$(GENESIS_DIR)"
 	@if [ -f "$(FRAMEWORK_MRB)" ]; then \
@@ -220,7 +219,7 @@ clean-outputs:
 	rm -rf $(DSTEST_ROOT)/output || true
 
 .PHONY: run
-run: build
+run:
 	@chmod +x $(APTOS_DIR)/aptos_server.sh $(APTOS_DIR)/aptos_clean.sh || true
 	@echo "Running dsTest with:"
 	@echo "  CONFIG=$(CONFIG)"

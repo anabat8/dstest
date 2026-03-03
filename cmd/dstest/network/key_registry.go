@@ -1,0 +1,251 @@
+package network
+
+import (
+	"bufio"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+)
+
+// One JSON line written by aptos-crypto when byzzfuzz feature flag is enabled
+type noiseSecretsLine struct {
+	Byzzfuzz     string `json:"byzzfuzz"`
+	Event        string `json:"event"`         // "initiator" or "responder"
+	RemoteStatic string `json:"remote_static"` // hex
+	WriteKey     string `json:"write_key"`     // hex (32 bytes)
+	ReadKey      string `json:"read_key"`      // hex (32 bytes)
+	WriteNonce0  uint64 `json:"write_nonce0"`
+	ReadNonce0   uint64 `json:"read_nonce0"`
+}
+
+// Noise session keys
+type NoiseSessionKeys struct {
+	NodeIndex    int
+	Event        string   // initiator/responder
+	RemoteStatic [32]byte // public key of peer
+	WriteKey     [32]byte
+	ReadKey      [32]byte
+	WriteNonce0  uint64
+	ReadNonce0   uint64
+}
+
+// Keyed by (node, event, remote_static)
+type sessionKey struct {
+	node  int
+	event string
+	rsHex string
+}
+
+type KeyRegistry struct {
+	baseDir    string
+	mu         sync.RWMutex
+	sessions   map[sessionKey]NoiseSessionKeys // holds the latest keys seen
+	filePos    map[int]int64                   // per node file offset for tailing, s.t we don't reread the whole file every time
+	nodeStatic map[int]string                  // node index -> static pubkey hex
+}
+
+type LinkKeys struct {
+	// keys used for decrypt/encrypt depending on direction
+	SenderInitiator   NoiseSessionKeys // sender side (initiator) with remote=receiver_static
+	ReceiverResponder NoiseSessionKeys // receiver side (responder) with remote=sender_static
+}
+
+// BASE_DIR : /tmp/aptos-dstest
+func NewKeyRegistry(baseDir string) *KeyRegistry {
+	return &KeyRegistry{
+		baseDir:    baseDir,
+		sessions:   make(map[sessionKey]NoiseSessionKeys),
+		filePos:    make(map[int]int64),
+		nodeStatic: make(map[int]string),
+	}
+}
+
+// Builds /tmp/aptos-dstest/nodes/vX/noise_secrets.jsonl
+func (kr *KeyRegistry) secretsPath(node int) string {
+	return filepath.Join(kr.baseDir, "nodes", fmt.Sprintf("v%d", node), "noise_secrets.jsonl")
+}
+
+// Builds /tmp/aptos-dstest/nodes/vX/node_static_key.hex
+func (kr *KeyRegistry) nodeStaticPath(node int) string {
+	return filepath.Join(kr.baseDir, "nodes", fmt.Sprintf("v%d", node), "node_static_key.hex")
+}
+
+// Load once and cache
+func (kr *KeyRegistry) GetNodeStaticHex(node int) (string, bool) {
+	kr.mu.RLock()
+	if v, ok := kr.nodeStatic[node]; ok {
+		kr.mu.RUnlock()
+		return v, true
+	}
+	kr.mu.RUnlock()
+
+	b, err := os.ReadFile(kr.nodeStaticPath(node))
+	if err != nil {
+		return "", false
+	}
+	s := strings.TrimSpace(string(b))
+	s = strings.TrimPrefix(strings.ToLower(s), "0x")
+	if len(s) != 64 { // 32 bytes hex
+		return "", false
+	}
+
+	kr.mu.Lock()
+	kr.nodeStatic[node] = s
+	kr.mu.Unlock()
+	return s, true
+}
+
+func (kr *KeyRegistry) GetKeysForLink(sender, receiver int) (LinkKeys, bool) {
+	var out LinkKeys
+
+	senderStatic, ok := kr.GetNodeStaticHex(sender)
+	if !ok {
+		return out, false
+	}
+	receiverStatic, ok := kr.GetNodeStaticHex(receiver)
+	if !ok {
+		return out, false
+	}
+
+	_ = kr.RefreshNode(sender)
+	_ = kr.RefreshNode(receiver)
+
+	// sender initiated to receiver
+	si, ok := kr.Get(sender, "initiator", receiverStatic)
+	if !ok {
+		return out, false
+	}
+
+	// receiver responded to sender
+	rr, ok := kr.Get(receiver, "responder", senderStatic)
+	if !ok {
+		return out, false
+	}
+
+	out.SenderInitiator = si
+	out.ReceiverResponder = rr
+	return out, true
+}
+
+// Tail any new lines since last time for this node
+// Due to simultaneous dials/redials, there can be multiple sessions per remote
+// We can call this method frequently to gather the latest noise session keys
+func (kr *KeyRegistry) RefreshNode(node int) error {
+	path := kr.secretsPath(node)
+
+	f, err := os.Open(path)
+	if err != nil {
+		// File may not exist yet (node hasn't written secrets yet)
+		return nil
+	}
+	defer f.Close()
+
+	kr.mu.Lock()
+	offset := kr.filePos[node]
+	kr.mu.Unlock()
+
+	// Seek to last read offset
+	if offset > 0 {
+		if _, err := f.Seek(offset, 0); err != nil {
+			// If seek fails, restart from 0
+			_, _ = f.Seek(0, 0)
+			offset = 0
+		}
+	}
+
+	sc := bufio.NewScanner(f)
+
+	var newOffset int64 = offset
+
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		// Track file offset approximately by asking file position after each scan
+		// (Scanner doesn't expose it; easiest is to call Seek(0,1) after)
+		pos, _ := f.Seek(0, 1)
+		newOffset = pos
+
+		if line == "" {
+			continue
+		}
+
+		var raw noiseSecretsLine
+		if err := json.Unmarshal([]byte(line), &raw); err != nil {
+			continue
+		}
+		if raw.Byzzfuzz != "noise_session" {
+			continue
+		}
+		if raw.Event != "initiator" && raw.Event != "responder" {
+			continue
+		}
+
+		parsed, ok := decodeSecrets(node, raw)
+		if !ok {
+			continue
+		}
+
+		kr.mu.Lock()
+		kr.sessions[sessionKey{node: node, event: parsed.Event, rsHex: hex.EncodeToString(parsed.RemoteStatic[:])}] = parsed
+		kr.filePos[node] = newOffset
+		kr.mu.Unlock()
+	}
+
+	// scanner error not fatal
+	kr.mu.Lock()
+	kr.filePos[node] = newOffset
+	kr.mu.Unlock()
+
+	return nil
+}
+
+func decodeSecrets(node int, raw noiseSecretsLine) (NoiseSessionKeys, bool) {
+	var out NoiseSessionKeys
+	out.NodeIndex = node
+	out.Event = raw.Event
+	out.WriteNonce0 = raw.WriteNonce0
+	out.ReadNonce0 = raw.ReadNonce0
+
+	rs, err := hex.DecodeString(raw.RemoteStatic)
+	if err != nil || len(rs) != 32 {
+		return out, false
+	}
+	copy(out.RemoteStatic[:], rs)
+
+	wk, err := hex.DecodeString(raw.WriteKey)
+	if err != nil || len(wk) != 32 {
+		return out, false
+	}
+	copy(out.WriteKey[:], wk)
+
+	rk, err := hex.DecodeString(raw.ReadKey)
+	if err != nil || len(rk) != 32 {
+		return out, false
+	}
+	copy(out.ReadKey[:], rk)
+
+	return out, true
+}
+
+// Look up latest session keys for (node,event,remote_static_hex)
+func (kr *KeyRegistry) Get(node int, event string, remoteStaticHex string) (NoiseSessionKeys, bool) {
+	kr.mu.RLock()
+	defer kr.mu.RUnlock()
+	v, ok := kr.sessions[sessionKey{node: node, event: event, rsHex: strings.ToLower(remoteStaticHex)}]
+	return v, ok
+}
+
+// Returns true if we've seen any secrets for this node yet
+func (kr *KeyRegistry) HasAnyForNode(node int) bool {
+	kr.mu.RLock()
+	defer kr.mu.RUnlock()
+	for k := range kr.sessions {
+		if k.node == node {
+			return true
+		}
+	}
+	return false
+}
