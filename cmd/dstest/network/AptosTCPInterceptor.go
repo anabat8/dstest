@@ -133,35 +133,67 @@ func (ni *AptosTCPInterceptor) session(
 		defer tcp.CloseWrite()
 	}
 
-	bound := false
-	var linkKeys LinkKeys
+	keysBound := false
+	var dk DialKeys
+	var nonce uint64
+
 	ni.proxyAndTap(from, to, func(chunk []byte) {
-		if !bound {
-			lk, ok := ni.keyReg.GetKeysForLink(sender, receiver)
+
+		if !keysBound {
+			got, ok := ni.keyReg.GetKeysForDial(sender, receiver)
 			if !ok {
-				//still handshaking / keys not written yet
 				return
 			}
-			linkKeys = lk
-			bound = true
+
+			dk = got
+			keysBound = true
+
+			// choose which key+nonce we use for this direction:
+			// forwardDir=true is sender->receiver, false otherwise
+			// sender->receiver uses sender initiator WRITE key + write_nonce0
+			// receiver->sender uses receiver responder WRITE key + write_nonce0
+			if forwardDir {
+				nonce = dk.S2R_Initiator.WriteNonce0
+			} else {
+				nonce = dk.R2S_Responder.WriteNonce0
+			}
 
 			ni.Log.Printf(
-				"Bound link node%d->node%d: sender(initiator)->remote=%s receiver(responder)->remote=%s",
-				sender, receiver,
-				hex.EncodeToString(linkKeys.SenderInitiator.RemoteStatic[:])[:16],
-				hex.EncodeToString(linkKeys.ReceiverResponder.RemoteStatic[:])[:16],
+				"Bound link node%d<->node%d dir=%v: nonce0=%d",
+				sender, receiver, forwardDir, nonce,
 			)
-
-			// only once per connection (shared across both directions)
-			dumpOnce.Do(func() {
-				ni.debugKeysForPair(sender, receiver)
-			})
+			dumpOnce.Do(func() { ni.debugKeysForPair(sender, receiver) })
 		}
-		framer.Parse(chunk)
-		//for _, fr := range frames {
-		//	ni.Log.Printf("[node%d->node%d t->c] extracted frame len=%d head=%s\n",
-		//		sender, receiver, len(fr), headHex(fr, 16))
-		//}
+
+		// Post-handshake
+		// Parse frames and try to decrypt
+		frames := framer.Parse(chunk)
+
+		for _, fr := range frames {
+			// choose key based on direction
+			var key [32]byte
+			if forwardDir {
+				key = dk.S2R_Initiator.WriteKey
+			} else {
+				key = dk.R2S_Responder.WriteKey
+			}
+
+			ni.Log.Printf("dir=%v key_head=%s nonce0=%d", forwardDir, hex.EncodeToString(key[:])[:16], nonce)
+
+			pt, err := DecryptNoiseFrame(key, nonce, fr)
+
+			curNonce := nonce
+			nonce++
+
+			if err != nil {
+				ni.Log.Printf("Decrypt failed node%d->node%d dir=%v nonce=%d err=%v head=%s",
+					sender, receiver, forwardDir, curNonce, err, headHex(fr, 16))
+				continue
+			}
+
+			ni.Log.Printf("Decrypted node%d->node%d dir=%v nonce=%d pt_len=%d pt_head=%s",
+				sender, receiver, forwardDir, curNonce, len(pt), headHex(pt, 32))
+		}
 	})
 }
 
@@ -253,6 +285,11 @@ func NewU16Framer() *U16Framer {
 		buf:      make([]byte, 0, 64*1024),
 		expected: 0,
 	}
+}
+
+func (f *U16Framer) Reset() {
+	f.buf = f.buf[:0]
+	f.expected = 0
 }
 
 // Parse returns 0 or more complete frames (without the 2-byte len prefix).

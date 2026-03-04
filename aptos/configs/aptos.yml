@@ -23,7 +23,7 @@ FaultConfig:
 ProcessConfig:
   NumReplicas: 4
   Timeout: 100
-  OutputDir:  output/aptos/20260303_110321
+  OutputDir:  output/aptos/20260304_163321
   ReplicaScript: aptos/aptos_server.sh
   ClientScripts: []
   CleanScript: aptos/aptos_clean.sh

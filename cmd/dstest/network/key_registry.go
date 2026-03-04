@@ -50,8 +50,13 @@ type KeyRegistry struct {
 
 type LinkKeys struct {
 	// keys used for decrypt/encrypt depending on direction
-	SenderInitiator   NoiseSessionKeys // sender side (initiator) with remote=receiver_static
-	ReceiverResponder NoiseSessionKeys // receiver side (responder) with remote=sender_static
+	// sender -> receiver direction
+	S2R_Initiator NoiseSessionKeys // node=sender,  event=initiator, remote=receiver_static
+	R2S_Responder NoiseSessionKeys // node=receiver,event=responder, remote=sender_static
+
+	// receiver -> sender direction
+	R2S_Initiator NoiseSessionKeys // node=receiver,event=initiator, remote=sender_static
+	S2R_Responder NoiseSessionKeys // node=sender,  event=responder, remote=receiver_static
 }
 
 // BASE_DIR : /tmp/aptos-dstest
@@ -100,35 +105,68 @@ func (kr *KeyRegistry) GetNodeStaticHex(node int) (string, bool) {
 }
 
 func (kr *KeyRegistry) GetKeysForLink(sender, receiver int) (LinkKeys, bool) {
-	var out LinkKeys
+	kr.RefreshNode(sender)
+	kr.RefreshNode(receiver)
 
-	senderStatic, ok := kr.GetNodeStaticHex(sender)
-	if !ok {
-		return out, false
-	}
-	receiverStatic, ok := kr.GetNodeStaticHex(receiver)
-	if !ok {
-		return out, false
+	senderStatic, ok1 := kr.GetNodeStaticHex(sender)
+	receiverStatic, ok2 := kr.GetNodeStaticHex(receiver)
+	if !ok1 || !ok2 {
+		return LinkKeys{}, false
 	}
 
+	// sender -> receiver
+	s2rInit, ok := kr.Get(sender, "initiator", receiverStatic)
+	if !ok {
+		return LinkKeys{}, false
+	}
+	r2sResp, ok := kr.Get(receiver, "responder", senderStatic)
+	if !ok {
+		return LinkKeys{}, false
+	}
+
+	// receiver -> sender
+	r2sInit, ok := kr.Get(receiver, "initiator", senderStatic)
+	if !ok {
+		return LinkKeys{}, false
+	}
+	s2rResp, ok := kr.Get(sender, "responder", receiverStatic)
+	if !ok {
+		return LinkKeys{}, false
+	}
+
+	return LinkKeys{
+		S2R_Initiator: s2rInit,
+		R2S_Responder: r2sResp,
+		R2S_Initiator: r2sInit,
+		S2R_Responder: s2rResp,
+	}, true
+}
+
+type DialKeys struct {
+	S2R_Initiator NoiseSessionKeys // sender, initiator, remote=receiver_static
+	R2S_Responder NoiseSessionKeys // receiver, responder, remote=sender_static
+}
+
+func (kr *KeyRegistry) GetKeysForDial(sender, receiver int) (DialKeys, bool) {
 	_ = kr.RefreshNode(sender)
 	_ = kr.RefreshNode(receiver)
 
-	// sender initiated to receiver
-	si, ok := kr.Get(sender, "initiator", receiverStatic)
-	if !ok {
-		return out, false
+	senderStatic, ok1 := kr.GetNodeStaticHex(sender)
+	receiverStatic, ok2 := kr.GetNodeStaticHex(receiver)
+	if !ok1 || !ok2 {
+		return DialKeys{}, false
 	}
 
-	// receiver responded to sender
-	rr, ok := kr.Get(receiver, "responder", senderStatic)
+	s2rInit, ok := kr.Get(sender, "initiator", receiverStatic)
 	if !ok {
-		return out, false
+		return DialKeys{}, false
+	}
+	r2sResp, ok := kr.Get(receiver, "responder", senderStatic)
+	if !ok {
+		return DialKeys{}, false
 	}
 
-	out.SenderInitiator = si
-	out.ReceiverResponder = rr
-	return out, true
+	return DialKeys{S2R_Initiator: s2rInit, R2S_Responder: r2sResp}, true
 }
 
 // Tail any new lines since last time for this node
