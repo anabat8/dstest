@@ -22,7 +22,7 @@ BASE_DIR ?= /tmp/aptos-dstest
 CONFIG ?= $(DSTEST_ROOT)/aptos/configs/aptos.yml
 
 # localnet config
-NUM_REPLICAS ?= 4
+NUM_REPLICAS ?= 3
 CHAIN_ID ?= 42
 EPOCH_DURATION_SECS ?= 7200
 

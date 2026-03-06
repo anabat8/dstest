@@ -21,9 +21,9 @@ FaultConfig:
   Faults: []
 
 ProcessConfig:
-  NumReplicas: 4
+  NumReplicas: 3
   Timeout: 100
-  OutputDir:  output/aptos/20260304_163321
+  OutputDir:  output/aptos/20260305_162303
   ReplicaScript: aptos/aptos_server.sh
   ClientScripts: []
   CleanScript: aptos/aptos_clean.sh
@@ -31,4 +31,3 @@ ProcessConfig:
     - "0 /tmp/aptos-dstest"
     - "1 /tmp/aptos-dstest"
     - "2 /tmp/aptos-dstest"
-    - "3 /tmp/aptos-dstest"

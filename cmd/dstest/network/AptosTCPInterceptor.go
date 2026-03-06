@@ -136,6 +136,7 @@ func (ni *AptosTCPInterceptor) session(
 	keysBound := false
 	var dk DialKeys
 	var nonce uint64
+	var key [32]byte
 
 	ni.proxyAndTap(from, to, func(chunk []byte) {
 
@@ -148,14 +149,15 @@ func (ni *AptosTCPInterceptor) session(
 			dk = got
 			keysBound = true
 
-			// choose which key+nonce we use for this direction:
-			// forwardDir=true is sender->receiver, false otherwise
-			// sender->receiver uses sender initiator WRITE key + write_nonce0
-			// receiver->sender uses receiver responder WRITE key + write_nonce0
+			ni.keyReg.RefreshNode(sender)
+			ni.keyReg.RefreshNode(receiver)
+
 			if forwardDir {
-				nonce = dk.S2R_Initiator.WriteNonce0
+				nonce = dk.R2S_Responder.ReadNonce0
+				key = dk.R2S_Responder.ReadKey
 			} else {
-				nonce = dk.R2S_Responder.WriteNonce0
+				nonce = dk.S2R_Initiator.ReadNonce0
+				key = dk.S2R_Initiator.ReadKey
 			}
 
 			ni.Log.Printf(
@@ -170,13 +172,6 @@ func (ni *AptosTCPInterceptor) session(
 		frames := framer.Parse(chunk)
 
 		for _, fr := range frames {
-			// choose key based on direction
-			var key [32]byte
-			if forwardDir {
-				key = dk.S2R_Initiator.WriteKey
-			} else {
-				key = dk.R2S_Responder.WriteKey
-			}
 
 			ni.Log.Printf("dir=%v key_head=%s nonce0=%d", forwardDir, hex.EncodeToString(key[:])[:16], nonce)
 
