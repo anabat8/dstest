@@ -8,12 +8,14 @@ import (
 	"net"
 	"os"
 	"sync"
+
+	aptos "github.com/egeberkaygulcan/dstest/cmd/dstest/network/aptos"
 )
 
 type AptosTCPInterceptor struct {
 	BaseInterceptor
 	Listener net.Listener
-	keyReg   *KeyRegistry // For keeping track of all sessions keys
+	keyReg   *aptos.KeyRegistry // For keeping track of all sessions keys
 }
 
 // Check if BaseInterceptor implements Interceptor interface
@@ -30,7 +32,7 @@ func (ni *AptosTCPInterceptor) Init(id int, port int, nm *Manager) {
 	if baseDir == "" {
 		baseDir = "/tmp/aptos-dstest"
 	}
-	ni.keyReg = NewKeyRegistry(baseDir)
+	ni.keyReg = aptos.NewKeyRegistry(baseDir)
 }
 
 func (ni *AptosTCPInterceptor) Run() (err error) {
@@ -105,6 +107,14 @@ func (ni *AptosTCPInterceptor) handleConnection(clientConn net.Conn) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
+	ni.Log.Printf(
+		"Port %d mapping sender=%d receiver=%d clientRemote=%s",
+		ni.Port,
+		sender,
+		receiver,
+		clientConn.LocalAddr(),
+	)
+
 	// client -> target
 	go func() {
 		defer wg.Done()
@@ -128,13 +138,14 @@ func (ni *AptosTCPInterceptor) session(
 	dumpOnce *sync.Once) {
 
 	framer := NewU16Framer()
+	//plainFramer := NewU32Framer()
 
 	if tcp, ok := to.(*net.TCPConn); ok {
 		defer tcp.CloseWrite()
 	}
 
 	keysBound := false
-	var dk DialKeys
+	var dk aptos.DialKeys
 	var nonce uint64
 	var key [32]byte
 
@@ -175,7 +186,7 @@ func (ni *AptosTCPInterceptor) session(
 
 			ni.Log.Printf("dir=%v key_head=%s nonce0=%d", forwardDir, hex.EncodeToString(key[:])[:16], nonce)
 
-			pt, err := DecryptNoiseFrame(key, nonce, fr)
+			pt, err := aptos.DecryptNoiseFrame(key, nonce, fr)
 
 			curNonce := nonce
 			nonce++
@@ -188,6 +199,13 @@ func (ni *AptosTCPInterceptor) session(
 
 			ni.Log.Printf("Decrypted node%d->node%d dir=%v nonce=%d pt_len=%d pt_head=%s",
 				sender, receiver, forwardDir, curNonce, len(pt), headHex(pt, 32))
+
+			// After decryption, the plaintext is framed as [u32_be len][len bytes of payload],
+			// where the payload is a BCS-serialized MultiplexMessage
+			//msgs := plainFramer.Parse(pt)
+			//for _, m := range msgs {
+			// m is one full BCS-serialized MultiplexMessage
+			//}
 		}
 	})
 }
@@ -222,21 +240,23 @@ func (ni *AptosTCPInterceptor) proxyAndTap(inConn net.Conn, outConn net.Conn, ta
 }
 
 func (ni *AptosTCPInterceptor) debugKeysForPair(sender, receiver int) {
-	ni.keyReg.mu.RLock()
-	defer ni.keyReg.mu.RUnlock()
+	ni.keyReg.Mu.RLock()
+	defer ni.keyReg.Mu.RUnlock()
 
 	ni.Log.Printf("=== KeyRegistry relevant dump for link node%d<->node%d (total=%d) ===",
-		sender, receiver, len(ni.keyReg.sessions))
+		sender, receiver, len(ni.keyReg.Sessions))
 
-	for k, v := range ni.keyReg.sessions {
-		if k.node != sender && k.node != receiver {
+	for k, v := range ni.keyReg.Sessions {
+		if k.Node != sender && k.Node != receiver {
 			continue
 		}
 		ni.Log.Printf("node=%d event=%s remote=%s write_nonce0=%d read_nonce0=%d",
-			k.node, k.event, k.rsHex[:16], v.WriteNonce0, v.ReadNonce0)
+			k.Node, k.Event, k.RsHex[:16], v.WriteNonce0, v.ReadNonce0)
 	}
 }
 
+// Helper functions
+// -----------------
 func writeFull(conn net.Conn, buf []byte) error {
 	for len(buf) > 0 {
 		n, err := conn.Write(buf)
@@ -267,7 +287,7 @@ func headHex(b []byte, n int) string {
 }
 
 //
-// U16 framer: extracts frames from a stream: [u16_be len][len bytes of encrypted msg]
+// U16 framer: extracts frames from an encrypted Noise stream: [u16_be len][len bytes of encrypted msg]
 //
 
 type U16Framer struct {
@@ -323,4 +343,76 @@ func (f *U16Framer) Parse(chunk []byte) (frames [][]byte) {
 
 		frames = append(frames, frame)
 	}
+}
+
+// U32 framer: extracts frames from a decrypted plaintext stream [u32_be len][len bytes]
+type U32Framer struct {
+	buf      []byte
+	expected int // 0 means "need 4-byte len"
+}
+
+func NewU32Framer() *U32Framer {
+	return &U32Framer{
+		buf:      make([]byte, 0, 128*1024),
+		expected: 0,
+	}
+}
+
+func (f *U32Framer) Reset() {
+	f.buf = f.buf[:0]
+	f.expected = 0
+}
+
+// Parse returns 0 or more complete frames for the decrypted plaintext,
+// where each frame is the payload without the 4-byte len prefix.
+// [u32_be len][len bytes]
+func (f *U32Framer) Parse(chunk []byte) (frames [][]byte) {
+	f.buf = append(f.buf, chunk...)
+
+	for {
+		if f.expected == 0 {
+			if len(f.buf) < 4 {
+				return frames
+			}
+			f.expected = int(binary.BigEndian.Uint32(f.buf[:4]))
+			f.buf = f.buf[4:]
+
+			if f.expected <= 0 || f.expected > 16*1024*1024 {
+				// Reset state
+				f.expected = 0
+				f.buf = f.buf[:0]
+				return frames
+			}
+		}
+
+		if len(f.buf) < f.expected {
+			return frames
+		}
+
+		frame := make([]byte, f.expected)
+		copy(frame, f.buf[:f.expected])
+		f.buf = f.buf[f.expected:]
+		f.expected = 0
+
+		frames = append(frames, frame)
+	}
+}
+
+// AptosNetworkEnvelope represents the decoded contents of a NoiseStream frame after decryption
+type AptosNetworkEnvelope struct {
+	Variant    string // "DirectSendMsg", "RpcRequest", "RpcResponse"
+	ProtocolID string
+	Payload    []byte
+}
+
+func (ni *AptosTCPInterceptor) decodeNetworkMessage(pt []byte) (*AptosNetworkEnvelope, error) {
+	return nil, nil
+}
+func (ni *AptosTCPInterceptor) decodeConsensusMessage(env *AptosNetworkEnvelope) error {
+	// TODO: decode the payload of the envelope based on the variant and protocol ID
+	// For consensus messages, we expect:
+	//   Variant = "DirectSendMsg|RpcRequest|RpcResponse"
+	//   ProtocolID = "/aptos.consensus.v1.ConsensusMsg"
+	// The payload is a protobuf message of type aptos.consensus.v1.ConsensusMsg
+	return nil
 }

@@ -1,4 +1,4 @@
-package network
+package aptos
 
 import (
 	"bufio"
@@ -35,15 +35,15 @@ type NoiseSessionKeys struct {
 
 // Keyed by (node, event, remote_static)
 type sessionKey struct {
-	node  int
-	event string
-	rsHex string
+	Node  int
+	Event string
+	RsHex string
 }
 
 type KeyRegistry struct {
 	baseDir    string
-	mu         sync.RWMutex
-	sessions   map[sessionKey]NoiseSessionKeys // holds the latest keys seen
+	Mu         sync.RWMutex
+	Sessions   map[sessionKey]NoiseSessionKeys // holds the latest keys seen
 	filePos    map[int]int64                   // per node file offset for tailing, s.t we don't reread the whole file every time
 	nodeStatic map[int]string                  // node index -> static pubkey hex
 }
@@ -63,7 +63,7 @@ type LinkKeys struct {
 func NewKeyRegistry(baseDir string) *KeyRegistry {
 	return &KeyRegistry{
 		baseDir:    baseDir,
-		sessions:   make(map[sessionKey]NoiseSessionKeys),
+		Sessions:   make(map[sessionKey]NoiseSessionKeys),
 		filePos:    make(map[int]int64),
 		nodeStatic: make(map[int]string),
 	}
@@ -81,12 +81,12 @@ func (kr *KeyRegistry) nodeStaticPath(node int) string {
 
 // Load once and cache
 func (kr *KeyRegistry) GetNodeStaticHex(node int) (string, bool) {
-	kr.mu.RLock()
+	kr.Mu.RLock()
 	if v, ok := kr.nodeStatic[node]; ok {
-		kr.mu.RUnlock()
+		kr.Mu.RUnlock()
 		return v, true
 	}
-	kr.mu.RUnlock()
+	kr.Mu.RUnlock()
 
 	b, err := os.ReadFile(kr.nodeStaticPath(node))
 	if err != nil {
@@ -98,9 +98,9 @@ func (kr *KeyRegistry) GetNodeStaticHex(node int) (string, bool) {
 		return "", false
 	}
 
-	kr.mu.Lock()
+	kr.Mu.Lock()
 	kr.nodeStatic[node] = s
-	kr.mu.Unlock()
+	kr.Mu.Unlock()
 	return s, true
 }
 
@@ -182,9 +182,9 @@ func (kr *KeyRegistry) RefreshNode(node int) error {
 	}
 	defer f.Close()
 
-	kr.mu.Lock()
+	kr.Mu.Lock()
 	offset := kr.filePos[node]
-	kr.mu.Unlock()
+	kr.Mu.Unlock()
 
 	// Seek to last read offset
 	if offset > 0 {
@@ -226,16 +226,16 @@ func (kr *KeyRegistry) RefreshNode(node int) error {
 			continue
 		}
 
-		kr.mu.Lock()
-		kr.sessions[sessionKey{node: node, event: parsed.Event, rsHex: hex.EncodeToString(parsed.RemoteStatic[:])}] = parsed
+		kr.Mu.Lock()
+		kr.Sessions[sessionKey{Node: node, Event: parsed.Event, RsHex: hex.EncodeToString(parsed.RemoteStatic[:])}] = parsed
 		kr.filePos[node] = newOffset
-		kr.mu.Unlock()
+		kr.Mu.Unlock()
 	}
 
 	// scanner error not fatal
-	kr.mu.Lock()
+	kr.Mu.Lock()
 	kr.filePos[node] = newOffset
-	kr.mu.Unlock()
+	kr.Mu.Unlock()
 
 	return nil
 }
@@ -270,18 +270,18 @@ func decodeSecrets(node int, raw noiseSecretsLine) (NoiseSessionKeys, bool) {
 
 // Look up latest session keys for (node,event,remote_static_hex)
 func (kr *KeyRegistry) Get(node int, event string, remoteStaticHex string) (NoiseSessionKeys, bool) {
-	kr.mu.RLock()
-	defer kr.mu.RUnlock()
-	v, ok := kr.sessions[sessionKey{node: node, event: event, rsHex: strings.ToLower(remoteStaticHex)}]
+	kr.Mu.RLock()
+	defer kr.Mu.RUnlock()
+	v, ok := kr.Sessions[sessionKey{Node: node, Event: event, RsHex: strings.ToLower(remoteStaticHex)}]
 	return v, ok
 }
 
 // Returns true if we've seen any secrets for this node yet
 func (kr *KeyRegistry) HasAnyForNode(node int) bool {
-	kr.mu.RLock()
-	defer kr.mu.RUnlock()
-	for k := range kr.sessions {
-		if k.node == node {
+	kr.Mu.RLock()
+	defer kr.Mu.RUnlock()
+	for k := range kr.Sessions {
+		if k.Node == node {
 			return true
 		}
 	}

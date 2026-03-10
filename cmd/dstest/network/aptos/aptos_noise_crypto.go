@@ -1,4 +1,4 @@
-package network
+package aptos
 
 //! Aptos:
 //! For post-handshake NoiseStream, each direction is:
