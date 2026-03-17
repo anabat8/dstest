@@ -1,15 +1,21 @@
 package network
 
 import (
+	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"log"
+	"math/big"
 	"net"
 	"os"
 	"sync"
 
 	aptos "github.com/egeberkaygulcan/dstest/cmd/dstest/network/aptos"
+	"github.com/fardream/go-bcs/bcs"
+	"github.com/pierrec/lz4/v4"
 )
 
 type AptosTCPInterceptor struct {
@@ -91,7 +97,8 @@ func (ni *AptosTCPInterceptor) handleConnection(clientConn net.Conn) {
 	targetPort := ni.NetworkManager.Config.NetworkConfig.BaseReplicaPort + receiver + 1
 	targetAddr := fmt.Sprintf("127.0.0.1:%d", targetPort)
 
-	ni.Log.Printf("Proxying connection: node%d -> node%d (target %s)\n", sender, receiver, targetAddr)
+	sessionId, _ := rand.Int(rand.Reader, big.NewInt(100))
+	ni.Log.Printf("[%d] Proxying connection: node%d -> node%d (target %s)\n", sessionId.Int64(), sender, receiver, targetAddr)
 
 	// Connect to the target node (forward immediately; the TCP proxy bypasses the scheduler)
 	targetConn, err := net.Dial("tcp", targetAddr)
@@ -100,8 +107,6 @@ func (ni *AptosTCPInterceptor) handleConnection(clientConn net.Conn) {
 		return
 	}
 	defer targetConn.Close()
-
-	var dumpOnce sync.Once // Var used for debugging purposes
 
 	// Two-way proxy
 	var wg sync.WaitGroup
@@ -115,30 +120,58 @@ func (ni *AptosTCPInterceptor) handleConnection(clientConn net.Conn) {
 		clientConn.LocalAddr(),
 	)
 
+	//ni.skipHandshake(clientConn, targetConn)
+
 	// client -> target
 	go func() {
 		defer wg.Done()
-		ni.session(clientConn, targetConn, sender, receiver, true, &dumpOnce)
+		defer ni.Log.Printf("[%d] Initiator->dstest session closed for node%d->node%d\n", sessionId.Int64(), sender, receiver)
+		ni.session(clientConn, targetConn, sender, receiver, true, sessionId.Int64())
 	}()
 
 	// target -> client
 	go func() {
 		defer wg.Done()
-		ni.session(targetConn, clientConn, sender, receiver, false, &dumpOnce)
+		defer ni.Log.Printf("[%d] dstest<-Responder session closed for node%d->node%d\n", sessionId.Int64(), sender, receiver)
+		ni.session(targetConn, clientConn, sender, receiver, false, sessionId.Int64())
 	}()
 
 	wg.Wait()
-	ni.Log.Printf("Connection closed: node%d -> node%d\n", sender, receiver)
+	ni.Log.Printf("[%d] Connection closed: node%d -> node%d\n", sessionId.Int64(), sender, receiver)
+}
+
+func (ni *AptosTCPInterceptor) skipHandshake(clientConn, serverConn net.Conn) {
+	// 1) initiator -> responder handshake
+	buf1 := make([]byte, 168)
+	_, err := io.ReadFull(clientConn, buf1)
+	if err != nil {
+		ni.Log.Printf("Error reading handshake from initiator: %s\n", err.Error())
+	}
+	_, err = serverConn.Write(buf1)
+	if err != nil {
+		ni.Log.Printf("Error writing handshake to responder: %s\n", err.Error())
+	}
+
+	// 2) responder -> initiator handshake
+	buf2 := make([]byte, 48)
+	_, err = io.ReadFull(serverConn, buf2)
+	if err != nil {
+		ni.Log.Printf("Error reading handshake from responder: %s\n", err.Error())
+	}
+	_, err = clientConn.Write(buf2)
+	if err != nil {
+		ni.Log.Printf("Error writing handshake to initiator: %s\n", err.Error())
+	}
 }
 
 func (ni *AptosTCPInterceptor) session(
 	from, to net.Conn,
 	sender, receiver int,
 	forwardDir bool,
-	dumpOnce *sync.Once) {
+	sessionId int64) {
 
 	framer := NewU16Framer()
-	//plainFramer := NewU32Framer()
+	plainFramer := NewU32Framer()
 
 	if tcp, ok := to.(*net.TCPConn); ok {
 		defer tcp.CloseWrite()
@@ -150,7 +183,7 @@ func (ni *AptosTCPInterceptor) session(
 	var key [32]byte
 
 	ni.proxyAndTap(from, to, func(chunk []byte) {
-
+		//ni.Log.Printf("Read: %v\n", chunk)
 		if !keysBound {
 			got, ok := ni.keyReg.GetKeysForDial(sender, receiver)
 			if !ok {
@@ -172,10 +205,12 @@ func (ni *AptosTCPInterceptor) session(
 			}
 
 			ni.Log.Printf(
-				"Bound link node%d<->node%d dir=%v: nonce0=%d",
-				sender, receiver, forwardDir, nonce,
+				"[%d] BOUND proxy node%d<->node%d dir=%v iw=%s ir=%s remote=%s",
+				sessionId, sender, receiver, forwardDir,
+				hex.EncodeToString(dk.S2R_Initiator.WriteKey[:8]),
+				hex.EncodeToString(dk.S2R_Initiator.ReadKey[:8]),
+				hex.EncodeToString(dk.S2R_Initiator.RemoteStatic[:8]),
 			)
-			dumpOnce.Do(func() { ni.debugKeysForPair(sender, receiver) })
 		}
 
 		// Post-handshake
@@ -192,20 +227,37 @@ func (ni *AptosTCPInterceptor) session(
 			nonce++
 
 			if err != nil {
-				ni.Log.Printf("Decrypt failed node%d->node%d dir=%v nonce=%d err=%v head=%s",
-					sender, receiver, forwardDir, curNonce, err, headHex(fr, 16))
+				ni.Log.Printf("[%d] Decrypt failed node%d->node%d dir=%v nonce=%d err=%v head=%s",
+					sessionId, sender, receiver, forwardDir, curNonce, err, headHex(fr, 16))
 				continue
 			}
 
-			ni.Log.Printf("Decrypted node%d->node%d dir=%v nonce=%d pt_len=%d pt_head=%s",
-				sender, receiver, forwardDir, curNonce, len(pt), headHex(pt, 32))
+			ni.Log.Printf("[%d] Decrypted node%d->node%d dir=%v nonce=%d pt_len=%d pt_head=%s",
+				sessionId, sender, receiver, forwardDir, curNonce, len(pt), headHex(pt, 32))
 
 			// After decryption, the plaintext is framed as [u32_be len][len bytes of payload],
 			// where the payload is a BCS-serialized MultiplexMessage
-			//msgs := plainFramer.Parse(pt)
-			//for _, m := range msgs {
-			// m is one full BCS-serialized MultiplexMessage
-			//}
+			msgs := plainFramer.Parse(pt)
+			ni.Log.Printf("msg_len=%d", len(msgs))
+			for _, m := range msgs {
+				// m is one full BCS-serialized MultiplexMessage
+				msg, protocolId, err := ni.decodeNetworkMessage(m, sender, receiver, forwardDir, sessionId)
+				if err != nil {
+					ni.Log.Printf("Failed to deserialize message: %v\n", err)
+					continue
+				}
+				if protocolId == nil || !protocolId.IsConsensus() {
+					continue
+				}
+				ni.Log.Printf("Decoded message: node%d->node%d dir=%v sessionId=%d env={Variant=%s ProtocolID=%s PayloadLen=%d PayloadHead=%s}\n",
+					sender, receiver, forwardDir, sessionId, msg.Variant, msg.ProtocolID, len(msg.Payload), headHex(msg.Payload, 32),
+				)
+
+				err = ni.decodeConsensusMessage(msg, protocolId)
+				if err != nil {
+					ni.Log.Printf("Failed to decode consensus message: %v\n", err)
+				}
+			}
 		}
 	})
 }
@@ -228,6 +280,7 @@ func (ni *AptosTCPInterceptor) proxyAndTap(inConn net.Conn, outConn net.Conn, ta
 
 			// Side-effect tap (never blocks forwarding)
 			if tap != nil {
+				ni.Log.Println("Read chunk of size", len(chunk))
 				tap(chunk)
 			}
 		}
@@ -353,7 +406,7 @@ type U32Framer struct {
 
 func NewU32Framer() *U32Framer {
 	return &U32Framer{
-		buf:      make([]byte, 0, 128*1024),
+		buf:      make([]byte, 2, 128*1024),
 		expected: 0,
 	}
 }
@@ -405,14 +458,302 @@ type AptosNetworkEnvelope struct {
 	Payload    []byte
 }
 
-func (ni *AptosTCPInterceptor) decodeNetworkMessage(pt []byte) (*AptosNetworkEnvelope, error) {
-	return nil, nil
+type MultiplexMessage struct {
+	Message *AptosNetworkMessage
+	Stream  any `bcs:"-"`
 }
-func (ni *AptosTCPInterceptor) decodeConsensusMessage(env *AptosNetworkEnvelope) error {
-	// TODO: decode the payload of the envelope based on the variant and protocol ID
-	// For consensus messages, we expect:
-	//   Variant = "DirectSendMsg|RpcRequest|RpcResponse"
-	//   ProtocolID = "/aptos.consensus.v1.ConsensusMsg"
-	// The payload is a protobuf message of type aptos.consensus.v1.ConsensusMsg
+
+func (e MultiplexMessage) IsBcsEnum()    {}
+func (e AptosNetworkMessage) IsBcsEnum() {}
+func (e ProtocolId) IsBcsEnum()          {}
+
+type AptosNetworkMessage struct {
+	Error         any
+	RpcRequest    *RpcRequest
+	RpcResponse   *RpcResponse
+	DirectSendMsg *DirectSendMsg
+}
+
+type DirectSendMsg struct {
+	ProtocolID *ProtocolId
+	Priority   *uint8
+	RawMsg     []byte
+}
+
+type RpcRequest struct {
+	ProtocolID *ProtocolId
+	RequestID  *uint32
+	Priority   *uint8
+	RawRequest []byte
+}
+
+type RpcResponse struct {
+	RequestID   *uint32
+	Priority    *uint8
+	RawResponse []byte
+}
+
+type ProtocolId struct {
+	ConsensusRpcBcs                  *uint8
+	ConsensusDirectSendBcs           *uint8
+	MempoolDirectSend                *uint8
+	StateSyncDirectSend              *uint8
+	DiscoveryDirectSend              *uint8
+	HealthCheckerRpc                 *uint8
+	ConsensusDirectSendJson          *uint8
+	ConsensusRpcJson                 *uint8
+	StorageServiceRpc                *uint8
+	MempoolRpc                       *uint8
+	PeerMonitoringServiceRpc         *uint8
+	ConsensusRpcCompressed           *uint8
+	ConsensusDirectSendCompressed    *uint8
+	NetbenchDirectSend               *uint8
+	NetbenchRpc                      *uint8
+	DKGDirectSendCompressed          *uint8
+	DKGDirectSendBcs                 *uint8
+	DKGDirectSendJson                *uint8
+	DKGRpcCompressed                 *uint8
+	DKGRpcBcs                        *uint8
+	DKGRpcJson                       *uint8
+	JWKConsensusDirectSendCompressed *uint8
+	JWKConsensusDirectSendBcs        *uint8
+	JWKConsensusDirectSendJson       *uint8
+	JWKConsensusRpcCompressed        *uint8
+	JWKConsensusRpcBcs               *uint8
+	JWKConsensusRpcJson              *uint8
+	ConsensusObserver                *uint8
+	ConsensusObserverRpc             *uint8
+}
+
+func (p ProtocolId) String() string {
+	switch {
+	case p.ConsensusRpcBcs != nil:
+		return "ConsensusRpcBcs"
+	case p.ConsensusDirectSendBcs != nil:
+		return "ConsensusDirectSendBcs"
+	case p.MempoolDirectSend != nil:
+		return "MempoolDirectSend"
+	case p.StateSyncDirectSend != nil:
+		return "StateSyncDirectSend"
+	case p.DiscoveryDirectSend != nil:
+		return "DiscoveryDirectSend"
+	case p.HealthCheckerRpc != nil:
+		return "HealthCheckerRpc"
+	case p.ConsensusDirectSendJson != nil:
+		return "ConsensusDirectSendJson"
+	case p.ConsensusRpcJson != nil:
+		return "ConsensusRpcJson"
+	case p.StorageServiceRpc != nil:
+		return "StorageServiceRpc"
+	case p.MempoolRpc != nil:
+		return "MempoolRpc"
+	case p.PeerMonitoringServiceRpc != nil:
+		return "PeerMonitoringServiceRpc"
+	case p.ConsensusRpcCompressed != nil:
+		return "ConsensusRpcCompressed"
+	case p.ConsensusDirectSendCompressed != nil:
+		return "ConsensusDirectSendCompressed"
+	case p.NetbenchDirectSend != nil:
+		return "NetbenchDirectSend"
+	case p.NetbenchRpc != nil:
+		return "NetbenchRpc"
+	case p.DKGDirectSendCompressed != nil:
+		return "DKGDirectSendCompressed"
+	case p.DKGDirectSendBcs != nil:
+		return "DKGDirectSendBcs"
+	case p.DKGDirectSendJson != nil:
+		return "DKGDirectSendJson"
+	case p.DKGRpcCompressed != nil:
+		return "DKGRpcCompressed"
+	case p.DKGRpcBcs != nil:
+		return "DKGRpcBcs"
+	case p.DKGRpcJson != nil:
+		return "DKGRpcJson"
+	case p.JWKConsensusDirectSendCompressed != nil:
+		return "JWKConsensusDirectSendCompressed"
+	case p.JWKConsensusDirectSendBcs != nil:
+		return "JWKConsensusDirectSendBcs"
+	case p.JWKConsensusDirectSendJson != nil:
+		return "JWKConsensusDirectSendJson"
+	case p.JWKConsensusRpcCompressed != nil:
+		return "JWKConsensusRpcCompressed"
+	case p.JWKConsensusRpcBcs != nil:
+		return "JWKConsensusRpcBcs"
+	case p.JWKConsensusRpcJson != nil:
+		return "JWKConsensusRpcJson"
+	case p.ConsensusObserver != nil:
+		return "ConsensusObserver"
+	case p.ConsensusObserverRpc != nil:
+		return "ConsensusObserverRpc"
+	default:
+		return fmt.Sprintf("UnknownProtocolId(%v)", p)
+	}
+}
+
+func (p ProtocolId) IsConsensus() bool {
+	return p.ConsensusRpcBcs != nil ||
+		p.ConsensusRpcJson != nil ||
+		p.ConsensusRpcCompressed != nil ||
+		p.ConsensusDirectSendBcs != nil ||
+		p.ConsensusDirectSendJson != nil ||
+		p.ConsensusDirectSendCompressed != nil
+}
+
+type ConsensusMsg struct {
+	DeprecatedBlockRetrievalRequest any
+	BlockRetrievalResponse          any
+	EpochRetrievalRequest           any
+	ProposalMsg                     any
+	SyncInfo                        any
+	EpochChangeProof                any
+	VoteMsg                         any
+	CommitVoteMsg                   any
+	CommitDecisionMsg               any
+	BatchMsg                        any
+	BatchRequestMsg                 any
+	BatchResponse                   any
+	SignedBatchInfo                 any
+	ProofOfStoreMsg                 any
+	DAGMessage                      any
+	CommitMessage                   any
+	RandGenMessage                  any
+	BatchResponseV2                 any
+	OrderVoteMsg                    any
+	RoundTimeoutMsg                 any
+	BlockRetrievalRequest           any
+	OptProposalMsg                  any
+	BatchMsgV2                      any
+	SignedBatchInfoMsgV2            any
+	ProofOfStoreMsgV2               any
+	SecretShareMsg                  any
+}
+
+func (ConsensusMsg) IsBcsEnum() {}
+
+// Based on ProtocolID, we know its serialization: BCS, JSON, or compressed.
+func (p ProtocolId) GetEncodingType() string {
+	switch {
+	case p.ConsensusRpcCompressed != nil || p.ConsensusDirectSendCompressed != nil:
+		return "Compressed"
+	case p.ConsensusRpcBcs != nil || p.ConsensusDirectSendBcs != nil:
+		return "BCS"
+	case p.ConsensusRpcJson != nil || p.ConsensusDirectSendJson != nil:
+		return "JSON"
+	}
+	return "UnknownEncodingType"
+}
+
+func (p ProtocolId) DecodeInto(payload []byte, msg *ConsensusMsg) error {
+	encoding := p.GetEncodingType()
+	switch encoding {
+	case "Compressed":
+		decompressed := make([]byte, 0)
+		lzReader := lz4.NewReader(bytes.NewReader(payload[4:])) // skip the 4-byte uncompressed length prefix
+		for {
+			buf := make([]byte, 128)
+			n, err := lzReader.Read(buf)
+			if err != nil {
+				return fmt.Errorf("error durring decompression: %w", err)
+			}
+			if n == 0 {
+				break
+			}
+			decompressed = append(decompressed, buf[:n]...)
+		}
+		_, err2 := bcs.Unmarshal(decompressed, msg)
+		if err2 != nil {
+			return fmt.Errorf("bcs error after decompression: %w", err2)
+		}
+	case "BCS":
+		_, err := bcs.Unmarshal(payload, msg)
+		if err != nil {
+			return fmt.Errorf("Failed to decode BCS payload for ProtocolID=%s: %w", p.String(), err)
+		}
+	case "JSON":
+		return fmt.Errorf("JSON decoding not implemented yet for ProtocolID=%s", p.String())
+	default:
+		return fmt.Errorf("Unknown encoding type for ProtocolID=%s", p.String())
+	}
+	return nil
+}
+
+func (ni *AptosTCPInterceptor) decodeNetworkMessage(
+	m []byte,
+	sender int,
+	receiver int,
+	forwardDir bool,
+	sessionId int64,
+) (*AptosNetworkEnvelope, *ProtocolId, error) {
+
+	v := &MultiplexMessage{}
+	if _, err := bcs.Unmarshal(m, v); err != nil {
+		return nil, nil, fmt.Errorf("Failed to unmarshal MultiplexMessage: %w", err)
+	}
+	ni.Log.Printf("Decoded MultiplexMessage node%d->node%d dir=%v sessionId=%d msg=%+v", sender, receiver, forwardDir, sessionId, v)
+
+	msg := v.Message
+
+	if msg == nil {
+		return nil, nil, fmt.Errorf("MultiplexMessage does not contain a Message")
+	}
+
+	ni.Log.Printf(
+		"Decoded AptosNetworkMessage node%d->node%d dir=%v sessionId=%d msg=%+v",
+		sender, receiver, forwardDir, sessionId, msg,
+	)
+
+	env := &AptosNetworkEnvelope{}
+	protocolId := &ProtocolId{}
+
+	switch {
+	case msg.DirectSendMsg != nil:
+		env.Variant = "DirectSendMsg"
+		env.ProtocolID = msg.DirectSendMsg.ProtocolID.String()
+		protocolId = msg.DirectSendMsg.ProtocolID
+		env.Payload = msg.DirectSendMsg.RawMsg
+
+	case msg.RpcRequest != nil:
+		env.Variant = "RpcRequest"
+		env.ProtocolID = msg.RpcRequest.ProtocolID.String()
+		protocolId = msg.RpcRequest.ProtocolID
+		env.Payload = msg.RpcRequest.RawRequest
+
+	case msg.RpcResponse != nil:
+		env.Variant = "RpcResponse"
+		env.ProtocolID = ""
+		protocolId = nil
+		env.Payload = msg.RpcResponse.RawResponse
+
+	case msg.Error != nil:
+		env.Variant = "Error"
+		env.ProtocolID = ""
+		protocolId = nil
+		env.Payload = nil
+
+	default:
+		return nil, nil, fmt.Errorf("Decoded message does not have the right form: neither DirectSendMsg, RpcRequest, RpcResponse nor Error is set")
+	}
+
+	ni.Log.Printf(
+		"Decoded AptosNetworkEnvelope node%d->node%d dir=%v sessionId=%d env={Variant=%s ProtocolID=%s PayloadLen=%d PayloadHead=%s}",
+		sender, receiver, forwardDir, sessionId, env.Variant, env.ProtocolID, len(env.Payload), headHex(env.Payload, 32),
+	)
+	return env, protocolId, nil
+}
+
+// Decodes the payload of the envelope based on the variant and protocol ID
+// For consensus messages, we expect:
+//
+//	Variant = "DirectSendMsg|RpcRequest|RpcResponse"
+//	ProtocolID = "ConsensusRpcBcs|ConsensusDirectSendBcs|ConsensusRpcJson|ConsensusDirectSendJson|ConsensusRpcCompressed|ConsensusDirectSendCompressed"
+//
+// The payload is a protobuf message of type ConsensusMsg
+func (ni *AptosTCPInterceptor) decodeConsensusMessage(env *AptosNetworkEnvelope, protocolID *ProtocolId) error {
+	var cmsg ConsensusMsg
+	if err := protocolID.DecodeInto(env.Payload, &cmsg); err != nil {
+		return err
+	}
+
+	ni.Log.Printf("Consensus payload decoded: %+v", cmsg)
 	return nil
 }

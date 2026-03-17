@@ -1,11 +1,13 @@
 module github.com/egeberkaygulcan/dstest
 
-go 1.20
+go 1.22
 
 require (
 	github.com/aunum/gold v0.0.0-20201022151355-225e849d893f
 	github.com/aunum/log v0.0.0-20200821225356-38d2e2c8b489
+	github.com/fardream/go-bcs v0.9.0
 	github.com/k0kubun/pp v3.0.1+incompatible
+	github.com/pierrec/lz4/v4 v4.1.8
 	github.com/segmentio/fasthash v1.0.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.18.2
