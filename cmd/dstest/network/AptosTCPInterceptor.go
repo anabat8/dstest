@@ -351,7 +351,7 @@ func (ni *AptosTCPInterceptor) decodeNetworkMessage(
 ) (*aptos.AptosNetworkEnvelope, *aptos.ProtocolId, error) {
 
 	v := &aptos.MultiplexMessage{}
-	if _, err := bcs.Unmarshal(m, v); err != nil {
+	if err := bcs.UnmarshalAll(m, v); err != nil {
 		return nil, nil, fmt.Errorf("Failed to unmarshal MultiplexMessage: %w", err)
 	}
 	ni.Log.Printf("Decoded MultiplexMessage node%d->node%d dir=%v sessionId=%d msg=%+v", sender, receiver, forwardDir, sessionId, v)
@@ -415,10 +415,12 @@ func (ni *AptosTCPInterceptor) decodeNetworkMessage(
 // The payload is a protobuf message of type ConsensusMsg
 func (ni *AptosTCPInterceptor) decodeConsensusMessage(env *aptos.AptosNetworkEnvelope, protocolID *aptos.ProtocolId) error {
 	var cmsg aptos.ConsensusMsg
-	if err := protocolID.DecodeInto(env.Payload, &cmsg); err != nil {
+	name, err := protocolID.DecodeInto(env.Payload, &cmsg)
+
+	if err != nil {
 		return err
 	}
 
-	ni.Log.Printf("Consensus payload decoded: %+v", cmsg)
+	ni.Log.Printf("Consensus payload decoded: %s", name)
 	return nil
 }
