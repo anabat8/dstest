@@ -432,6 +432,46 @@ func (ni *AptosTCPInterceptor) decodeConsensusMessage(env *aptos.AptosNetworkEnv
 		}
 		ni.Log.Printf("Decoded ProposalMsg: %v", proposalMsg)
 		aptos.PrettyPrintProposalMsg(&proposalMsg)
+
+	case 21: // OptProposalMsg
+		var optProposalMsg aptos.OptProposalMsg
+		if err := bcs.UnmarshalAll(consensusBody, &optProposalMsg); err != nil {
+			return fmt.Errorf("Failed to unmarshal OptProposalMsg: %w", err)
+		}
+		ni.Log.Printf("Decoded OptProposalMsg: %v", optProposalMsg)
+		aptos.PrettyPrintOptProposalMsg(&optProposalMsg)
+
+	case 6: // VoteMsg
+		var voteMsg aptos.VoteMsg
+		if err := bcs.UnmarshalAll(consensusBody, &voteMsg); err != nil {
+			return fmt.Errorf("Failed to unmarshal VoteMsg: %w", err)
+		}
+		ni.Log.Printf("Decoded VoteMsg: %v", voteMsg)
+		aptos.PrettyPrintVoteMsg(&voteMsg)
+
+	case 7: // CommitVoteMsg
+		var commitVoteMsg aptos.CommitVote
+		if err := bcs.UnmarshalAll(consensusBody, &commitVoteMsg); err != nil {
+			return fmt.Errorf("Failed to unmarshal CommitVoteMsg: %w", err)
+		}
+		ni.Log.Printf("Decoded CommitVoteMsg: %v", commitVoteMsg)
+		aptos.PrettyPrintCommitVote(&commitVoteMsg)
+
+	case 15: // CommitMessage
+		var commitMsg aptos.CommitMessage
+		if err := bcs.UnmarshalAll(consensusBody, &commitMsg); err != nil {
+			return fmt.Errorf("Failed to unmarshal CommitMsg: %w", err)
+		}
+		ni.Log.Printf("Decoded CommitMsg: %v", commitMsg)
+		aptos.PrettyPrintCommitMessage(&commitMsg)
+
+	case 19: // RoundTimeoutMsg
+		var roundTimeoutMsg aptos.RoundTimeoutMsg
+		if err := bcs.UnmarshalAll(consensusBody, &roundTimeoutMsg); err != nil {
+			return fmt.Errorf("Failed to unmarshal RoundTimeoutMsg: %w", err)
+		}
+		ni.Log.Printf("Decoded RoundTimeoutMsg: %v", roundTimeoutMsg)
+		aptos.PrettyPrintRoundTimeoutMsg(&roundTimeoutMsg)
 	}
 
 	ni.Log.Printf("Consensus payload decoded: %s", aptos.ConsensusMsgVariantName(consensusTag))
