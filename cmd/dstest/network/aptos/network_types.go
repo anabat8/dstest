@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/fardream/go-bcs/bcs"
+	"github.com/aptos-labs/aptos-go-sdk/bcs"
 	"github.com/pierrec/lz4/v4"
 )
 
@@ -183,72 +183,53 @@ func (p ProtocolId) GetEncodingType() string {
 	return "UnknownEncodingType"
 }
 
-func (p ProtocolId) DecodeInto(payload []byte, msg *ConsensusMsg) (string, error) {
+func (p ProtocolId) DecodeConsensusPayload(payload []byte) ([]byte, uint32, int, error) {
 	encoding := p.GetEncodingType()
+	var decoded []byte
+
 	switch encoding {
 	case "Compressed":
-		// decompressed := make([]byte, 0)
-		// lzReader := lz4.NewReader(bytes.NewReader(payload[4:])) // skip the 4-byte uncompressed length prefix
-		// for {
-		// 	buf := make([]byte, 128)
-		// 	n, err := lzReader.Read(buf)
-		// 	if err != nil {
-		// 		return fmt.Errorf("error durring decompression: %w", err)
-		// 	}
-		// 	if n == 0 {
-		// 		break
-		// 	}
-		// 	decompressed = append(decompressed, buf[:n]...)
-		// }
-		// _, err2 := bcs.Unmarshal(decompressed, msg)
-		// if err2 != nil {
-		// 	return fmt.Errorf("bcs error after decompression: %w", err2)
-		// }
+		// Decompress the payload using lz4 and then decode the inner BCS message.
 		if len(payload) < 4 {
-			return "", fmt.Errorf("Compressed payload too short to contain uncompressed length prefix for ProtocolID=%s", p.String())
+			return nil, 0, 0, fmt.Errorf("Compressed payload too short to contain uncompressed length prefix for ProtocolID=%s", p.String())
 		}
 
 		uncompressedSize := int(binary.LittleEndian.Uint32(payload[:4]))
-		if uncompressedSize < 0 {
-			return "", fmt.Errorf("invalid uncompressed size for %s: %d", p.String(), uncompressedSize)
-		}
-
-		src := payload[4:]
 		dst := make([]byte, uncompressedSize)
 
-		n, err := lz4.UncompressBlock(src, dst)
+		n, err := lz4.UncompressBlock(payload[4:], dst)
 		if err != nil {
-			return "", fmt.Errorf("lz4 block decompression failed for %s: %w", p.String(), err)
+			return nil, 0, 0, fmt.Errorf("lz4 block decompression failed for %s: %w", p.String(), err)
 		}
 		if n != uncompressedSize {
-			return "", fmt.Errorf(
-				"lz4 block decompressed unexpected size for %s: got=%d want=%d",
-				p.String(), n, uncompressedSize,
-			)
+			return nil, 0, 0, fmt.Errorf("lz4 block decompressed unexpected size for %s: got=%d want=%d", p.String(), n, uncompressedSize)
 		}
 
-		variant, n, err := readULEB128(dst)
-		if err != nil {
-			return "", fmt.Errorf("failed reading consensus enum tag for ProtocolID=%s: %w", p.String(), err)
-		}
-
-		return fmt.Sprintf("%s (tag=%d, tagBytes=%d)", ConsensusMsgVariantName(variant), variant, n), nil
-
-		// if err := bcs.UnmarshalAll(dst, msg); err != nil {
-		// 	return fmt.Errorf("bcs error after decompression: %w", err)
-		// }
+		decoded = dst
 
 	case "BCS":
-		err := bcs.UnmarshalAll(payload, msg)
-		if err != nil {
-			return "", fmt.Errorf("Failed to decode BCS payload for ProtocolID=%s: %w", p.String(), err)
-		}
+		decoded = payload
+
 	case "JSON":
-		return "", fmt.Errorf("JSON decoding not implemented yet for ProtocolID=%s", p.String())
+		return nil, 0, 0, fmt.Errorf("JSON decoding not implemented yet for ProtocolID=%s", p.String())
 	default:
-		return "", fmt.Errorf("Unknown encoding type for ProtocolID=%s", p.String())
+		return nil, 0, 0, fmt.Errorf("Unknown encoding type for ProtocolID=%s", p.String())
 	}
-	return "", nil
+
+	// For consensus messages, the first field is always a uleb128 enum tag indicating the message variant.
+	// We want to read this tag to determine if we will further decode this payload.
+	des := bcs.NewDeserializer(decoded)
+	val_des := des.Uleb128()
+	tag_bytes_consumed := len(decoded) - des.Remaining()
+
+	return decoded, val_des, tag_bytes_consumed, nil
+
+	//variant, n, err := readULEB128(decoded)
+	// if err != nil {
+	// 	return nil, 0, 0, fmt.Errorf("failed reading consensus enum tag for ProtocolID=%s: %w", p.String(), err)
+	// }
+
+	// return decoded, variant, n, nil
 }
 
 // ConsensusMsg is the network data type used by Aptos in the consensus protocol.
@@ -256,7 +237,7 @@ type ConsensusMsg struct {
 	DeprecatedBlockRetrievalRequest any
 	BlockRetrievalResponse          any
 	EpochRetrievalRequest           any
-	ProposalMsg                     any
+	ProposalMsg                     *ProposalMsg
 	SyncInfo                        any
 	EpochChangeProof                any
 	VoteMsg                         any
@@ -283,7 +264,9 @@ type ConsensusMsg struct {
 
 func (ConsensusMsg) IsBcsEnum() {}
 
-func readULEB128(b []byte) (uint64, int, error) {
+// Helper for reading a uleb128-encoded unsigned integer from the start of a byte slice.
+// Returns the decoded integer, the number of bytes consumed, and an error if decoding fails.
+func ReadULEB128(b []byte) (uint64, int, error) {
 	var result uint64
 	var shift uint
 	for i, by := range b {
@@ -299,7 +282,7 @@ func readULEB128(b []byte) (uint64, int, error) {
 	return 0, 0, fmt.Errorf("incomplete uleb128")
 }
 
-func ConsensusMsgVariantName(idx uint64) string {
+func ConsensusMsgVariantName(idx uint32) string {
 	switch idx {
 	case 0:
 		return "DeprecatedBlockRetrievalRequest"

@@ -2,6 +2,7 @@ package network
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -414,13 +415,90 @@ func (ni *AptosTCPInterceptor) decodeNetworkMessage(
 //
 // The payload is a protobuf message of type ConsensusMsg
 func (ni *AptosTCPInterceptor) decodeConsensusMessage(env *aptos.AptosNetworkEnvelope, protocolID *aptos.ProtocolId) error {
-	var cmsg aptos.ConsensusMsg
-	name, err := protocolID.DecodeInto(env.Payload, &cmsg)
+	decoded, consensusTag, consensusTagLen, err := protocolID.DecodeConsensusPayload(env.Payload)
 
 	if err != nil {
 		return err
 	}
 
-	ni.Log.Printf("Consensus payload decoded: %s", name)
+	// The body is the remaining bytes after the enum tag
+	consensusBody := decoded[consensusTagLen:]
+
+	switch consensusTag {
+	case 3: //ProposalMsg
+		var proposalMsg aptos.ProposalMsg
+		if err := bcs.UnmarshalAll(consensusBody, &proposalMsg); err != nil {
+			return fmt.Errorf("Failed to unmarshal ProposalMsg: %w", err)
+		}
+		ni.Log.Printf("Decoded ProposalMsg: %v", proposalMsg)
+		aptos.PrettyPrintProposalMsg(&proposalMsg)
+	}
+
+	ni.Log.Printf("Consensus payload decoded: %s", aptos.ConsensusMsgVariantName(consensusTag))
 	return nil
+}
+
+func (ni *AptosTCPInterceptor) debug(consensusBody []byte) error {
+	qcBytes := consensusBody[24:]
+	aptos.DebugUnmarshal(ni.Log.Printf, "QC1", qcBytes, &aptos.QuorumCertPrefix1{})
+	aptos.DebugUnmarshal(ni.Log.Printf, "QC2", qcBytes, &aptos.QuorumCertPrefix2{})
+
+	var proposed aptos.BlockInfo
+	proposedLen, err := bcs.Unmarshal(qcBytes, &proposed)
+	ni.Log.Printf("VoteData.proposed: consumed=%d err=%v", proposedLen, err)
+
+	parentBytes := qcBytes[proposedLen:]
+
+	var parent aptos.BlockInfo
+	parentLen, err := bcs.Unmarshal(parentBytes, &parent)
+	ni.Log.Printf("VoteData.parent: consumed=%d err=%v", parentLen, err)
+
+	voteDataLen := proposedLen + parentLen
+	ni.Log.Printf("VoteData total from 2 BlockInfos = %d", voteDataLen)
+
+	liwsBytes := qcBytes[voteDataLen:]
+	liwsTag, liwsTagLen, err := aptos.ReadULEB128(liwsBytes)
+	ni.Log.Printf("LedgerInfoWithSignatures tag=%d tagLen=%d err=%v", liwsTag, liwsTagLen, err)
+
+	liv0Bytes := liwsBytes[liwsTagLen:]
+	aptos.DebugUnmarshal(ni.Log.Printf, "LIV0.1", liv0Bytes, &aptos.LedgerInfoWithV0Prefix1{})
+	aptos.DebugUnmarshal(ni.Log.Printf, "LIV0.2", liv0Bytes, &aptos.LedgerInfoWithV0Prefix2{})
+
+	blockTypeBytes := consensusBody[351:]
+	tag, tagLen, err := aptos.ReadULEB128(blockTypeBytes)
+	ni.Log.Printf("BlockType tag=%d tagLen=%d err=%v head=%s", tag, tagLen, err, headHex(blockTypeBytes, 64))
+	aptos.DebugUnmarshal(ni.Log.Printf, "Block.1", consensusBody, &aptos.BlockPrefix1{})
+	aptos.DebugUnmarshal(ni.Log.Printf, "Block.2", consensusBody, &aptos.BlockPrefix2{})
+
+	aptos.DebugUnmarshal(ni.Log.Printf, "Proposal.1", consensusBody, &aptos.ProposalMsgPrefix1{})
+	aptos.DebugUnmarshal(ni.Log.Printf, "Proposal.2", consensusBody, &aptos.ProposalMsgPrefix2{})
+
+	return nil
+}
+
+func dumpBlockInfoRaw(logf func(string, ...any), name string, b []byte) {
+	if len(b) < 97 {
+		logf("%s: too short, len=%d", name, len(b))
+		return
+	}
+
+	epoch := binary.LittleEndian.Uint64(b[0:8])
+	round := binary.LittleEndian.Uint64(b[8:16])
+	version := binary.LittleEndian.Uint64(b[80:88])
+	timestamp := binary.LittleEndian.Uint64(b[88:96])
+	optTag := b[96]
+
+	logf(
+		"%s: len=%d epoch=%d round=%d version=%d timestamp=%d optTag=%d id=%s executed=%s afterOpt=%s",
+		name,
+		len(b),
+		epoch,
+		round,
+		version,
+		timestamp,
+		optTag,
+		headHex(b[16:48], 32),
+		headHex(b[48:80], 32),
+		headHex(b[97:], 32),
+	)
 }
