@@ -2,6 +2,7 @@ package aptos
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/fardream/go-bcs/bcs"
 )
@@ -23,175 +24,16 @@ type BLSSignature []byte
 // ----
 // Debug
 // -----
-type ProposalMsgPrefix1 struct {
-	Proposal BlockPrefix1
-}
-
-type ProposalMsgPrefix2 struct {
-	Proposal Block
-	SyncInfo SyncInfo
-}
-
-type BlockPrefix1 struct {
-	BlockData BlockDataPrefix1
-}
-
-type BlockPrefix2 struct {
-	BlockData BlockData
-	Signature OptionBLSSignature
-}
-
-type BlockDataPrefix1 struct {
-	Epoch uint64
-}
-
-type BlockDataPrefix2 struct {
-	Epoch uint64
-	Round uint64
-}
-
-type BlockDataPrefix3 struct {
-	Epoch          uint64
-	Round          uint64
-	TimestampUsecs uint64
-}
-
-type BlockDataPrefix4 struct {
-	Epoch          uint64
-	Round          uint64
-	TimestampUsecs uint64
-	QuorumCert     QuorumCert
-}
-
-type BlockDataPrefix5 struct {
-	Epoch          uint64
-	Round          uint64
-	TimestampUsecs uint64
-	QuorumCert     QuorumCert
-	BlockType      BlockType
-}
-
-type QuorumCertPrefix1 struct {
-	VoteData VoteData
-}
-
-type QuorumCertPrefix2 struct {
-	VoteData         VoteData
-	SignedLedgerInfo LedgerInfoWithSignatures
-}
-
-type LedgerInfoWithV0Prefix1 struct {
-	LedgerInfo LedgerInfo
-}
-
-type LedgerInfoWithV0Prefix2 struct {
-	LedgerInfo LedgerInfo
-	Signatures AggregateSignature
-}
-
-type LedgerInfoPrefix1 struct {
-	CommitInfo BlockInfo
-}
-
-type LedgerInfoPrefix2 struct {
-	CommitInfo        BlockInfo
-	ConsensusDataHash HashValue
-}
-
-type BlockInfoPrefix1 struct {
-	Epoch uint64
-}
-
-type BlockInfoPrefix2 struct {
-	Epoch uint64
-	Round uint64
-}
-
-type BlockInfoPrefix3 struct {
-	Epoch uint64
-	Round uint64
-	ID    HashValue
-}
-
-type BlockInfoPrefix4 struct {
-	Epoch           uint64
-	Round           uint64
-	ID              HashValue
-	ExecutedStateID HashValue
-}
-
-type BlockInfoPrefix5 struct {
-	Epoch           uint64
-	Round           uint64
-	ID              HashValue
-	ExecutedStateID HashValue
-	Version         uint64
-}
-
-type BlockInfoPrefix6 struct {
-	Epoch           uint64
-	Round           uint64
-	ID              HashValue
-	ExecutedStateID HashValue
-	Version         uint64
-	TimestampUsecs  uint64
-}
-
-type BlockInfoPrefix7 struct {
-	Epoch           uint64
-	Round           uint64
-	ID              HashValue
-	ExecutedStateID HashValue
-	Version         uint64
-	TimestampUsecs  uint64
-	NextEpochState  *EpochState
-}
-
-type EpochStatePrefix1 struct {
-	Epoch uint64
-}
-
-type EpochStatePrefix2 struct {
-	Epoch    uint64
-	Verifier ValidatorVerifier
-}
-
-type ValidatorVerifierPrefix1 struct {
-	ValidatorInfos []ValidatorConsensusInfo
-}
-
-type ValidatorConsensusInfoPrefix1 struct {
-	Address AccountAddress
-}
-
-type ValidatorConsensusInfoPrefix2 struct {
-	Address   AccountAddress
-	PublicKey PublicKey
-}
-
-type ValidatorConsensusInfoPrefix3 struct {
-	Address     AccountAddress
-	PublicKey   PublicKey
-	VotingPower uint64
-}
-
-type BlockInfoNoNext struct {
-	Epoch           uint64
-	Round           uint64
-	ID              HashValue
-	ExecutedStateID HashValue
-	Version         uint64
-	TimestampUsecs  uint64
-}
-
-type LedgerInfoNoNext struct {
-	CommitInfo        BlockInfoNoNext
-	ConsensusDataHash HashValue
-}
 
 func DebugUnmarshal(logf func(string, ...any), name string, data []byte, v any) {
 	n, err := bcs.Unmarshal(data, v)
 	logf("%s: consumed=%d total=%d remaining=%d err=%v", name, n, len(data), len(data)-n, err)
+}
+
+// -------------------------------------------------------------------
+type IConsensusMessage interface {
+	GetRoundNumber() Round
+	fmt.Stringer
 }
 
 // ------------
@@ -204,6 +46,16 @@ type ProposalMsg struct {
 	SyncInfo SyncInfo
 }
 
+func (m ProposalMsg) GetRoundNumber() Round {
+	return m.Proposal.BlockData.Round
+}
+
+func (m ProposalMsg) String() string {
+	return "ProposalMsg:\n" +
+		indent(m.Proposal.String(), "  ") + "\n" +
+		indent(m.SyncInfo.String(), "  ")
+}
+
 // ----------
 // OptProposalMsg
 // OptProposalMsg contains the optimistic proposal and sync info.
@@ -211,6 +63,16 @@ type ProposalMsg struct {
 type OptProposalMsg struct {
 	BlockData OptBlockData
 	SyncInfo  SyncInfo
+}
+
+func (m OptProposalMsg) GetRoundNumber() Round {
+	return m.BlockData.Round
+}
+
+func (m OptProposalMsg) String() string {
+	return "OptProposalMsg:\n" +
+		indent(m.BlockData.String(), "    ") + "\n" +
+		indent(m.SyncInfo.String(), "    ")
 }
 
 // ---------
@@ -225,6 +87,16 @@ type VoteMsg struct {
 	SyncInfo SyncInfo
 }
 
+func (v VoteMsg) GetRoundNumber() Round {
+	return v.Vote.VoteData.Proposed.Round
+}
+
+func (v VoteMsg) String() string {
+	return "VoteMsg:\n" +
+		indent(v.Vote.String(), "    ") + "\n" +
+		indent(v.SyncInfo.String(), "    ")
+}
+
 // ---------
 // CommitVoteMsg
 // CommitVoteMsg is the struct that is sent by the validator after execution to propose
@@ -236,6 +108,17 @@ type CommitVote struct {
 	Signature  SignatureWithStatus
 }
 
+func (c CommitVote) GetRoundNumber() Round {
+	return c.LedgerInfo.CommitInfo.Round
+}
+
+func (c CommitVote) String() string {
+	return "CommitVote:\n" +
+		fmt.Sprintf("  Author: %s\n", shortHash(c.Author)) +
+		indent(c.LedgerInfo.String(), "    ") + "\n" +
+		indent(c.Signature.String(), "    ")
+}
+
 // ---------
 // CommitMessage
 // ---------
@@ -244,6 +127,33 @@ type CommitMessage struct {
 	Decision *CommitDecision
 	Ack      *BcsUnit
 	Nack     *BcsUnit
+}
+
+func (c CommitMessage) GetRoundNumber() Round {
+	if c.Vote != nil {
+		return c.Vote.GetRoundNumber()
+	}
+	if c.Decision != nil {
+		return c.Decision.LedgerInfo.V0.LedgerInfo.CommitInfo.Round
+	}
+	return 0
+}
+
+func (c CommitMessage) String() string {
+	switch {
+	case c.Vote != nil:
+		return "CommitMessage:\n" +
+			indent(c.Vote.String(), "    ")
+	case c.Decision != nil:
+		return "CommitMessage:\n" +
+			indent(c.Decision.String(), "    ")
+	case c.Ack != nil:
+		return "CommitMessage:\n  Ack"
+	case c.Nack != nil:
+		return "CommitMessage:\n  Nack"
+	default:
+		return "CommitMessage: <empty>"
+	}
 }
 
 func (CommitMessage) IsBcsEnum() {}
@@ -259,11 +169,26 @@ type RoundTimeoutMsg struct {
 	SyncInfo SyncInfo
 }
 
+func (r RoundTimeoutMsg) GetRoundNumber() Round {
+	return r.RoundTimeout.Timeout.Round
+}
+
+func (r RoundTimeoutMsg) String() string {
+	return "RoundTimeoutMsg:\n" +
+		indent(r.RoundTimeout.String(), "    ") + "\n" +
+		indent(r.SyncInfo.String(), "    ")
+}
+
 // ---------
 // CommitDecision
 // ---------
 type CommitDecision struct {
 	LedgerInfo LedgerInfoWithSignatures
+}
+
+func (c CommitDecision) String() string {
+	return "CommitDecision:\n" +
+		indent(c.LedgerInfo.String(), "    ")
 }
 
 // ---------
@@ -276,6 +201,19 @@ type RoundTimeout struct {
 	Signature BLSSignature
 }
 
+func (r RoundTimeout) String() string {
+	reason := "<nil>"
+	if r.Reason != nil {
+		reason = r.Reason.String()
+	}
+
+	return "RoundTimeout:\n" +
+		"  Timeout:\n" + indent(r.Timeout.String(), "    ") + "\n" +
+		fmt.Sprintf("  Author: %s\n", shortHash(r.Author)) +
+		fmt.Sprintf("  Reason: %s\n", reason) +
+		fmt.Sprintf("  SignatureLen: %d", len(r.Signature))
+}
+
 type RoundTimeoutReason struct {
 	Unknown             *BcsUnit
 	ProposalNotReceived *BcsUnit
@@ -284,6 +222,22 @@ type RoundTimeoutReason struct {
 }
 
 func (RoundTimeoutReason) IsBcsEnum() {}
+
+func (r RoundTimeoutReason) String() string {
+	switch {
+	case r.Unknown != nil:
+		return "Unknown"
+	case r.ProposalNotReceived != nil:
+		return "ProposalNotReceived"
+	case r.PayloadUnavailable != nil:
+		return "PayloadUnavailable:\n" +
+			fmt.Sprintf("  MissingAuthors: %x", r.PayloadUnavailable.MissingAuthors.Inner)
+	case r.NoQC != nil:
+		return "NoQC"
+	default:
+		return "UnknownReason"
+	}
+}
 
 type RoundTimeoutReasonPayloadUnavailable struct {
 	MissingAuthors BitVec
@@ -298,12 +252,39 @@ type Block struct {
 	Signature *OptionBLSSignature
 }
 
+func (b Block) String() string {
+	out := "Block:\n" +
+		indent(b.BlockData.String(), "    ")
+
+	if b.Signature != nil {
+		out += "\n" + indent(b.Signature.String(), "    ")
+	}
+
+	return out
+}
+
 type BlockData struct {
 	Epoch          uint64
 	Round          Round
 	TimestampUsecs uint64
 	QuorumCert     QuorumCert
 	BlockType      BlockType
+}
+
+func (b BlockData) String() string {
+	return fmt.Sprintf(
+		"BlockData:\n"+
+			"  Epoch: %d\n"+
+			"  Round: %d\n"+
+			"  TimestampUsecs: %d\n"+
+			"  QC info:\n%s\n"+
+			"  BlockType:\n%s",
+		b.Epoch,
+		b.Round,
+		b.TimestampUsecs,
+		indent(b.QuorumCert.String(), "    "),
+		indent(b.BlockType.String(), "    "),
+	)
 }
 
 type OptionBLSSignature struct {
@@ -313,6 +294,17 @@ type OptionBLSSignature struct {
 
 func (OptionBLSSignature) IsBcsEnum() {}
 
+func (o OptionBLSSignature) String() string {
+	switch {
+	case o.None != nil:
+		return "None"
+	case o.Some != nil:
+		return fmt.Sprintf("Some(len=%d)", len(*o.Some))
+	default:
+		return "<invalid OptionBLSSignature>"
+	}
+}
+
 // Same as BlockData, without QC and with parent id
 type OptBlockData struct {
 	Epoch          uint64
@@ -320,6 +312,28 @@ type OptBlockData struct {
 	TimestampUsecs uint64
 	Parent         BlockInfo
 	BlockBody      *OptBlockBody
+}
+
+func (b OptBlockData) String() string {
+	out := fmt.Sprintf(
+		"OptBlockData:\n"+
+			"  Epoch: %d\n"+
+			"  Round: %d\n"+
+			"  TimestampUsecs: %d\n"+
+			"  Parent:\n%s",
+		b.Epoch,
+		b.Round,
+		b.TimestampUsecs,
+		indent(b.Parent.String(), "    "),
+	)
+
+	if b.BlockBody == nil {
+		out += "\n  BlockBody: <nil>"
+	} else {
+		out += "\n  BlockBody:\n" + indent(b.BlockBody.String(), "    ")
+	}
+
+	return out
 }
 
 // ----------
@@ -331,6 +345,27 @@ type SyncInfo struct {
 	HighestOrderedCert       *OptionWrappedLedgerInfo
 	HighestCommitCert        WrappedLedgerInfo
 	Highest2ChainTimeoutCert *OptionTwoChainTimeoutCertificate
+}
+
+func (si SyncInfo) String() string {
+	out := "SyncInfo:\n" +
+		"  HighestQuorumCert:\n" + indent(si.HighestQuorumCert.String(), "    ") + "\n"
+
+	if si.HighestOrderedCert == nil {
+		out += "  HighestOrderedCert: <nil>\n"
+	} else {
+		out += "  HighestOrderedCert:\n" + indent(si.HighestOrderedCert.String(), "    ") + "\n"
+	}
+
+	out += "  HighestCommitCert:\n" + indent(si.HighestCommitCert.String(), "    ")
+
+	if si.Highest2ChainTimeoutCert == nil {
+		out += "\n  Highest2ChainTimeoutCert: <nil>"
+	} else {
+		out += "\n  Highest2ChainTimeoutCert:\n" + indent(si.Highest2ChainTimeoutCert.String(), "    ")
+	}
+
+	return out
 }
 
 // ---------
@@ -345,11 +380,31 @@ type Vote struct {
 	TwoChainTimeout *OptionTwoChainTimeoutWithSig
 }
 
+func (v Vote) String() string {
+	out := "Vote:\n" +
+		indent(v.VoteData.String(), "    ") + "\n" +
+		fmt.Sprintf("  Author: %s\n", shortHash(v.Author)) +
+		indent(v.LedgerInfo.String(), "    ") + "\n" +
+		indent(v.Signature.String(), "    ")
+
+	if v.TwoChainTimeout == nil {
+		out += "\n  TwoChainTimeout: <nil>"
+	} else {
+		out += "\n" + indent(v.TwoChainTimeout.String(), "    ")
+	}
+
+	return out
+}
+
 // --------
 // Signatures
 // --------
 type SignatureWithStatus struct {
 	Signature BLSSignature
+}
+
+func (s SignatureWithStatus) String() string {
+	return fmt.Sprintf("SignatureWithStatus:\n  SignatureLen: %d", len(s.Signature))
 }
 
 // ----------
@@ -361,9 +416,21 @@ type QuorumCert struct {
 	SignedLedgerInfo LedgerInfoWithSignatures
 }
 
+func (qc QuorumCert) String() string {
+	return "QuorumCert:\n" +
+		indent(qc.VoteData.String(), "    ") + "\n" +
+		indent(qc.SignedLedgerInfo.String(), "    ")
+}
+
 type VoteData struct {
 	Proposed BlockInfo
 	Parent   BlockInfo
+}
+
+func (vd VoteData) String() string {
+	return "VoteData:\n" +
+		"  Proposed:\n" + indent(vd.Proposed.String(), "    ") + "\n" +
+		"  Parent:\n" + indent(vd.Parent.String(), "    ")
 }
 
 type BlockInfo struct {
@@ -374,6 +441,26 @@ type BlockInfo struct {
 	Version         Version
 	TimestampUsecs  uint64
 	NextEpochState  *OptionEpochState
+}
+
+func (bi BlockInfo) String() string {
+	out := fmt.Sprintf(
+		"BlockInfo:\n"+
+			"  Epoch: %d\n"+
+			"  Round: %d\n"+
+			"  ID: %s\n"+
+			"  ExecutedStateID: %s\n"+
+			"  Version: %d\n"+
+			"  TimestampUsecs: %d",
+		bi.Epoch,
+		bi.Round,
+		shortHash(bi.ID),
+		shortHash(bi.ExecutedStateID),
+		bi.Version,
+		bi.TimestampUsecs,
+	)
+
+	return out
 }
 
 // ----------
@@ -410,6 +497,13 @@ type LedgerInfoWithSignatures struct {
 	V0 *LedgerInfoWithV0
 }
 
+func (l LedgerInfoWithSignatures) String() string {
+	if l.V0 == nil {
+		return "LedgerInfoWithSignatures: <nil>"
+	}
+	return indent(l.V0.String(), "  ")
+}
+
 func (LedgerInfoWithSignatures) IsBcsEnum() {}
 
 type LedgerInfoWithV0 struct {
@@ -417,9 +511,21 @@ type LedgerInfoWithV0 struct {
 	Signatures AggregateSignature
 }
 
+func (l LedgerInfoWithV0) String() string {
+	return "LedgerInfoWithV0:\n" +
+		indent(l.LedgerInfo.String(), "    ") + "\n" +
+		"  Signatures:\n" + indent(l.Signatures.String(), "    ")
+}
+
 type LedgerInfo struct {
 	CommitInfo        BlockInfo
 	ConsensusDataHash HashValue
+}
+
+func (l LedgerInfo) String() string {
+	return "LedgerInfo:\n" +
+		indent(l.CommitInfo.String(), "    ") + "\n" +
+		fmt.Sprintf("  ConsensusDataHash: %s", shortHash(l.ConsensusDataHash))
 }
 
 type OptionWrappedLedgerInfo struct {
@@ -427,11 +533,28 @@ type OptionWrappedLedgerInfo struct {
 	Some *WrappedLedgerInfo
 }
 
+func (o OptionWrappedLedgerInfo) String() string {
+	switch {
+	case o.None != nil:
+		return "None"
+	case o.Some != nil:
+		return o.Some.String()
+	default:
+		return "<invalid OptionWrappedLedgerInfo>"
+	}
+}
+
 func (OptionWrappedLedgerInfo) IsBcsEnum() {}
 
 type WrappedLedgerInfo struct {
 	VoteData         VoteData
 	SignedLedgerInfo LedgerInfoWithSignatures
+}
+
+func (w WrappedLedgerInfo) String() string {
+	return "WrappedLedgerInfo:\n" +
+		indent(w.VoteData.String(), "    ") + "\n" +
+		indent(w.SignedLedgerInfo.String(), "    ")
 }
 
 // ----------
@@ -445,14 +568,42 @@ type OptionTwoChainTimeoutWithSig struct {
 
 func (OptionTwoChainTimeoutWithSig) IsBcsEnum() {}
 
+func (o OptionTwoChainTimeoutWithSig) String() string {
+	switch {
+	case o.None != nil:
+		return "None"
+	case o.Some != nil:
+		return o.Some.String()
+	default:
+		return "<invalid OptionTwoChainTimeoutWithSig>"
+	}
+}
+
 type TwoChainTimeoutWithSig struct {
 	Timeout   TwoChainTimeout
 	Signature BLSSignature
 }
 
+func (t TwoChainTimeoutWithSig) String() string {
+	return "TwoChainTimeoutWithSig:\n" +
+		indent(t.Timeout.String(), "    ") + "\n" +
+		fmt.Sprintf("  SignatureLen: %d", len(t.Signature))
+}
+
 type OptionTwoChainTimeoutCertificate struct {
 	None *BcsUnit
 	Some *TwoChainTimeoutCertificate
+}
+
+func (o OptionTwoChainTimeoutCertificate) String() string {
+	switch {
+	case o.None != nil:
+		return "None"
+	case o.Some != nil:
+		return o.Some.String()
+	default:
+		return "<invalid OptionTwoChainTimeoutWithSig>"
+	}
 }
 
 func (OptionTwoChainTimeoutCertificate) IsBcsEnum() {}
@@ -462,10 +613,28 @@ type TwoChainTimeoutCertificate struct {
 	SignaturesWithRounds AggregateSignatureWithRounds
 }
 
+func (t TwoChainTimeoutCertificate) String() string {
+	return "TwoChainTimeoutCertificate:\n" +
+		indent(t.Timeout.String(), "    ") + "\n" +
+		indent(t.SignaturesWithRounds.String(), "    ")
+}
+
 type TwoChainTimeout struct {
 	Epoch      uint64
 	Round      Round
 	QuorumCert QuorumCert
+}
+
+func (t TwoChainTimeout) String() string {
+	return fmt.Sprintf(
+		"TwoChainTimeout:\n"+
+			"  Epoch: %d\n"+
+			"  Round: %d\n"+
+			"  %s",
+		t.Epoch,
+		t.Round,
+		indent(t.QuorumCert.String(), "    "),
+	)
 }
 
 type AggregateSignatureWithRounds struct {
@@ -473,13 +642,38 @@ type AggregateSignatureWithRounds struct {
 	Rounds []Round
 }
 
+func (a AggregateSignatureWithRounds) String() string {
+	return fmt.Sprintf(
+		"AggregateSignatureWithRounds:\n"+
+			"  Rounds: %v\n"+
+			"  %s",
+		a.Rounds,
+		indent(a.Sig.String(), "    "),
+	)
+}
+
 type AggregateSignature struct {
 	ValidatorBitmask BitVec
 	Sig              *OptionBLSSignature
 }
 
+func (a AggregateSignature) String() string {
+	sig := "<nil>"
+	if a.Sig != nil {
+		sig = a.Sig.String()
+	}
+
+	return "AggregateSignature:\n" +
+		"  ValidatorBitmask:\n" + indent(a.ValidatorBitmask.String(), "    ") + "\n" +
+		fmt.Sprintf("  Sig: %s", sig)
+}
+
 type BitVec struct {
 	Inner []byte
+}
+
+func (b BitVec) String() string {
+	return fmt.Sprintf("BitVec:\n  Bytes: %x\n  Len: %d", b.Inner, len(b.Inner))
 }
 
 // ----------
@@ -497,19 +691,75 @@ type BlockType struct {
 
 func (BlockType) IsBcsEnum() {}
 
+func (b BlockType) String() string {
+	switch {
+	case b.Proposal != nil:
+		return b.Proposal.String()
+	case b.NilBlock != nil:
+		return b.NilBlock.String()
+	case b.Genesis != nil:
+		return "Genesis"
+	case b.ProposalExt != nil:
+		return b.ProposalExt.String()
+	case b.OptimisticProposal != nil:
+		return b.OptimisticProposal.String()
+	default:
+		return "<unknown BlockType>"
+	}
+}
+
 type BlockTypeProposal struct {
 	Payload       Payload
 	Author        Author
 	FailedAuthors []RoundAuthorPair
 }
 
+func (b BlockTypeProposal) String() string {
+	out := "BlockTypeProposal:\n" +
+		"  Payload:\n" + indent(b.Payload.String(), "    ") + "\n" +
+		fmt.Sprintf("  Author: %s\n", shortHash(b.Author))
+
+	if len(b.FailedAuthors) == 0 {
+		out += "  FailedAuthors: []"
+		return out
+	}
+
+	out += "  FailedAuthors:"
+	for i, fa := range b.FailedAuthors {
+		out += fmt.Sprintf("\n    [%d]:\n%s", i, indent(fa.String(), "      "))
+	}
+	return out
+}
+
 type BlockTypeNilBlock struct {
 	FailedAuthors []RoundAuthorPair
+}
+
+func (b BlockTypeNilBlock) String() string {
+	if len(b.FailedAuthors) == 0 {
+		return "BlockTypeNilBlock:\n  FailedAuthors: []"
+	}
+
+	out := "BlockTypeNilBlock:\n  FailedAuthors:"
+	for i, fa := range b.FailedAuthors {
+		out += fmt.Sprintf("\n    [%d]:\n%s", i, indent(fa.String(), "      "))
+	}
+	return out
 }
 
 type RoundAuthorPair struct {
 	Field0 Round
 	Field1 Author
+}
+
+func (r RoundAuthorPair) String() string {
+	return fmt.Sprintf(
+		"RoundAuthorPair:\n"+
+			"  Round: %d\n"+
+			"  Author: %s",
+		r.Field0,
+		shortHash(r.Field1),
+	)
 }
 
 // ----------
@@ -526,6 +776,27 @@ type Payload struct {
 }
 
 func (Payload) IsBcsEnum() {}
+
+func (p Payload) String() string {
+	switch {
+	case p.DirectMempool != nil:
+		return fmt.Sprintf("DirectMempool:\n  Txns: %d", len(*p.DirectMempool))
+	case p.InQuorumStore != nil:
+		return "InQuorumStore"
+	case p.InQuorumStoreWithLimit != nil:
+		return "InQuorumStoreWithLimit"
+	case p.QuorumStoreInlineHybrid != nil:
+		return fmt.Sprintf("QuorumStoreInlineHybrid: %d batches\n",
+			len(p.QuorumStoreInlineHybrid.Field0))
+	case p.OptQuorumStore != nil:
+		return "OptQuorumStore"
+	case p.QuorumStoreInlineHybridV2 != nil:
+		return fmt.Sprintf("QuorumStoreInlineHybridV2: %d batches\n",
+			len(p.QuorumStoreInlineHybridV2.Field0))
+	default:
+		return "<unknown Payload>"
+	}
+}
 
 type QuorumStoreInlineHybrid struct {
 	Field0 []BatchInfoSignedTransactionsPair
@@ -561,11 +832,36 @@ type ProposalExt struct {
 
 func (ProposalExt) IsBcsEnum() {}
 
+func (p ProposalExt) String() string {
+	if p.V0 == nil {
+		return "ProposalExt: <nil>"
+	}
+	return p.V0.String()
+}
+
 type ProposalExtV0 struct {
 	ValidatorTxns []ValidatorTransaction
 	Payload       Payload
 	Author        Author
 	FailedAuthors []RoundAuthorPair
+}
+
+func (p ProposalExtV0) String() string {
+	out := "ProposalExtV0:\n" +
+		fmt.Sprintf("  ValidatorTxns: %d\n", len(p.ValidatorTxns)) +
+		"  Payload:\n" + indent(p.Payload.String(), "    ") + "\n" +
+		fmt.Sprintf("  Author: %s\n", shortHash(p.Author))
+
+	if len(p.FailedAuthors) == 0 {
+		out += "  FailedAuthors: []"
+		return out
+	}
+
+	out += "  FailedAuthors:"
+	for i, fa := range p.FailedAuthors {
+		out += fmt.Sprintf("\n    [%d]:\n%s", i, indent(fa.String(), "      "))
+	}
+	return out
 }
 
 // ----------
@@ -574,6 +870,13 @@ type ProposalExtV0 struct {
 
 type OptBlockBody struct {
 	V0 *OptBlockBodyV0
+}
+
+func (b OptBlockBody) String() string {
+	if b.V0 == nil {
+		return "OptBlockBody: <nil>"
+	}
+	return b.V0.String()
 }
 
 func (OptBlockBody) IsBcsEnum() {}
@@ -585,6 +888,14 @@ type OptBlockBodyV0 struct {
 	GrandparentQC QuorumCert
 }
 
+func (b OptBlockBodyV0) String() string {
+	return "OptBlockBodyV0:\n" +
+		fmt.Sprintf("  ValidatorTxns: %d\n", len(b.ValidatorTxns)) +
+		"  Payload:\n" + indent(b.Payload.String(), "    ") + "\n" +
+		fmt.Sprintf("  Author: %s\n", shortHash(b.Author)) +
+		"  GrandparentQC:\n" + indent(b.GrandparentQC.String(), "    ")
+}
+
 type SignedTransaction struct{}
 type ProofWithData struct{}
 type ProofWithDataWithTxnLimit struct{}
@@ -592,590 +903,21 @@ type OptQuorumStorePayload struct{}
 type BatchInfo struct{}
 type ValidatorTransaction struct{}
 
-// -------------
-// Pretty prints
-// -------------
-
-func PrettyPrintProposalMsg(p *ProposalMsg) {
-	if p == nil {
-		fmt.Println("ProposalMsg: <nil>")
-		return
-	}
-
-	fmt.Println("========== ProposalMsg ==========")
-
-	// -------------------
-	// BlockData
-	// -------------------
-	bd := p.Proposal.BlockData
-
-	fmt.Printf("Block:\n")
-	fmt.Printf("  Epoch: %d\n", bd.Epoch)
-	fmt.Printf("  Round: %d\n", bd.Round)
-	fmt.Printf("  TimestampUsecs: %d\n", bd.TimestampUsecs)
-
-	// -------------------
-	// QuorumCert
-	// -------------------
-	qc := bd.QuorumCert
-
-	fmt.Println("  QuorumCert:")
-
-	// VoteData
-	vd := qc.VoteData
-
-	fmt.Println("    VoteData:")
-
-	fmt.Printf("      Proposed:\n")
-	fmt.Printf("        Epoch: %d\n", vd.Proposed.Epoch)
-	fmt.Printf("        Round: %d\n", vd.Proposed.Round)
-	fmt.Printf("        Version: %d\n", vd.Proposed.Version)
-	fmt.Printf("        Timestamp: %d\n", vd.Proposed.TimestampUsecs)
-
-	fmt.Printf("      Parent:\n")
-	fmt.Printf("        Epoch: %d\n", vd.Parent.Epoch)
-	fmt.Printf("        Round: %d\n", vd.Parent.Round)
-	fmt.Printf("        Version: %d\n", vd.Parent.Version)
-	fmt.Printf("        Timestamp: %d\n", vd.Parent.TimestampUsecs)
-
-	// -------------------
-	// LedgerInfo
-	// -------------------
-	li := qc.SignedLedgerInfo.V0
-
-	if li != nil {
-		fmt.Println("    LedgerInfo:")
-
-		ci := li.LedgerInfo.CommitInfo
-
-		fmt.Printf("      CommitInfo:\n")
-		fmt.Printf("        Epoch: %d\n", ci.Epoch)
-		fmt.Printf("        Round: %d\n", ci.Round)
-		fmt.Printf("        Version: %d\n", ci.Version)
-		fmt.Printf("        Timestamp: %d\n", ci.TimestampUsecs)
-	}
-
-	// -------------------
-	// SyncInfo
-	// -------------------
-	si := p.SyncInfo
-
-	fmt.Println("SyncInfo:")
-
-	fmt.Printf("  HighestQC Round: %d\n",
-		si.HighestQuorumCert.VoteData.Proposed.Round)
-
-	fmt.Printf("  HighestCommitCert Round: %d\n",
-		si.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-
-	if si.HighestOrderedCert != nil {
-		if si.HighestOrderedCert.Some != nil {
-			fmt.Printf("  HighestOrderedCert Round: %d\n",
-				si.HighestOrderedCert.Some.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-		} else {
-			fmt.Printf("  HighestOrderedCert: None\n")
-		}
-	} else {
-		fmt.Printf("  HighestOrderedCert: nil\n")
-	}
-
-	if si.Highest2ChainTimeoutCert != nil {
-		if si.Highest2ChainTimeoutCert.Some != nil {
-			fmt.Printf("  TimeoutCert Round: %d\n",
-				si.Highest2ChainTimeoutCert.Some.Timeout.Round)
-		} else {
-			fmt.Printf("  TimeoutCert: None\n")
-		}
-	} else {
-		fmt.Printf("  TimeoutCert: nil\n")
-	}
-
-	fmt.Println("=================================")
-}
-
-func PrettyPrintOptProposalMsg(p *OptProposalMsg) {
-	if p == nil {
-		fmt.Println("OptProposalMsg: <nil>")
-		return
-	}
-
-	fmt.Println("======= OptProposalMsg =======")
-
-	// -------------------
-	// BlockData
-	// -------------------
-	bd := p.BlockData
-
-	fmt.Println("BlockData:")
-	fmt.Printf("  Epoch: %d\n", bd.Epoch)
-	fmt.Printf("  Round: %d\n", bd.Round)
-	fmt.Printf("  TimestampUsecs: %d\n", bd.TimestampUsecs)
-
-	fmt.Println("  Parent:")
-	fmt.Printf("    Epoch: %d\n", bd.Parent.Epoch)
-	fmt.Printf("    Round: %d\n", bd.Parent.Round)
-	fmt.Printf("    Version: %d\n", bd.Parent.Version)
-	fmt.Printf("    Timestamp: %d\n", bd.Parent.TimestampUsecs)
-	fmt.Printf("    ID: %s\n", shortHash(bd.Parent.ID))
-
-	// -------------------
-	// BlockBody
-	// -------------------
-	fmt.Println("  BlockBody:")
-	if bd.BlockBody == nil {
-		fmt.Println("    <nil>")
-	} else if bd.BlockBody.V0 != nil {
-		body := bd.BlockBody.V0
-
-		fmt.Println("    V0:")
-		fmt.Printf("      ValidatorTxns: %d\n", len(body.ValidatorTxns))
-		fmt.Printf("      Author: %s\n", shortHash(body.Author))
-
-		fmt.Println("      GrandparentQC:")
-		fmt.Printf("        Proposed Round: %d\n", body.GrandparentQC.VoteData.Proposed.Round)
-		fmt.Printf("        Proposed ID: %s\n", shortHash(body.GrandparentQC.VoteData.Proposed.ID))
-		fmt.Printf("        Parent Round: %d\n", body.GrandparentQC.VoteData.Parent.Round)
-		fmt.Printf("        Parent ID: %s\n", shortHash(body.GrandparentQC.VoteData.Parent.ID))
-
-		if body.GrandparentQC.SignedLedgerInfo.V0 != nil {
-			fmt.Printf("        Commit Round: %d\n",
-				body.GrandparentQC.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-			fmt.Printf("        Commit ID: %s\n",
-				shortHash(body.GrandparentQC.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ID))
-		}
-
-		fmt.Println("      Payload:")
-		switch {
-		case body.Payload.DirectMempool != nil:
-			fmt.Printf("        DirectMempool: %d txns\n", len(*body.Payload.DirectMempool))
-		case body.Payload.InQuorumStore != nil:
-			fmt.Println("        InQuorumStore")
-		case body.Payload.InQuorumStoreWithLimit != nil:
-			fmt.Println("        InQuorumStoreWithLimit")
-		case body.Payload.QuorumStoreInlineHybrid != nil:
-			fmt.Printf("        QuorumStoreInlineHybrid: %d batches\n",
-				len(body.Payload.QuorumStoreInlineHybrid.Field0))
-		case body.Payload.OptQuorumStore != nil:
-			fmt.Println("        OptQuorumStore")
-		case body.Payload.QuorumStoreInlineHybridV2 != nil:
-			fmt.Printf("        QuorumStoreInlineHybridV2: %d batches\n",
-				len(body.Payload.QuorumStoreInlineHybridV2.Field0))
-		default:
-			fmt.Println("        <unknown>")
-		}
-	} else {
-		fmt.Println("    <unknown variant>")
-	}
-
-	// -------------------
-	// SyncInfo
-	// -------------------
-	si := p.SyncInfo
-
-	fmt.Println("SyncInfo:")
-
-	fmt.Printf("  HighestQC Proposed Round: %d\n",
-		si.HighestQuorumCert.VoteData.Proposed.Round)
-	fmt.Printf("  HighestQC Proposed ID: %s\n",
-		shortHash(si.HighestQuorumCert.VoteData.Proposed.ID))
-	fmt.Printf("  HighestQC Parent Round: %d\n",
-		si.HighestQuorumCert.VoteData.Parent.Round)
-	fmt.Printf("  HighestQC Parent ID: %s\n",
-		shortHash(si.HighestQuorumCert.VoteData.Parent.ID))
-
-	if si.HighestQuorumCert.SignedLedgerInfo.V0 != nil {
-		fmt.Printf("  HighestQC Commit Round: %d\n",
-			si.HighestQuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-		fmt.Printf("  HighestQC Commit ID: %s\n",
-			shortHash(si.HighestQuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ID))
-	}
-
-	fmt.Printf("  HighestCommitCert Proposed Round: %d\n",
-		si.HighestCommitCert.VoteData.Proposed.Round)
-	fmt.Printf("  HighestCommitCert Proposed ID: %s\n",
-		shortHash(si.HighestCommitCert.VoteData.Proposed.ID))
-
-	if si.HighestCommitCert.SignedLedgerInfo.V0 != nil {
-		fmt.Printf("  HighestCommitCert Commit Round: %d\n",
-			si.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-		fmt.Printf("  HighestCommitCert Commit ID: %s\n",
-			shortHash(si.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ID))
-	}
-
-	if si.HighestOrderedCert != nil {
-		if si.HighestOrderedCert.Some != nil {
-			fmt.Printf("  HighestOrderedCert Proposed Round: %d\n",
-				si.HighestOrderedCert.Some.VoteData.Proposed.Round)
-			fmt.Printf("  HighestOrderedCert Proposed ID: %s\n",
-				shortHash(si.HighestOrderedCert.Some.VoteData.Proposed.ID))
-
-			if si.HighestOrderedCert.Some.SignedLedgerInfo.V0 != nil {
-				fmt.Printf("  HighestOrderedCert Commit Round: %d\n",
-					si.HighestOrderedCert.Some.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-				fmt.Printf("  HighestOrderedCert Commit ID: %s\n",
-					shortHash(si.HighestOrderedCert.Some.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ID))
-			}
-		} else {
-			fmt.Printf("  HighestOrderedCert: None\n")
-		}
-	} else {
-		fmt.Printf("  HighestOrderedCert: nil\n")
-	}
-
-	if si.Highest2ChainTimeoutCert != nil {
-		if si.Highest2ChainTimeoutCert.Some != nil {
-			fmt.Printf("  TimeoutCert Round: %d\n",
-				si.Highest2ChainTimeoutCert.Some.Timeout.Round)
-
-			fmt.Printf("  TimeoutCert QC Proposed Round: %d\n",
-				si.Highest2ChainTimeoutCert.Some.Timeout.QuorumCert.VoteData.Proposed.Round)
-			fmt.Printf("  TimeoutCert QC Proposed ID: %s\n",
-				shortHash(si.Highest2ChainTimeoutCert.Some.Timeout.QuorumCert.VoteData.Proposed.ID))
-		} else {
-			fmt.Printf("  TimeoutCert: None\n")
-		}
-	} else {
-		fmt.Printf("  TimeoutCert: nil\n")
-	}
-
-	fmt.Println("==============================")
-}
-
-func PrettyPrintVoteMsg(m *VoteMsg) {
-	if m == nil {
-		fmt.Println("VoteMsg: <nil>")
-		return
-	}
-
-	fmt.Println("========= VoteMsg =========")
-
-	// -------------------
-	// Vote
-	// -------------------
-	v := m.Vote
-
-	fmt.Println("Vote:")
-
-	fmt.Println("  VoteData:")
-	fmt.Println("    Proposed:")
-	fmt.Printf("      Epoch: %d\n", v.VoteData.Proposed.Epoch)
-	fmt.Printf("      Round: %d\n", v.VoteData.Proposed.Round)
-	fmt.Printf("      Version: %d\n", v.VoteData.Proposed.Version)
-	fmt.Printf("      Timestamp: %d\n", v.VoteData.Proposed.TimestampUsecs)
-	fmt.Printf("      ID: %s\n", shortHash(v.VoteData.Proposed.ID))
-
-	fmt.Println("    Parent:")
-	fmt.Printf("      Epoch: %d\n", v.VoteData.Parent.Epoch)
-	fmt.Printf("      Round: %d\n", v.VoteData.Parent.Round)
-	fmt.Printf("      Version: %d\n", v.VoteData.Parent.Version)
-	fmt.Printf("      Timestamp: %d\n", v.VoteData.Parent.TimestampUsecs)
-	fmt.Printf("      ID: %s\n", shortHash(v.VoteData.Parent.ID))
-
-	fmt.Printf("  Author: %s\n", shortHash(v.Author))
-
-	fmt.Println("  LedgerInfo:")
-	fmt.Println("    CommitInfo:")
-	fmt.Printf("      Epoch: %d\n", v.LedgerInfo.CommitInfo.Epoch)
-	fmt.Printf("      Round: %d\n", v.LedgerInfo.CommitInfo.Round)
-	fmt.Printf("      Version: %d\n", v.LedgerInfo.CommitInfo.Version)
-	fmt.Printf("      Timestamp: %d\n", v.LedgerInfo.CommitInfo.TimestampUsecs)
-	fmt.Printf("      ID: %s\n", shortHash(v.LedgerInfo.CommitInfo.ID))
-
-	fmt.Println("  Signature:")
-	if len(v.Signature.Signature) == 0 {
-		fmt.Println("    <empty>")
-	} else {
-		fmt.Printf("    Len: %d bytes\n", len(v.Signature.Signature))
-	}
-
-	fmt.Println("  TwoChainTimeout:")
-	if v.TwoChainTimeout.None != nil {
-		fmt.Println("    None")
-	} else if v.TwoChainTimeout.Some != nil {
-		t := v.TwoChainTimeout.Some
-
-		fmt.Printf("    Timeout Epoch: %d\n", t.Timeout.Epoch)
-		fmt.Printf("    Timeout Round: %d\n", t.Timeout.Round)
-
-		fmt.Println("    Timeout QC:")
-		fmt.Printf("      Proposed Round: %d\n", t.Timeout.QuorumCert.VoteData.Proposed.Round)
-		fmt.Printf("      Proposed ID: %s\n", shortHash(t.Timeout.QuorumCert.VoteData.Proposed.ID))
-		fmt.Printf("      Parent Round: %d\n", t.Timeout.QuorumCert.VoteData.Parent.Round)
-		fmt.Printf("      Parent ID: %s\n", shortHash(t.Timeout.QuorumCert.VoteData.Parent.ID))
-
-		if t.Timeout.QuorumCert.SignedLedgerInfo.V0 != nil {
-			fmt.Printf("      Commit Round: %d\n",
-				t.Timeout.QuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-			fmt.Printf("      Commit ID: %s\n",
-				shortHash(t.Timeout.QuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ID))
-		}
-
-		fmt.Printf("    Timeout Signature Len: %d bytes\n", len(t.Signature))
-	} else {
-		fmt.Println("    <nil>")
-	}
-
-	// -------------------
-	// SyncInfo
-	// -------------------
-	si := m.SyncInfo
-
-	fmt.Println("SyncInfo:")
-
-	fmt.Printf("  HighestQC Proposed Round: %d\n",
-		si.HighestQuorumCert.VoteData.Proposed.Round)
-	fmt.Printf("  HighestQC Proposed ID: %s\n",
-		shortHash(si.HighestQuorumCert.VoteData.Proposed.ID))
-	fmt.Printf("  HighestQC Parent Round: %d\n",
-		si.HighestQuorumCert.VoteData.Parent.Round)
-	fmt.Printf("  HighestQC Parent ID: %s\n",
-		shortHash(si.HighestQuorumCert.VoteData.Parent.ID))
-
-	if si.HighestQuorumCert.SignedLedgerInfo.V0 != nil {
-		fmt.Printf("  HighestQC Commit Round: %d\n",
-			si.HighestQuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-		fmt.Printf("  HighestQC Commit ID: %s\n",
-			shortHash(si.HighestQuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ID))
-	}
-
-	fmt.Printf("  HighestCommitCert Proposed Round: %d\n",
-		si.HighestCommitCert.VoteData.Proposed.Round)
-	fmt.Printf("  HighestCommitCert Proposed ID: %s\n",
-		shortHash(si.HighestCommitCert.VoteData.Proposed.ID))
-
-	if si.HighestCommitCert.SignedLedgerInfo.V0 != nil {
-		fmt.Printf("  HighestCommitCert Commit Round: %d\n",
-			si.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-		fmt.Printf("  HighestCommitCert Commit ID: %s\n",
-			shortHash(si.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ID))
-	}
-
-	if si.HighestOrderedCert != nil {
-		if si.HighestOrderedCert.Some != nil {
-			fmt.Printf("  HighestOrderedCert Proposed Round: %d\n",
-				si.HighestOrderedCert.Some.VoteData.Proposed.Round)
-			fmt.Printf("  HighestOrderedCert Proposed ID: %s\n",
-				shortHash(si.HighestOrderedCert.Some.VoteData.Proposed.ID))
-
-			if si.HighestOrderedCert.Some.SignedLedgerInfo.V0 != nil {
-				fmt.Printf("  HighestOrderedCert Commit Round: %d\n",
-					si.HighestOrderedCert.Some.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-				fmt.Printf("  HighestOrderedCert Commit ID: %s\n",
-					shortHash(si.HighestOrderedCert.Some.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ID))
-			}
-		} else {
-			fmt.Println("  HighestOrderedCert: None")
-		}
-	} else {
-		fmt.Println("  HighestOrderedCert: nil")
-	}
-
-	if si.Highest2ChainTimeoutCert != nil {
-		if si.Highest2ChainTimeoutCert.Some != nil {
-			fmt.Printf("  TimeoutCert Round: %d\n",
-				si.Highest2ChainTimeoutCert.Some.Timeout.Round)
-			fmt.Printf("  TimeoutCert QC Proposed Round: %d\n",
-				si.Highest2ChainTimeoutCert.Some.Timeout.QuorumCert.VoteData.Proposed.Round)
-			fmt.Printf("  TimeoutCert QC Proposed ID: %s\n",
-				shortHash(si.Highest2ChainTimeoutCert.Some.Timeout.QuorumCert.VoteData.Proposed.ID))
-		} else {
-			fmt.Println("  TimeoutCert: None")
-		}
-	} else {
-		fmt.Println("  TimeoutCert: nil")
-	}
-
-	fmt.Println("============================")
-}
-
-func PrettyPrintCommitVote(v *CommitVote) {
-	if v == nil {
-		fmt.Println("CommitVote: <nil>")
-		return
-	}
-
-	fmt.Println("======= CommitVote =======")
-
-	// -------------------
-	// Author
-	// -------------------
-	fmt.Printf("Author: %s\n", shortHash(v.Author))
-
-	// -------------------
-	// LedgerInfo
-	// -------------------
-	fmt.Println("LedgerInfo:")
-	fmt.Println("  CommitInfo:")
-	fmt.Printf("    Epoch: %d\n", v.LedgerInfo.CommitInfo.Epoch)
-	fmt.Printf("    Round: %d\n", v.LedgerInfo.CommitInfo.Round)
-	fmt.Printf("    Version: %d\n", v.LedgerInfo.CommitInfo.Version)
-	fmt.Printf("    Timestamp: %d\n", v.LedgerInfo.CommitInfo.TimestampUsecs)
-	fmt.Printf("    ID: %s\n", shortHash(v.LedgerInfo.CommitInfo.ID))
-
-	// -------------------
-	// Signature
-	// -------------------
-	fmt.Println("Signature:")
-	if len(v.Signature.Signature) == 0 {
-		fmt.Println("  <empty>")
-	} else {
-		fmt.Printf("  Len: %d bytes\n", len(v.Signature.Signature))
-	}
-
-	fmt.Println("==========================")
-}
-
-func PrettyPrintCommitMessage(m *CommitMessage) {
-	if m == nil {
-		fmt.Println("CommitMessage: <nil>")
-		return
-	}
-
-	fmt.Println("======= CommitMessage =======")
-
-	switch {
-	case m.Vote != nil:
-		fmt.Println("Variant: Vote")
-		PrettyPrintCommitVote(m.Vote)
-
-	case m.Decision != nil:
-		fmt.Println("Variant: Decision")
-		if m.Decision.LedgerInfo.V0 != nil {
-			ci := m.Decision.LedgerInfo.V0.LedgerInfo.CommitInfo
-			fmt.Printf("  Commit Round: %d\n", ci.Round)
-			fmt.Printf("  Commit ID: %s\n", shortHash(ci.ID))
-		}
-
-	case m.Ack != nil:
-		fmt.Println("Variant: Ack")
-
-	case m.Nack != nil:
-		fmt.Println("Variant: Nack")
-
-	default:
-		fmt.Println("Variant: <unknown / none set>")
-	}
-
-	fmt.Println("================================")
-}
-
-func PrettyPrintRoundTimeoutMsg(m *RoundTimeoutMsg) {
-	if m == nil {
-		fmt.Println("RoundTimeoutMsg: <nil>")
-		return
-	}
-
-	fmt.Println("======= RoundTimeoutMsg =======")
-
-	// -------------------
-	// RoundTimeout
-	// -------------------
-	rt := m.RoundTimeout
-
-	fmt.Println("RoundTimeout:")
-
-	// Timeout core
-	fmt.Printf("  Epoch: %d\n", rt.Timeout.Epoch)
-	fmt.Printf("  Round: %d\n", rt.Timeout.Round)
-
-	fmt.Println("  Timeout QC:")
-	fmt.Printf("    Proposed Round: %d\n", rt.Timeout.QuorumCert.VoteData.Proposed.Round)
-	fmt.Printf("    Proposed ID: %s\n", shortHash(rt.Timeout.QuorumCert.VoteData.Proposed.ID))
-	fmt.Printf("    Parent Round: %d\n", rt.Timeout.QuorumCert.VoteData.Parent.Round)
-	fmt.Printf("    Parent ID: %s\n", shortHash(rt.Timeout.QuorumCert.VoteData.Parent.ID))
-
-	if rt.Timeout.QuorumCert.SignedLedgerInfo.V0 != nil {
-		fmt.Printf("    Commit Round: %d\n",
-			rt.Timeout.QuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-		fmt.Printf("    Commit ID: %s\n",
-			shortHash(rt.Timeout.QuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ID))
-	}
-
-	// Author
-	fmt.Printf("  Author: %s\n", shortHash(rt.Author))
-
-	// Reason
-	fmt.Println("  Reason:")
-	if rt.Reason == nil {
-		fmt.Println("    <nil>")
-	} else {
-		switch {
-		case rt.Reason.Unknown != nil:
-			fmt.Println("    Unknown")
-
-		case rt.Reason.ProposalNotReceived != nil:
-			fmt.Println("    ProposalNotReceived")
-
-		case rt.Reason.PayloadUnavailable != nil:
-			ma := rt.Reason.PayloadUnavailable.MissingAuthors
-			fmt.Printf("    PayloadUnavailable: missing_authors_len=%d\n", len(ma.Inner))
-			fmt.Printf("    MissingAuthors(bitvec): %x\n", ma.Inner)
-
-		case rt.Reason.NoQC != nil:
-			fmt.Println("    NoQC")
-
-		default:
-			fmt.Println("    <unknown variant>")
-		}
-	}
-
-	// Signature
-	fmt.Println("  Signature:")
-	if len(rt.Signature) == 0 {
-		fmt.Println("    <empty>")
-	} else {
-		fmt.Printf("    Len: %d bytes\n", len(rt.Signature))
-	}
-
-	// -------------------
-	// SyncInfo
-	// -------------------
-	si := m.SyncInfo
-
-	fmt.Println("SyncInfo:")
-
-	fmt.Printf("  HighestQC Proposed Round: %d\n",
-		si.HighestQuorumCert.VoteData.Proposed.Round)
-	fmt.Printf("  HighestQC Proposed ID: %s\n",
-		shortHash(si.HighestQuorumCert.VoteData.Proposed.ID))
-
-	if si.HighestQuorumCert.SignedLedgerInfo.V0 != nil {
-		fmt.Printf("  HighestQC Commit Round: %d\n",
-			si.HighestQuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-		fmt.Printf("  HighestQC Commit ID: %s\n",
-			shortHash(si.HighestQuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ID))
-	}
-
-	fmt.Printf("  HighestCommitCert Proposed Round: %d\n",
-		si.HighestCommitCert.VoteData.Proposed.Round)
-	fmt.Printf("  HighestCommitCert Proposed ID: %s\n",
-		shortHash(si.HighestCommitCert.VoteData.Proposed.ID))
-
-	if si.HighestCommitCert.SignedLedgerInfo.V0 != nil {
-		fmt.Printf("  HighestCommitCert Commit Round: %d\n",
-			si.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.Round)
-		fmt.Printf("  HighestCommitCert Commit ID: %s\n",
-			shortHash(si.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ID))
-	}
-
-	if si.Highest2ChainTimeoutCert != nil && si.Highest2ChainTimeoutCert.Some != nil {
-		fmt.Printf("  TimeoutCert Round: %d\n",
-			si.Highest2ChainTimeoutCert.Some.Timeout.Round)
-		fmt.Printf("  TimeoutCert QC Proposed Round: %d\n",
-			si.Highest2ChainTimeoutCert.Some.Timeout.QuorumCert.VoteData.Proposed.Round)
-		fmt.Printf("  TimeoutCert QC Proposed ID: %s\n",
-			shortHash(si.Highest2ChainTimeoutCert.Some.Timeout.QuorumCert.VoteData.Proposed.ID))
-	} else {
-		fmt.Println("  TimeoutCert: None/nil")
-	}
-
-	fmt.Println("================================")
-}
-
 // ---------
 // helpers
 // ---------
 
 func shortHash(h [32]byte) string {
 	return fmt.Sprintf("%x", h[:4]) // first 4 bytes only
+}
+
+func indent(s, prefix string) string {
+	if s == "" {
+		return prefix
+	}
+	lines := strings.Split(strings.TrimRight(s, "\n"), "\n")
+	for i, line := range lines {
+		lines[i] = prefix + line
+	}
+	return strings.Join(lines, "\n")
 }

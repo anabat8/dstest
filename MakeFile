@@ -18,6 +18,9 @@ PIP      := $(VENV_DIR)/bin/pip
 # base directory for the generated genesis + node configs
 BASE_DIR ?= /tmp/aptos-dstest
 
+# Log for DSTest output 
+DSTEST_LOG ?= /tmp/dstest.log
+
 # dsTest config path
 CONFIG ?= $(DSTEST_ROOT)/aptos/configs/aptos.yml
 
@@ -63,7 +66,7 @@ help:
 	@echo "  make framework    			# build framework.mrb (cached)"
 	@echo "  make genesis               # generate genesis.blob + waypoint.txt"
 	@echo "  make node-configs          # generate node.yaml + per-node dirs"
-	@echo "  make seeds                 # (optional) patch seed_addrs (not used yet)"
+	@echo "  make seeds                 # patch seed_addrs"
 	@echo "  make config                # generate config file aptos.yml for dsTest"
 	@echo "  make clean                 # kill nodes + wipe state"
 	@echo "  make run                   # run dsTest with CONFIG"
@@ -231,7 +234,7 @@ run:
 	  ./main run -c "$(CONFIG)"
 
 .PHONY: all
-all: clean node-configs seeds config run
+all: clean node-configs seeds config run-and-filter
 
 .PHONY: filter-logs
 filter-logs:
@@ -242,8 +245,10 @@ filter-logs:
 run-and-filter:
 	@set -e; \
 	RUN_ID=$$(date +"%Y%m%d_%H%M%S"); \
-	echo "[run-and-filter] RUN_ID=$$RUN_ID"; \
-	$(MAKE) RUN_ID=$$RUN_ID clean; \
-	$(MAKE) RUN_ID=$$RUN_ID config; \
-	$(MAKE) RUN_ID=$$RUN_ID run; \
-	$(MAKE) RUN_ID=$$RUN_ID filter-logs
+	echo "[run-and-filter] RUN_ID=$$RUN_ID"; 
+	{ \
+		$(MAKE) RUN_ID=$$RUN_ID clean; \
+		$(MAKE) RUN_ID=$$RUN_ID config; \
+		$(MAKE) RUN_ID=$$RUN_ID run; \
+		$(MAKE) RUN_ID=$$RUN_ID filter-logs; \
+	} 2>&1 | tee "$(DSTEST_LOG)"
