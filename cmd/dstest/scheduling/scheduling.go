@@ -24,6 +24,8 @@ const (
 	NoOp DecisionType = iota
 	SendMessage
 	InjectFault
+	DropMessage
+	DeliverMutatedMessage
 )
 
 func (dt DecisionType) String() string {
@@ -34,6 +36,10 @@ func (dt DecisionType) String() string {
 		return "SendMessage"
 	case InjectFault:
 		return "InjectFault"
+	case DropMessage:
+		return "DropMessage"
+	case DeliverMutatedMessage:
+		return "DeliverMutatedMessage"
 	default:
 		return "Unknown"
 	}
@@ -42,6 +48,10 @@ func (dt DecisionType) String() string {
 type SchedulerDecision struct {
 	DecisionType DecisionType
 	Index        int
+
+	// for ByzzFuzz
+	Message        *network.Message
+	MutatedMessage *network.Message
 }
 
 type SchedulerType string

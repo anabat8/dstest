@@ -18,7 +18,7 @@ type PayloadExecutionLimit = uint64
 type AccountAddress [32]byte
 type Author = AccountAddress
 type HashValue [32]byte
-type PublicKey [48]byte
+type PublicKey []byte
 type BLSSignature []byte
 
 // ----
@@ -460,6 +460,12 @@ func (bi BlockInfo) String() string {
 		bi.TimestampUsecs,
 	)
 
+	if bi.NextEpochState == nil {
+		out += "\n  NextEpochState: <nil ptr>"
+	} else {
+		out += "\n  NextEpochState:\n" + indent(bi.NextEpochState.String(), "    ")
+	}
+
 	return out
 }
 
@@ -474,19 +480,75 @@ type OptionEpochState struct {
 
 func (OptionEpochState) IsBcsEnum() {}
 
+func (o OptionEpochState) String() string {
+	switch {
+	case o.None != nil:
+		return "None"
+	case o.Some != nil:
+		return o.Some.String()
+	default:
+		return "<invalid OptionEpochState>"
+	}
+}
+
 type EpochState struct {
 	Epoch    uint64
 	Verifier ValidatorVerifier
+}
+
+func (e EpochState) String() string {
+	return fmt.Sprintf(
+		"EpochState:\n  Epoch: %d\n  Verifier:\n%s",
+		e.Epoch,
+		indent(e.Verifier.String(), "    "),
+	)
 }
 
 type ValidatorVerifier struct {
 	ValidatorInfos []ValidatorConsensusInfo
 }
 
+func (v ValidatorVerifier) String() string {
+	out := "ValidatorVerifier:"
+	for i, info := range v.ValidatorInfos {
+		out += fmt.Sprintf("\n  [%d]:\n%s", i, indent(info.String(), "    "))
+	}
+	return out
+}
+
 type ValidatorConsensusInfo struct {
 	Address     AccountAddress
 	PublicKey   PublicKey
 	VotingPower uint64
+}
+
+func (v ValidatorConsensusInfo) String() string {
+	addrPrefix := fmt.Sprintf("%x", v.Address[:4])
+
+	pkPrefixLen := 4
+	if len(v.PublicKey) < pkPrefixLen {
+		pkPrefixLen = len(v.PublicKey)
+	}
+	pkPrefix := fmt.Sprintf("%x", v.PublicKey[:pkPrefixLen])
+
+	warn := ""
+	if len(v.PublicKey) != 48 {
+		warn = "  Warning: unexpected public key length\n"
+	}
+
+	return fmt.Sprintf(
+		"ValidatorConsensusInfo:\n"+
+			"  Address: %s\n"+
+			"  PublicKeyLen: %d\n"+
+			"  PublicKeyPrefix: %s\n"+
+			"%s"+
+			"  VotingPower: %d",
+		addrPrefix,
+		len(v.PublicKey),
+		pkPrefix,
+		warn,
+		v.VotingPower,
+	)
 }
 
 // ----------

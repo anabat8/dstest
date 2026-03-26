@@ -180,7 +180,6 @@ func (ni *AptosTCPInterceptor) session(
 	var key [32]byte
 
 	ni.proxyAndTap(from, to, func(chunk []byte) {
-		//ni.Log.Printf("Read: %v\n", chunk)
 		if !keysBound {
 			got, ok := ni.keyReg.GetKeysForDial(sender, receiver)
 			if !ok {
@@ -323,23 +322,26 @@ func (ni *AptosTCPInterceptor) deserializeMessage(
 
 	for _, m := range msgs {
 		// m is one full BCS-serialized Aptos MultiplexMessage
-		msg, protocolId, err := ni.decodeNetworkMessage(m, sender, receiver, forwardDir, sessionId)
+		msg, err := ni.decodeNetworkMessage(m, sender, receiver, forwardDir, sessionId)
 		if err != nil {
 			ni.Log.Printf("Failed to deserialize message: %v\n", err)
 			continue
 		}
-		if protocolId == nil || !protocolId.IsConsensus() {
-			continue
-		}
-		ni.Log.Printf("Decoded message: node%d->node%d dir=%v sessionId=%d env={Variant=%s ProtocolID=%s PayloadLen=%d PayloadHead=%s}\n",
-			sender, receiver, forwardDir, sessionId, msg.Variant, msg.ProtocolID, len(msg.Payload), headHex(msg.Payload, 32),
-		)
 
-		err = ni.decodeConsensusMessage(msg, protocolId)
-		if err != nil {
-			ni.Log.Printf("Failed to decode consensus message: %v\n", err)
-		}
+		ni.AptosHandler(sender, receiver, msg)
 	}
+}
+
+func (ni *AptosTCPInterceptor) AptosHandler(sender, receiver int, envelope *aptos.AptosNetworkEnvelope) {
+	if envelope.ProtocolId == nil || !envelope.ProtocolId.IsConsensus() {
+		return
+	}
+
+	_, err := ni.decodeConsensusMessage(envelope)
+	if err != nil {
+		ni.Log.Printf("Failed to decode consensus message: %v\n", err)
+	}
+
 }
 
 func (ni *AptosTCPInterceptor) decodeNetworkMessage(
@@ -348,18 +350,18 @@ func (ni *AptosTCPInterceptor) decodeNetworkMessage(
 	receiver int,
 	forwardDir bool,
 	sessionId int64,
-) (*aptos.AptosNetworkEnvelope, *aptos.ProtocolId, error) {
+) (*aptos.AptosNetworkEnvelope, error) {
 
 	v := &aptos.MultiplexMessage{}
 	if err := bcs.UnmarshalAll(m, v); err != nil {
-		return nil, nil, fmt.Errorf("Failed to unmarshal MultiplexMessage: %w", err)
+		return nil, fmt.Errorf("Failed to unmarshal MultiplexMessage: %w", err)
 	}
 	ni.Log.Printf("Decoded MultiplexMessage node%d->node%d dir=%v sessionId=%d msg=%+v", sender, receiver, forwardDir, sessionId, v)
 
 	msg := v.Message
 
 	if msg == nil {
-		return nil, nil, fmt.Errorf("MultiplexMessage does not contain a Message")
+		return nil, fmt.Errorf("MultiplexMessage does not contain a Message")
 	}
 
 	ni.Log.Printf(
@@ -368,42 +370,37 @@ func (ni *AptosTCPInterceptor) decodeNetworkMessage(
 	)
 
 	env := &aptos.AptosNetworkEnvelope{}
-	protocolId := &aptos.ProtocolId{}
 
 	switch {
 	case msg.DirectSendMsg != nil:
 		env.Variant = "DirectSendMsg"
-		env.ProtocolID = msg.DirectSendMsg.ProtocolID.String()
-		protocolId = msg.DirectSendMsg.ProtocolID
+		env.ProtocolId = msg.DirectSendMsg.ProtocolID
 		env.Payload = msg.DirectSendMsg.RawMsg
 
 	case msg.RpcRequest != nil:
 		env.Variant = "RpcRequest"
-		env.ProtocolID = msg.RpcRequest.ProtocolID.String()
-		protocolId = msg.RpcRequest.ProtocolID
+		env.ProtocolId = msg.RpcRequest.ProtocolID
 		env.Payload = msg.RpcRequest.RawRequest
 
 	case msg.RpcResponse != nil:
 		env.Variant = "RpcResponse"
-		env.ProtocolID = ""
-		protocolId = nil
+		env.ProtocolId = nil
 		env.Payload = msg.RpcResponse.RawResponse
 
 	case msg.Error != nil:
 		env.Variant = "Error"
-		env.ProtocolID = ""
-		protocolId = nil
+		env.ProtocolId = nil
 		env.Payload = nil
 
 	default:
-		return nil, nil, fmt.Errorf("Decoded message does not have the right form: neither DirectSendMsg, RpcRequest, RpcResponse nor Error is set")
+		return nil, fmt.Errorf("Decoded message does not have the right form: neither DirectSendMsg, RpcRequest, RpcResponse nor Error is set")
 	}
 
 	ni.Log.Printf(
 		"Decoded AptosNetworkEnvelope node%d->node%d dir=%v sessionId=%d env={Variant=%s ProtocolID=%s PayloadLen=%d PayloadHead=%s}",
-		sender, receiver, forwardDir, sessionId, env.Variant, env.ProtocolID, len(env.Payload), headHex(env.Payload, 32),
+		sender, receiver, forwardDir, sessionId, env.Variant, env.ProtocolId, len(env.Payload), headHex(env.Payload, 32),
 	)
-	return env, protocolId, nil
+	return env, nil
 }
 
 // Decodes the payload of the envelope based on the variant and protocol ID
@@ -413,68 +410,42 @@ func (ni *AptosTCPInterceptor) decodeNetworkMessage(
 //	ProtocolID = "ConsensusRpcBcs|ConsensusDirectSendBcs|ConsensusRpcJson|ConsensusDirectSendJson|ConsensusRpcCompressed|ConsensusDirectSendCompressed"
 //
 // The payload is a protobuf message of type ConsensusMsg
-func (ni *AptosTCPInterceptor) decodeConsensusMessage(env *aptos.AptosNetworkEnvelope, protocolID *aptos.ProtocolId) error {
-	decoded, consensusTag, consensusTagLen, err := protocolID.DecodeConsensusPayload(env.Payload)
-
+func (ni *AptosTCPInterceptor) decodeConsensusMessage(env *aptos.AptosNetworkEnvelope) (aptos.IConsensusMessage, error) {
+	decoded, consensusTag, consensusTagLen, err := env.ProtocolId.DecodeConsensusPayload(env.Payload)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// The body is the remaining bytes after the enum tag
 	consensusBody := decoded[consensusTagLen:]
+	var msgType aptos.IConsensusMessage
 
 	switch consensusTag {
 	case 3: //ProposalMsg
-		var proposalMsg aptos.ProposalMsg
-		if err := bcs.UnmarshalAll(consensusBody, &proposalMsg); err != nil {
-			return fmt.Errorf("Failed to unmarshal ProposalMsg: %w", err)
-		}
-		ni.Log.Printf("Decoded ProposalMsg: %v", proposalMsg)
-		fmt.Printf("%s", proposalMsg.String())
+		msgType = &aptos.ProposalMsg{}
 
 	case 21: // OptProposalMsg
-		var optProposalMsg aptos.OptProposalMsg
-		if err := bcs.UnmarshalAll(consensusBody, &optProposalMsg); err != nil {
-			return fmt.Errorf("Failed to unmarshal OptProposalMsg: %w", err)
-		}
-		ni.Log.Printf("Decoded OptProposalMsg: %v", optProposalMsg)
-		fmt.Printf("%s", optProposalMsg.String())
+		msgType = &aptos.OptProposalMsg{}
 
 	case 6: // VoteMsg
-		var voteMsg aptos.VoteMsg
-		if err := bcs.UnmarshalAll(consensusBody, &voteMsg); err != nil {
-			return fmt.Errorf("Failed to unmarshal VoteMsg: %w", err)
-		}
-		ni.Log.Printf("Decoded VoteMsg: %v", voteMsg)
-		fmt.Printf("%s", voteMsg.String())
+		msgType = &aptos.VoteMsg{}
 
 	case 7: // CommitVoteMsg
-		var commitVoteMsg aptos.CommitVote
-		if err := bcs.UnmarshalAll(consensusBody, &commitVoteMsg); err != nil {
-			return fmt.Errorf("Failed to unmarshal CommitVoteMsg: %w", err)
-		}
-		ni.Log.Printf("Decoded CommitVoteMsg: %v", commitVoteMsg)
-		fmt.Printf("%s", commitVoteMsg.String())
+		msgType = &aptos.CommitVote{}
 
 	case 15: // CommitMessage
-		var commitMsg aptos.CommitMessage
-		if err := bcs.UnmarshalAll(consensusBody, &commitMsg); err != nil {
-			return fmt.Errorf("Failed to unmarshal CommitMsg: %w", err)
-		}
-		ni.Log.Printf("Decoded CommitMsg: %v", commitMsg)
-		fmt.Printf("%s", commitMsg.String())
+		msgType = &aptos.CommitMessage{}
 
 	case 19: // RoundTimeoutMsg
-		var roundTimeoutMsg aptos.RoundTimeoutMsg
-		if err := bcs.UnmarshalAll(consensusBody, &roundTimeoutMsg); err != nil {
-			return fmt.Errorf("Failed to unmarshal RoundTimeoutMsg: %w", err)
-		}
-		ni.Log.Printf("Decoded RoundTimeoutMsg: %v", roundTimeoutMsg)
-		fmt.Printf("%s", roundTimeoutMsg.String())
+		msgType = &aptos.RoundTimeoutMsg{}
 	}
 
+	if err := bcs.UnmarshalAll(consensusBody, msgType); err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal: %v %w", msgType, err)
+	}
+	ni.Log.Printf("Decoded: %v", msgType)
 	ni.Log.Printf("Consensus payload decoded: %s", aptos.ConsensusMsgVariantName(consensusTag))
-	return nil
+	return msgType, nil
 }
 
 func (ni *AptosTCPInterceptor) debug(consensusBody []byte) error {

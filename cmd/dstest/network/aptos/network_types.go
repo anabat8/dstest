@@ -10,9 +10,9 @@ import (
 
 // AptosNetworkEnvelope represents the decoded contents of an aptos Noise stream frame after a successful decryption
 type AptosNetworkEnvelope struct {
-	Variant    string // "DirectSendMsg", "RpcRequest", "RpcResponse"
-	ProtocolID string // "ConsensusRpcCompressed", etc.
-	Payload    []byte
+	Variant     string // "DirectSendMsg", "RpcRequest", "RpcResponse"
+	*ProtocolId        // "ConsensusRpcCompressed", etc.
+	Payload     []byte
 }
 
 type MultiplexMessage struct {
@@ -157,7 +157,7 @@ func (p ProtocolId) String() string {
 	case p.ConsensusObserverRpc != nil:
 		return "ConsensusObserverRpc"
 	default:
-		return fmt.Sprintf("UnknownProtocolId(%v)", p)
+		return "UnknownProtocolId"
 	}
 }
 
