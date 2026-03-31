@@ -342,6 +342,26 @@ func (ni *AptosTCPInterceptor) AptosHandler(sender, receiver int, envelope *apto
 		ni.Log.Printf("Failed to decode consensus message: %v\n", err)
 	}
 
+	// queue the request in the network manager
+	// we only queue successfully decoded consensus messages
+	// in order to apply scheduling decisions to them
+	// all other messages are forwarded immediately without queuing
+	// awaitSendRequest := make(chan struct{})
+	// networkMsg := &Message{
+	// 	Sender:    sender,
+	// 	Receiver:  receiver,
+	// 	Payload:   msg,
+	// 	Type:      Aptos,
+	// 	Name:      "Aptos Consensus Message",
+	// 	MessageId: ni.NetworkManager.GenerateUniqueId(),
+	// 	Send:      awaitSendRequest,
+	// }
+
+	// ni.NetworkManager.Router.QueueMessage(networkMsg)
+	// <-awaitSendRequest
+
+	// for dropped messages, we can make another chan struct to the Message type
+	// to send networkMsg.Payload
 }
 
 func (ni *AptosTCPInterceptor) decodeNetworkMessage(

@@ -32,7 +32,7 @@ func DebugUnmarshal(logf func(string, ...any), name string, data []byte, v any) 
 
 // -------------------------------------------------------------------
 type IConsensusMessage interface {
-	GetRoundNumber() Round
+	GetRound() Round
 	fmt.Stringer
 }
 
@@ -46,7 +46,7 @@ type ProposalMsg struct {
 	SyncInfo SyncInfo
 }
 
-func (m ProposalMsg) GetRoundNumber() Round {
+func (m ProposalMsg) GetRound() Round {
 	return m.Proposal.BlockData.Round
 }
 
@@ -65,7 +65,7 @@ type OptProposalMsg struct {
 	SyncInfo  SyncInfo
 }
 
-func (m OptProposalMsg) GetRoundNumber() Round {
+func (m OptProposalMsg) GetRound() Round {
 	return m.BlockData.Round
 }
 
@@ -87,7 +87,7 @@ type VoteMsg struct {
 	SyncInfo SyncInfo
 }
 
-func (v VoteMsg) GetRoundNumber() Round {
+func (v VoteMsg) GetRound() Round {
 	return v.Vote.VoteData.Proposed.Round
 }
 
@@ -108,7 +108,7 @@ type CommitVote struct {
 	Signature  SignatureWithStatus
 }
 
-func (c CommitVote) GetRoundNumber() Round {
+func (c CommitVote) GetRound() Round {
 	return c.LedgerInfo.CommitInfo.Round
 }
 
@@ -129,9 +129,9 @@ type CommitMessage struct {
 	Nack     *BcsUnit
 }
 
-func (c CommitMessage) GetRoundNumber() Round {
+func (c CommitMessage) GetRound() Round {
 	if c.Vote != nil {
-		return c.Vote.GetRoundNumber()
+		return c.Vote.GetRound()
 	}
 	if c.Decision != nil {
 		return c.Decision.LedgerInfo.V0.LedgerInfo.CommitInfo.Round
@@ -169,7 +169,7 @@ type RoundTimeoutMsg struct {
 	SyncInfo SyncInfo
 }
 
-func (r RoundTimeoutMsg) GetRoundNumber() Round {
+func (r RoundTimeoutMsg) GetRound() Round {
 	return r.RoundTimeout.Timeout.Round
 }
 

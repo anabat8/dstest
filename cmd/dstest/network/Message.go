@@ -24,6 +24,6 @@ type Message struct {
 type MessageType string
 
 const (
-	GRPC       MessageType = "GRPC"
-	AptosNoise MessageType = "AptosNoise"
+	GRPC  MessageType = "GRPC"
+	Aptos MessageType = "Aptos"
 )

@@ -50,7 +50,6 @@ type SchedulerDecision struct {
 	Index        int
 
 	// for ByzzFuzz
-	Message        *network.Message
 	MutatedMessage *network.Message
 }
 
