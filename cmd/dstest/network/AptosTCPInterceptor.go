@@ -117,7 +117,7 @@ func (ni *AptosTCPInterceptor) handleConnection(clientConn net.Conn) {
 		clientConn.LocalAddr(),
 	)
 
-	//ni.skipHandshake(clientConn, targetConn)
+	ni.skipHandshake(clientConn, targetConn)
 
 	// client -> target
 	go func() {
@@ -173,24 +173,29 @@ func (ni *AptosTCPInterceptor) session(
 	if tcp, ok := to.(*net.TCPConn); ok {
 		defer tcp.CloseWrite()
 	}
-
+	// NoiseSession { key, dk, nonce, forwardDir, sender, receiver, }
 	keysBound := false
 	var dk aptos.DialKeys
 	var nonce uint64
 	var key [32]byte
+	// pendingBuf accumulates post-handshake bytes that arrive before both nodes'
+	// secrets are in the key registry. skipHandshake() consumed the Noise handshake
+	// frames, so everything here is post-handshake; we must not drop any of it or
+	// the nonce counter will fall out of sync with the sender.
+	var pendingBuf []byte
 
 	ni.proxyAndTap(from, to, func(chunk []byte) {
 		if !keysBound {
 			got, ok := ni.keyReg.GetKeysForDial(sender, receiver)
 			if !ok {
+				// Keys not ready yet (peer hasn't written secrets to disk).
+				// Buffer instead of drop; dropping would desync the nonce counter.
+				pendingBuf = append(pendingBuf, chunk...)
 				return
 			}
 
 			dk = got
 			keysBound = true
-
-			ni.keyReg.RefreshNode(sender)
-			ni.keyReg.RefreshNode(receiver)
 
 			if forwardDir {
 				nonce = dk.R2S_Responder.ReadNonce0
@@ -207,6 +212,12 @@ func (ni *AptosTCPInterceptor) session(
 				hex.EncodeToString(dk.S2R_Initiator.ReadKey[:8]),
 				hex.EncodeToString(dk.S2R_Initiator.RemoteStatic[:8]),
 			)
+
+			// Prepend any bytes that arrived before keys were ready.
+			if len(pendingBuf) > 0 {
+				chunk = append(pendingBuf, chunk...)
+				pendingBuf = nil
+			}
 		}
 
 		// Post-handshake
@@ -217,6 +228,7 @@ func (ni *AptosTCPInterceptor) session(
 			ni.Log.Printf("dir=%v key_head=%s nonce0=%d", forwardDir, hex.EncodeToString(key[:])[:16], nonce)
 
 			pt, err := aptos.DecryptNoiseFrame(key, nonce, fr)
+			// pt, err := session.decryptFrame(fr)
 
 			curNonce := nonce
 			nonce++
@@ -230,7 +242,7 @@ func (ni *AptosTCPInterceptor) session(
 			ni.Log.Printf("[%d] Decrypted node%d->node%d dir=%v nonce=%d pt_len=%d pt_head=%s",
 				sessionId, sender, receiver, forwardDir, curNonce, len(pt), headHex(pt, 32))
 
-			ni.deserializeMessage(pt, sender, receiver, forwardDir, sessionId, plainFramer)
+			ni.deserializeMessage(pt, sender, receiver, forwardDir, sessionId, plainFramer, to)
 		}
 	})
 }
@@ -267,7 +279,7 @@ func (ni *AptosTCPInterceptor) proxyAndTap(inConn net.Conn, outConn net.Conn, ta
 
 // Helper functions
 // -----------------
-func writeFull(conn net.Conn, buf []byte) error {
+func writeFull(conn io.Writer, buf []byte) error {
 	for len(buf) > 0 {
 		n, err := conn.Write(buf)
 		if err != nil {
@@ -314,6 +326,7 @@ func (ni *AptosTCPInterceptor) deserializeMessage(
 	forwardDir bool,
 	sessionId int64,
 	plainFramer *aptos.U32Framer,
+	outConn net.Conn,
 ) {
 	// After decryption, a plaintext is framed as [u32_be len][len bytes of payload],
 	// where the payload is a BCS-serialized MultiplexMessage
@@ -328,11 +341,11 @@ func (ni *AptosTCPInterceptor) deserializeMessage(
 			continue
 		}
 
-		ni.AptosHandler(sender, receiver, msg)
+		ni.AptosHandler(sender, receiver, msg, outConn)
 	}
 }
 
-func (ni *AptosTCPInterceptor) AptosHandler(sender, receiver int, envelope *aptos.AptosNetworkEnvelope) {
+func (ni *AptosTCPInterceptor) AptosHandler(sender, receiver int, envelope *aptos.AptosNetworkEnvelope, response io.Writer) {
 	if envelope.ProtocolId == nil || !envelope.ProtocolId.IsConsensus() {
 		return
 	}
@@ -361,7 +374,11 @@ func (ni *AptosTCPInterceptor) AptosHandler(sender, receiver int, envelope *apto
 	// <-awaitSendRequest
 
 	// for dropped messages, we can make another chan struct to the Message type
-	// to send networkMsg.Payload
+	// todo: send networkMsg.Payload
+	// envelope.encode() -> noise protocol encoding
+	// if err := writeFull(response, chunk); err != nil {
+	// 	return
+	// }
 }
 
 func (ni *AptosTCPInterceptor) decodeNetworkMessage(
@@ -377,7 +394,6 @@ func (ni *AptosTCPInterceptor) decodeNetworkMessage(
 		return nil, fmt.Errorf("Failed to unmarshal MultiplexMessage: %w", err)
 	}
 	ni.Log.Printf("Decoded MultiplexMessage node%d->node%d dir=%v sessionId=%d msg=%+v", sender, receiver, forwardDir, sessionId, v)
-
 	msg := v.Message
 
 	if msg == nil {

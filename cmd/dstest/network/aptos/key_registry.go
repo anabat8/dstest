@@ -157,12 +157,9 @@ func (kr *KeyRegistry) GetKeysForDial(sender, receiver int) (DialKeys, bool) {
 		return DialKeys{}, false
 	}
 
-	s2rInit, ok := kr.Get(sender, "initiator", receiverStatic)
-	if !ok {
-		return DialKeys{}, false
-	}
-	r2sResp, ok := kr.Get(receiver, "responder", senderStatic)
-	if !ok {
+	s2rInit, ok1 := kr.Get(sender, "initiator", receiverStatic)
+	r2sResp, ok2 := kr.Get(receiver, "responder", senderStatic)
+	if !ok1 && !ok2 {
 		return DialKeys{}, false
 	}
 
