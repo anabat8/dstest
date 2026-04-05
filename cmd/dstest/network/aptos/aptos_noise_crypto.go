@@ -15,6 +15,38 @@ import (
 	"errors"
 )
 
+type NoiseSession struct {
+	keys         DialKeys
+	aesKey       [32]byte
+	decryptNonce uint64
+	encryptNonce uint64
+	ForwardDir   bool
+	Sender       int
+	Receiver     int
+	SessionId    int64
+}
+
+func NewNoiseSession(
+	dk DialKeys,
+	aesKey [32]byte,
+	nonce uint64,
+	forwardDir bool,
+	sender int,
+	receiver int,
+	sessionId int64,
+) *NoiseSession {
+	return &NoiseSession{
+		keys:         dk,
+		aesKey:       aesKey,
+		decryptNonce: nonce,
+		encryptNonce: nonce,
+		ForwardDir:   forwardDir,
+		Sender:       sender,
+		Receiver:     receiver,
+		SessionId:    sessionId,
+	}
+}
+
 var ErrCiphertextTooShort = errors.New("ciphertext too short")
 
 // Aptos nonce format: 12 bytes = 4 zero bytes || u64 big-endian counter
@@ -29,12 +61,36 @@ func aptosNonce(n uint64) []byte {
 // frame = ciphertext||tag  (length already stripped by U16 framer)
 // tag size: 16 bytes
 // AAD is empty (post-handshake in Aptos NoiseStream).
-func DecryptNoiseFrame(aesKey [32]byte, nonce uint64, frame []byte) ([]byte, error) {
+func (ns *NoiseSession) DecryptNoiseFrame(frame []byte) ([]byte, uint64, error) {
 	if len(frame) < 16 {
-		return nil, ErrCiphertextTooShort
+		return nil, 0, ErrCiphertextTooShort
 	}
 
-	block, err := aes.NewCipher(aesKey[:])
+	block, err := aes.NewCipher(ns.aesKey[:])
+	if err != nil {
+		return nil, 0, err
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// empty AAD
+	// gcm.Open already expects frame to be = ciphertext||tag and
+	// returns plaintext only
+	// it already authenticates and removes the tag for us
+	pt, err := gcm.Open(nil, aptosNonce(ns.decryptNonce), frame, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	usedNonce := ns.decryptNonce
+	ns.decryptNonce++
+	return pt, usedNonce, nil
+}
+
+func (ns *NoiseSession) EncryptNoiseFrame(plaintext []byte) ([]byte, error) {
+	block, err := aes.NewCipher(ns.aesKey[:])
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +100,7 @@ func DecryptNoiseFrame(aesKey [32]byte, nonce uint64, frame []byte) ([]byte, err
 	}
 
 	// empty AAD
-	// gcm.Open already expects frame to be = ciphertext||tag and
-	// returns plaintext only
-	// it already authenticates and removes the tag for us
-	pt, err := gcm.Open(nil, aptosNonce(nonce), frame, nil)
-	if err != nil {
-		return nil, err
-	}
-	return pt, nil
+	ct := gcm.Seal(nil, aptosNonce(ns.encryptNonce), plaintext, nil)
+	ns.encryptNonce++
+	return ct, nil
 }
