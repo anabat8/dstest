@@ -245,7 +245,7 @@ filter-logs:
 run-and-filter:
 	@set -e; \
 	RUN_ID=$$(date +"%Y%m%d_%H%M%S"); \
-	echo "[run-and-filter] RUN_ID=$$RUN_ID"; 
+	echo "[run-and-filter] RUN_ID=$$RUN_ID"; \
 	{ \
 		$(MAKE) RUN_ID=$$RUN_ID clean; \
 		$(MAKE) RUN_ID=$$RUN_ID config; \

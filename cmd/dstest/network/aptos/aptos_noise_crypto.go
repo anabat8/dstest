@@ -104,3 +104,7 @@ func (ns *NoiseSession) EncryptNoiseFrame(plaintext []byte) ([]byte, error) {
 	ns.encryptNonce++
 	return ct, nil
 }
+
+func (ns *NoiseSession) NoSentMessages() bool {
+	return ns.encryptNonce == 0
+}

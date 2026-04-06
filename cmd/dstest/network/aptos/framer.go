@@ -113,3 +113,27 @@ func (f *U32Framer) Parse(chunk []byte) (frames [][]byte) {
 		frames = append(frames, frame)
 	}
 }
+
+type FrameLen int
+
+const (
+	U16 FrameLen = 2
+	U32 FrameLen = 4
+)
+
+func Frame(fLen FrameLen, payload []byte) []byte {
+	switch fLen {
+	case U16:
+		buf := make([]byte, 2+len(payload))
+		binary.BigEndian.PutUint16(buf[:2], uint16(len(payload)))
+		copy(buf[2:], payload)
+		return buf
+	case U32:
+		buf := make([]byte, 4+len(payload))
+		binary.BigEndian.PutUint32(buf[:4], uint32(len(payload)))
+		copy(buf[4:], payload)
+		return buf
+	default:
+		panic("unsupported frame length")
+	}
+}

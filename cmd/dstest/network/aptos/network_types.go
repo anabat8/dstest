@@ -10,9 +10,47 @@ import (
 
 // AptosNetworkEnvelope represents the decoded contents of an aptos Noise stream frame after a successful decryption
 type AptosNetworkEnvelope struct {
-	Variant     string // "DirectSendMsg", "RpcRequest", "RpcResponse"
-	*ProtocolId        // "ConsensusRpcCompressed", etc.
+	Variant     NetworkMessage // DirectSendMsg, RpcRequest, RpcResponse, ErrorCode
+	*ProtocolId                // "ConsensusRpcCompressed", etc.
 	Payload     []byte
+}
+
+// DecodedConsensusMsg represents a consensus message that has been decoded from the network envelope.
+// Includes the original envelope, the consensus enum tag, and the decoded consensus message struct.
+type DecodedConsensusMsg struct {
+	Envelope     AptosNetworkEnvelope
+	ConsensusTag uint32
+	Msg          IConsensusMessage
+}
+
+func (env AptosNetworkEnvelope) EncodeConsensusPayload() ([]byte, error) {
+	encoding := env.ProtocolId.GetEncodingType()
+	var encoded []byte
+
+	switch encoding {
+	case "Compressed":
+		// Compress the serialized payload with lz4 and prepend uncompressed length as u32_le
+		bound := lz4.CompressBlockBound(len(env.Payload))
+		compressed := make([]byte, bound)
+		n, err := lz4.CompressBlock(env.Payload, compressed, nil)
+		if err != nil {
+			return nil, fmt.Errorf("lz4 block compression failed for ProtocolID=%s: %w", env.ProtocolId.String(), err)
+		}
+
+		buf := make([]byte, 4+n)
+		binary.LittleEndian.PutUint32(buf[:4], uint32(len(env.Payload)))
+		copy(buf[4:], compressed[:n])
+		encoded = buf
+
+	case "BCS":
+		encoded = env.Payload
+	case "JSON":
+		return nil, fmt.Errorf("JSON encoding not implemented yet for ProtocolID=%s", env.ProtocolId.String())
+	default:
+		return nil, fmt.Errorf("Unknown encoding type for ProtocolID=%s", env.ProtocolId.String())
+	}
+
+	return encoded, nil
 }
 
 type MultiplexMessage struct {
@@ -190,6 +228,7 @@ func (p ProtocolId) DecodeConsensusPayload(payload []byte) ([]byte, uint32, int,
 	switch encoding {
 	case "Compressed":
 		// Decompress the payload using lz4 and then decode the inner BCS message.
+		// The compressed payload format is: [u32_le uncompressed_length][lz4_compressed_data]
 		if len(payload) < 4 {
 			return nil, 0, 0, fmt.Errorf("Compressed payload too short to contain uncompressed length prefix for ProtocolID=%s", p.String())
 		}
@@ -230,6 +269,13 @@ func (p ProtocolId) DecodeConsensusPayload(payload []byte) ([]byte, uint32, int,
 	// }
 
 	// return decoded, variant, n, nil
+}
+
+func EncodeConsensusTag(consensusTag uint32) uint32 {
+	//encode uleb128 enum tag based on the concrete type of msg
+	ser := &bcs.Serializer{}
+	ser.Uleb128(consensusTag)
+	return consensusTag
 }
 
 // ConsensusMsg is the network data type used by Aptos in the consensus protocol.

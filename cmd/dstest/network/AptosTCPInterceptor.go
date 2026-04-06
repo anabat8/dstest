@@ -1,6 +1,7 @@
 package network
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"slices"
 	"sync"
+	"time"
 
 	aptos "github.com/egeberkaygulcan/dstest/cmd/dstest/network/aptos"
 	"github.com/fardream/go-bcs/bcs"
@@ -20,12 +22,12 @@ import (
 type AptosTCPInterceptor struct {
 	BaseInterceptor
 	Listener net.Listener
+	keyReg   *aptos.KeyRegistry
 }
-
-//------------------------------
 
 var notImplementedErr = fmt.Errorf("Handler not implemented")
 var notConsensusMsgErr = fmt.Errorf("Not a consensus message")
+var decryptFailedErr = fmt.Errorf("Decrypt failed")
 
 type NoiseLayer struct {
 	noiseSession *aptos.NoiseSession
@@ -40,23 +42,22 @@ func NewNoiseLayer(
 	sender, receiver int,
 	forwardDir bool,
 	logger *log.Logger,
+	keyReg *aptos.KeyRegistry,
 ) (NoiseLayer, error) {
-	// Secrets files written by aptos_server.sh:
-	//   ${BASE_DIR}/nodes/v${NODE_INDEX}/noise_secrets.jsonl
-	baseDir := os.Getenv("BASE_DIR")
-	if baseDir == "" {
-		baseDir = "/tmp/aptos-dstest"
-	}
-	keyReg := aptos.NewKeyRegistry(baseDir)
-
 	var nonce uint64
 	var key [32]byte
 	var noiseSession *aptos.NoiseSession
 
-	dk, ok := keyReg.GetKeysForDial(sender, receiver)
-	if !ok {
-		// Keys not ready yet.
-		return NoiseLayer{}, fmt.Errorf("Keys not ready for node%d->node%d", sender, receiver)
+	var dk aptos.DialKeys
+	for {
+		var ok bool
+		dk, ok = keyReg.GetKeysForDial(sender, receiver)
+		if !ok {
+			logger.Printf("Keys not ready for node%d->node%d\n", sender, receiver)
+		} else {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 
 	if forwardDir {
@@ -89,7 +90,6 @@ func (n *NoiseLayer) Read(r [][]byte) (int, error) {
 	frames := n.Framer.Parse(chunk)
 	for i, fr := range frames {
 		pt, _, err := n.noiseSession.DecryptNoiseFrame(fr)
-
 		if err != nil {
 			n.Log.Printf("[%d] Decrypt failed node%d->node%d dir=%v",
 				n.noiseSession.SessionId, n.noiseSession.Sender, n.noiseSession.Receiver, n.noiseSession.ForwardDir)
@@ -98,7 +98,6 @@ func (n *NoiseLayer) Read(r [][]byte) (int, error) {
 
 		n.Log.Printf("[%d] Decrypted node%d->node%d dir=%v",
 			n.noiseSession.SessionId, n.noiseSession.Sender, n.noiseSession.Receiver, n.noiseSession.ForwardDir)
-
 		r[i] = pt
 	}
 
@@ -106,12 +105,11 @@ func (n *NoiseLayer) Read(r [][]byte) (int, error) {
 }
 
 func (n *NoiseLayer) Write(p []byte) error {
-	u16 := uint16(len(p))
 	ciphertext, err := n.noiseSession.EncryptNoiseFrame(p)
 	if err != nil {
 		return err
 	}
-
+	u16 := uint16(len(ciphertext))
 	buf := make([]byte, 2+len(ciphertext))
 	binary.BigEndian.PutUint16(buf[:2], u16)
 	copy(buf[2:], ciphertext)
@@ -135,8 +133,6 @@ func (f *U32FrameLayer) Read(r [][]byte) (int, error) {
 	// Parse frames and place results in r
 	pt := slices.Concat(buf[:n]...)
 	msgs := f.PlainFramer.Parse(pt)
-	f.Log.Printf("msg_len=%d", len(msgs))
-
 	for i, m := range msgs {
 		r[i] = m
 	}
@@ -145,10 +141,12 @@ func (f *U32FrameLayer) Read(r [][]byte) (int, error) {
 }
 
 func (f *U32FrameLayer) Write(p []byte) error {
-	n := len(p)
-	buf := make([]byte, 4+n)
-	binary.BigEndian.PutUint32(buf[:4], uint32(n))
-	copy(buf[4:], p)
+	var buf []byte
+	if f.noiseSession.NoSentMessages() {
+		buf = aptos.Frame(aptos.U16, p) // weird thing in the protocol, the first message is framed with u16 at this layer
+	} else {
+		buf = aptos.Frame(aptos.U32, p)
+	}
 	err := f.NoiseLayer.Write(buf)
 	return err
 }
@@ -168,7 +166,7 @@ func (nw *NetworkMsgLayer) Read(r []aptos.AptosNetworkEnvelope) (int, error) {
 	successful := 0
 	for _, framePt := range buf[:n] {
 		// framePt is one full BCS-serialized Aptos MultiplexMessage
-		tmp, err := nw.decodeNetworkMessage(framePt)
+		tmp, err := nw.decodeNetworkMessage(bytes.Clone(framePt))
 		if err != nil {
 			nw.Log.Printf("Failed to decode network message: %v\n", err)
 			nw.U32FrameLayer.Write(framePt)
@@ -181,9 +179,53 @@ func (nw *NetworkMsgLayer) Read(r []aptos.AptosNetworkEnvelope) (int, error) {
 	return successful, nil
 }
 
-// TODO
 func (nw *NetworkMsgLayer) Write(p aptos.AptosNetworkEnvelope) error {
-	return nw.U32FrameLayer.Write(p.Payload)
+	encoded, err := p.EncodeConsensusPayload()
+	if err != nil {
+		return fmt.Errorf("Failed to encode (compress) consensus payload: %w", err)
+	}
+
+	nm, err := nw.encodeNetworkMessage(encoded, p)
+	if err != nil {
+		return fmt.Errorf("Failed to encode network message: %w", err)
+	}
+
+	err = nw.U32FrameLayer.Write(nm)
+	return err
+}
+
+func (l *NetworkMsgLayer) encodeNetworkMessage(encoded []byte, env aptos.AptosNetworkEnvelope) ([]byte, error) {
+	var netMsg aptos.NetworkMessage
+
+	switch {
+	case env.Variant.DirectSendMsg != nil:
+		netMsg.DirectSendMsg = &aptos.DirectSendMsg{
+			ProtocolID: env.ProtocolId,
+			Priority:   env.Variant.DirectSendMsg.Priority,
+			RawMsg:     encoded,
+		}
+	case env.Variant.RpcRequest != nil:
+		netMsg.RpcRequest = &aptos.RpcRequest{
+			ProtocolID: env.ProtocolId,
+			RequestID:  env.Variant.RpcRequest.RequestID,
+			Priority:   env.Variant.RpcRequest.Priority,
+			RawRequest: encoded,
+		}
+	case env.Variant.RpcResponse != nil:
+		netMsg.RpcResponse = &aptos.RpcResponse{
+			RequestID:   env.Variant.RpcResponse.RequestID,
+			Priority:    env.Variant.RpcResponse.Priority,
+			RawResponse: encoded,
+		}
+	}
+
+	mux := aptos.MultiplexMessage{Message: &netMsg}
+	encodedMux, err := bcs.Marshal(mux)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to marshal MultiplexMessage: %w", err)
+	}
+
+	return encodedMux, nil
 }
 
 func (l *NetworkMsgLayer) decodeNetworkMessage(
@@ -216,22 +258,22 @@ func (l *NetworkMsgLayer) decodeNetworkMessage(
 
 	switch {
 	case msg.DirectSendMsg != nil:
-		env.Variant = "DirectSendMsg"
+		env.Variant = *msg
 		env.ProtocolId = msg.DirectSendMsg.ProtocolID
 		env.Payload = msg.DirectSendMsg.RawMsg
 
 	case msg.RpcRequest != nil:
-		env.Variant = "RpcRequest"
+		env.Variant = *msg
 		env.ProtocolId = msg.RpcRequest.ProtocolID
 		env.Payload = msg.RpcRequest.RawRequest
 
 	case msg.RpcResponse != nil:
-		env.Variant = "RpcResponse"
+		env.Variant = *msg
 		env.ProtocolId = nil
 		env.Payload = msg.RpcResponse.RawResponse
 
 	case msg.Error != nil:
-		env.Variant = "Error"
+		env.Variant = *msg
 		env.ProtocolId = nil
 		env.Payload = nil
 
@@ -240,7 +282,7 @@ func (l *NetworkMsgLayer) decodeNetworkMessage(
 	}
 
 	l.Log.Printf(
-		"Decoded AptosNetworkEnvelope node%d->node%d dir=%v sessionId=%d env={Variant=%s ProtocolID=%s PayloadLen=%d PayloadHead=%s}",
+		"Decoded AptosNetworkEnvelope node%d->node%d dir=%v sessionId=%d env={Variant=%+v ProtocolID=%s PayloadLen=%d PayloadHead=%s}",
 		l.noiseSession.Sender, l.noiseSession.Receiver, l.noiseSession.ForwardDir, l.noiseSession.SessionId, env.Variant, env.ProtocolId, len(env.Payload), headHex(env.Payload, 32),
 	)
 	return *env, nil
@@ -250,7 +292,7 @@ type ConsensusMsgLayer struct {
 	NetworkMsgLayer
 }
 
-func (c *ConsensusMsgLayer) Read(r []aptos.IConsensusMessage) (int, error) {
+func (c *ConsensusMsgLayer) Read(r []aptos.DecodedConsensusMsg) (int, error) {
 	buf := make([]aptos.AptosNetworkEnvelope, 1024)
 	n, err := c.NetworkMsgLayer.Read(buf)
 	if err != nil {
@@ -270,9 +312,23 @@ func (c *ConsensusMsgLayer) Read(r []aptos.IConsensusMessage) (int, error) {
 	return cnt, nil
 }
 
-// TODO
-func (c *ConsensusMsgLayer) Write(p aptos.IConsensusMessage) error {
-	return nil
+func (c *ConsensusMsgLayer) Write(msg aptos.DecodedConsensusMsg) error {
+	consensusBody, err := bcs.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("Failed to marshal consensus message: %w", err)
+	}
+
+	consensusTag := aptos.EncodeConsensusTag(msg.ConsensusTag)
+	consensusPayload := append([]byte{byte(consensusTag)}, consensusBody...)
+
+	env := aptos.AptosNetworkEnvelope{
+		Variant:    msg.Envelope.Variant,
+		ProtocolId: msg.Envelope.ProtocolId,
+		Payload:    consensusPayload, //serialized payload
+	}
+
+	err = c.NetworkMsgLayer.Write(env)
+	return err
 }
 
 // Decodes the payload of the envelope based on the variant and protocol ID
@@ -282,14 +338,14 @@ func (c *ConsensusMsgLayer) Write(p aptos.IConsensusMessage) error {
 //	ProtocolID = "ConsensusRpcBcs|ConsensusDirectSendBcs|ConsensusRpcJson|ConsensusDirectSendJson|ConsensusRpcCompressed|ConsensusDirectSendCompressed"
 //
 // The payload is a protobuf message of type ConsensusMsg
-func (c *ConsensusMsgLayer) decodeConsensusMessage(env *aptos.AptosNetworkEnvelope) (aptos.IConsensusMessage, error) {
+func (c *ConsensusMsgLayer) decodeConsensusMessage(env *aptos.AptosNetworkEnvelope) (aptos.DecodedConsensusMsg, error) {
 	if env.ProtocolId == nil || !env.ProtocolId.IsConsensus() {
-		return nil, notConsensusMsgErr
+		return aptos.DecodedConsensusMsg{}, notConsensusMsgErr
 	}
 
 	decoded, consensusTag, consensusTagLen, err := env.ProtocolId.DecodeConsensusPayload(env.Payload)
 	if err != nil {
-		return nil, err
+		return aptos.DecodedConsensusMsg{}, err
 	}
 
 	// The body is the remaining bytes after the enum tag
@@ -317,12 +373,19 @@ func (c *ConsensusMsgLayer) decodeConsensusMessage(env *aptos.AptosNetworkEnvelo
 	}
 
 	if err := bcs.UnmarshalAll(consensusBody, msgType); err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal: %v %w", msgType, err)
+		return aptos.DecodedConsensusMsg{}, fmt.Errorf("Failed to unmarshal: %v %w", msgType, err)
 	}
 
 	c.Log.Printf("Decoded: %v", msgType)
 	c.Log.Printf("Consensus payload decoded: %s", aptos.ConsensusMsgVariantName(consensusTag))
-	return msgType, nil
+
+	decodedMsg := aptos.DecodedConsensusMsg{
+		Envelope:     *env,
+		ConsensusTag: consensusTag,
+		Msg:          msgType,
+	}
+
+	return decodedMsg, nil
 }
 
 // Check if BaseInterceptor implements Interceptor interface
@@ -331,6 +394,15 @@ var _ Interceptor = (*AptosTCPInterceptor)(nil)
 func (ni *AptosTCPInterceptor) Init(id int, port int, nm *Manager) {
 	logPrefix := fmt.Sprintf("[AptosTCP Interceptor %d] ", id)
 	logger := log.New(log.Writer(), logPrefix, log.LstdFlags)
+
+	// Secrets files written by aptos_server.sh:
+	//   ${BASE_DIR}/nodes/v${NODE_INDEX}/noise_secrets.jsonl
+	baseDir := os.Getenv("BASE_DIR")
+	if baseDir == "" {
+		baseDir = "/tmp/aptos-dstest"
+	}
+	ni.keyReg = aptos.NewKeyRegistry(baseDir)
+
 	ni.BaseInterceptor.Init(id, port, nm, logger)
 }
 
@@ -393,7 +465,7 @@ func (ni *AptosTCPInterceptor) handleConnection(clientConn net.Conn) {
 	sessionId, _ := rand.Int(rand.Reader, big.NewInt(100))
 	ni.Log.Printf("[%d] Proxying connection: node%d -> node%d (target %s)\n", sessionId.Int64(), sender, receiver, targetAddr)
 
-	// Connect to the target node (forward immediately; the TCP proxy bypasses the scheduler)
+	// Connect to the target node
 	targetConn, err := net.Dial("tcp", targetAddr)
 	if err != nil {
 		ni.Log.Printf("Error connecting to target %s: %s\n", targetAddr, err.Error())
@@ -463,11 +535,7 @@ func (ni *AptosTCPInterceptor) session(
 	forwardDir bool,
 ) {
 
-	if tcp, ok := to.(*net.TCPConn); ok {
-		defer tcp.CloseWrite()
-	}
-
-	nLayer, err := NewNoiseLayer(from, to, sender, receiver, forwardDir, ni.Log)
+	nLayer, err := NewNoiseLayer(from, to, sender, receiver, forwardDir, ni.Log, ni.keyReg)
 	if err != nil {
 		return
 	}
@@ -482,10 +550,15 @@ func (ni *AptosTCPInterceptor) session(
 	}
 
 	for {
-		buf := make([]aptos.IConsensusMessage, 16)
+		buf := make([]aptos.DecodedConsensusMsg, 16)
 		n, err := socket.Read(buf)
-		if err == io.EOF || n == 0 {
+		if err == io.EOF {
+			ni.Log.Printf("EOF reached")
 			return
+		}
+		if err == notConsensusMsgErr {
+			ni.Log.Printf("Not a consensus message, forwarding without decoding")
+			continue
 		}
 		if err != nil {
 			ni.Log.Printf("Error reading aptos consensus: %v", err)
@@ -512,6 +585,9 @@ func (ni *AptosTCPInterceptor) session(
 			// <-awaitSendRequest
 
 			socket.Write(msg)
+			ni.Log.Printf("Forwarded consensus message: node%d->node%d dir=%v sessionId=%d msg=%+v",
+				nLayer.noiseSession.Sender, nLayer.noiseSession.Receiver, nLayer.noiseSession.ForwardDir, nLayer.noiseSession.SessionId, msg.Msg,
+			)
 		}
 	}
 }
