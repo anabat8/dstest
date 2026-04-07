@@ -180,12 +180,16 @@ func (nw *NetworkMsgLayer) Read(r []aptos.AptosNetworkEnvelope) (int, error) {
 }
 
 func (nw *NetworkMsgLayer) Write(p aptos.AptosNetworkEnvelope) error {
-	encoded, err := p.EncodeConsensusPayload()
-	if err != nil {
-		return fmt.Errorf("Failed to encode (compress) consensus payload: %w", err)
+	payload := p.Payload
+	if p.ProtocolId != nil && p.ProtocolId.IsConsensus() {
+		encoded, err := p.EncodeConsensusPayload()
+		if err != nil {
+			return fmt.Errorf("Failed to encode (compress) consensus payload: %w", err)
+		}
+		payload = encoded
 	}
 
-	nm, err := nw.encodeNetworkMessage(encoded, p)
+	nm, err := nw.encodeNetworkMessage(payload, p)
 	if err != nil {
 		return fmt.Errorf("Failed to encode network message: %w", err)
 	}
@@ -303,7 +307,8 @@ func (c *ConsensusMsgLayer) Read(r []aptos.DecodedConsensusMsg) (int, error) {
 	for _, env := range buf[:n] {
 		tmp, err := c.decodeConsensusMessage(&env)
 		if err != nil {
-			c.NetworkMsgLayer.Write(env)
+			err2 := c.NetworkMsgLayer.Write(env)
+			c.Log.Printf("Decode error: %v, Forwarding error: %v\n", err, err2)
 		} else {
 			r[cnt] = tmp
 			cnt++
@@ -313,7 +318,7 @@ func (c *ConsensusMsgLayer) Read(r []aptos.DecodedConsensusMsg) (int, error) {
 }
 
 func (c *ConsensusMsgLayer) Write(msg aptos.DecodedConsensusMsg) error {
-	consensusBody, err := bcs.Marshal(msg)
+	consensusBody, err := bcs.Marshal(msg.Msg)
 	if err != nil {
 		return fmt.Errorf("Failed to marshal consensus message: %w", err)
 	}
@@ -584,7 +589,10 @@ func (ni *AptosTCPInterceptor) session(
 			// ni.NetworkManager.Router.QueueMessage(networkMsg)
 			// <-awaitSendRequest
 
-			socket.Write(msg)
+			err := socket.Write(msg)
+			if err != nil {
+				ni.Log.Printf("Error writing consensus message: %v", err)
+			}
 			ni.Log.Printf("Forwarded consensus message: node%d->node%d dir=%v sessionId=%d msg=%+v",
 				nLayer.noiseSession.Sender, nLayer.noiseSession.Receiver, nLayer.noiseSession.ForwardDir, nLayer.noiseSession.SessionId, msg.Msg,
 			)
@@ -598,6 +606,7 @@ func writeFull(conn io.Writer, buf []byte) error {
 	for len(buf) > 0 {
 		n, err := conn.Write(buf)
 		if err != nil {
+			log.Printf("Error writing to connection: %s\n", err.Error())
 			return err
 		}
 		buf = buf[n:]

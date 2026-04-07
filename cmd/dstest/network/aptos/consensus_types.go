@@ -197,20 +197,15 @@ func (c CommitDecision) String() string {
 type RoundTimeout struct {
 	Timeout   TwoChainTimeout
 	Author    Author
-	Reason    *RoundTimeoutReason
+	Reason    RoundTimeoutReason
 	Signature BLSSignature
 }
 
 func (r RoundTimeout) String() string {
-	reason := "<nil>"
-	if r.Reason != nil {
-		reason = r.Reason.String()
-	}
-
 	return "RoundTimeout:\n" +
 		"  Timeout:\n" + indent(r.Timeout.String(), "    ") + "\n" +
 		fmt.Sprintf("  Author: %s\n", shortHash(r.Author)) +
-		fmt.Sprintf("  Reason: %s\n", reason) +
+		fmt.Sprintf("  Reason: %s\n", r.Reason.String()) +
 		fmt.Sprintf("  SignatureLen: %d", len(r.Signature))
 }
 
