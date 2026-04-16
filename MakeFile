@@ -49,7 +49,7 @@ FILTER_TEXT ?= $(OUTPUT_DIR)/consensus_filtered.log
 # TEST_NAME is an experiment's name, can be anything
 # SCHED_TYPE can be random, pct, ql
 TEST_NAME ?= aptos-localnet
-SCHED_TYPE ?= pct
+SCHED_TYPE ?= byzzfuzz
 
 # logging pass-through (empty by default)
 RUST_LOG ?= byzzfuzz.noise=info,info
@@ -176,20 +176,20 @@ config:
 	echo "  Name: $(TEST_NAME)"; \
 	echo "  Experiments: 1"; \
 	echo "  Iterations: 2"; \
-	echo "  WaitDuration: 100"; \
-	echo "  StartupDuration: 1"; \
+	echo "  WaitDuration: 200"; \
+	echo "  StartupDuration: 10"; \
 	echo ""; \
 	echo "SchedulerConfig:"; \
 	echo "  Type: \"$(SCHED_TYPE)\""; \
-	echo "  Steps: 50"; \
+	echo "  Steps: 500"; \
 	echo "  Seed: 42"; \
-	echo "  Params: {\"client_request_probability\": 0.01, \"d\": 2}"; \
+	echo "  Params: {\"c\": 10, \"d\": 0, \"r\": 10}"; \
 	echo ""; \
 	echo "NetworkConfig:"; \
 	echo "  BaseReplicaPort: $(BASE_PORT)"; \
 	echo "  BaseInterceptorPort: 10000"; \
 	echo "  Protocol: \"aptostcp\""; \
-	echo "  MessageType: TCP"; \
+	echo "  MessageType: Aptos"; \
 	echo ""; \
 	echo "FaultConfig:"; \
 	echo "  Faults: []"; \

@@ -33,8 +33,8 @@ type Partition struct {
 // For network faults
 // We sample from a uniform distribution of all possible partitions of the set of processes P
 // by sampling from the precomputed set of partitions, since in Aptos we have small validators sets
-func NewPartition(nodes []ReplicaID, rng *rand.Rand) *Partition {
-	p := &Partition{
+func NewPartition(nodes []ReplicaID, rng *rand.Rand) Partition {
+	p := Partition{
 		blocks: 0,
 		of:     make(map[ReplicaID]int),
 	}
@@ -136,7 +136,7 @@ func NewDelayMessagesStore() *DelayMessagesStore {
 	}
 }
 
-func (store *DelayMessagesStore) SetDelayed(messageId uint64, delayTime time.Duration, sendFunc func(uint64)) {
+func (store *DelayMessagesStore) SetDelayed(messageId uint64, delayTime time.Duration, sendFunc func()) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	if store.isDelayed[messageId] == true {
@@ -145,7 +145,8 @@ func (store *DelayMessagesStore) SetDelayed(messageId uint64, delayTime time.Dur
 	store.isDelayed[messageId] = true
 	go func() {
 		time.Sleep(delayTime)
-		sendFunc(messageId)
+		//sendFunc(messageId)
+		sendFunc()
 		store.mu.Lock()
 		defer store.mu.Unlock()
 		delete(store.isDelayed, messageId)
@@ -182,6 +183,7 @@ var _ Scheduler = &ByzzFuzzScheduler{}
 
 func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 	s.Config = config
+	s.Mutator = network.NewAptosMutator()
 
 	seed := int64(config.SchedulerConfig.Seed)
 	if seed == 0 {
@@ -190,9 +192,9 @@ func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 	s.rng = rand.New(rand.NewSource(seed))
 
 	s.params = ByzzFuzzParams{
-		C: config.SchedulerConfig.Params["C"].(int),
-		D: config.SchedulerConfig.Params["D"].(int),
-		R: config.SchedulerConfig.Params["R"].(int),
+		C: config.SchedulerConfig.Params["c"].(int),
+		D: config.SchedulerConfig.Params["d"].(int),
+		R: config.SchedulerConfig.Params["r"].(int),
 	}
 	s.delayStore = NewDelayMessagesStore()
 
@@ -209,11 +211,15 @@ func (s *ByzzFuzzScheduler) NextIteration() {
 		partition := NewPartition(ReplicaIDs(s.NetworkManager.ReplicaIds), s.rng)
 		s.networkFaults[i] = NetworkFaultSpec{
 			Round:     round,
-			Partition: *partition,
+			Partition: partition,
 		}
 	}
 
+	s.Log.Printf("Sampled network faults for iteration: %v\n", s.networkFaults)
+
 	s.pByz = ReplicaID(s.NetworkManager.ReplicaIds[s.rng.Intn(len(s.NetworkManager.ReplicaIds))])
+
+	s.Log.Printf("Chosen Byzantine sender for iteration: %d\n", s.pByz)
 
 	// sample process faults for the iteration
 	s.procFaults = make([]ProcFaultSpec, s.params.C)
@@ -227,6 +233,8 @@ func (s *ByzzFuzzScheduler) NextIteration() {
 			Seed:      procsSeed,
 		}
 	}
+
+	s.Log.Printf("Sampled process faults for iteration: %v\n", s.procFaults)
 }
 
 func (s *ByzzFuzzScheduler) Shutdown() {}
@@ -241,11 +249,21 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 	// Else deliver unchanged
 	// To introduce randomized msg delays: insert a callback function after returning NoOp, which is called after a random delay, and then send the cached message
 	// Indicating msg delays can be done through a flag
+
+	// if there are no messages, return a noOp
+	if len(messages) == 0 {
+		s.Log.Println("No messages to schedule, returning NoOp")
+		return SchedulerDecision{
+			DecisionType: NoOp,
+		}
+	}
+
 	index := s.rng.Intn(len(messages))
 	chosenMsg := messages[index]
 
 	c, ok := chosenMsg.Payload.(aptos.IConsensusMessage)
 	if !ok {
+		s.Log.Printf("Message payload is not an Aptos consensus message: %T, returning NoOp\n", chosenMsg.Payload)
 		return SchedulerDecision{
 			DecisionType: NoOp,
 		}
@@ -257,6 +275,7 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 
 	if isNetworkFault(round, sender, receiver, s.networkFaults) {
 		// do nothing, drop the message (remove from queue)
+		s.Log.Printf("Dropping message from %d to %d in round %d with msg id %d due to network fault\n", sender, receiver, round, chosenMsg.MessageId)
 		return SchedulerDecision{
 			DecisionType: DropMessage,
 			Index:        index,
@@ -264,24 +283,33 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 	} else if sender == s.pByz {
 		seedProcFault, ok := isProcFault(round, receiver, s.procFaults)
 		if !ok {
-			return SchedulerDecision{DecisionType: NoOp}
+			// send original message (without mutation)
+			s.Log.Printf("Sending message from %d to %d in round %d with msg id %d\n", sender, receiver, round, chosenMsg.MessageId)
+			return SchedulerDecision{
+				DecisionType: SendMessage,
+				Index:        index,
+			}
 		}
 		// mutate the message by adding a random delay, or by changing the payload
 		shouldDelay := (s.rng.Intn(2) == 0)
 		if shouldDelay {
+			s.Log.Printf("Delaying message from %d to %d in round %d with msg id %d\n", sender, receiver, round, chosenMsg.MessageId)
 			// add random delay
 			s.delayStore.SetDelayed(
 				chosenMsg.MessageId,
 				time.Duration(5*time.Second),
-				s.NetworkManager.SendMessage,
+				chosenMsg.SendMessage,
+				//s.NetworkManager.SendMessage,
 			)
 			return SchedulerDecision{
-				DecisionType: NoOp,
+				DecisionType: DropMessage,
+				Index:        index,
 			}
 		} else {
 			s.Log.Printf("Mutating message from %d to %d in round %d with msg id %d\n", sender, receiver, round, chosenMsg.MessageId)
 			err := s.Mutator.Mutate(chosenMsg, seedProcFault) //msg is mutated in place
 			if err != nil {
+				s.Log.Printf("Error in mutation: %v", err)
 				return SchedulerDecision{
 					DecisionType: NoOp,
 				}
@@ -294,6 +322,7 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 		}
 	} else {
 		// send original message (without mutation)
+		s.Log.Printf("Sending message from %d to %d in round %d with msg id %d\n", sender, receiver, round, chosenMsg.MessageId)
 		return SchedulerDecision{
 			DecisionType: SendMessage,
 			Index:        index,
@@ -303,4 +332,8 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 
 func (s *ByzzFuzzScheduler) GetClientRequest() int {
 	return -1
+}
+
+func (s *ByzzFuzzScheduler) SetNetworkManager(networkManager *network.Manager) {
+	s.NetworkManager = networkManager
 }

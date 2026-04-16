@@ -164,6 +164,16 @@ func (nm *Manager) SendMessage(messageId uint64) {
 	}
 }
 
+func (nm *Manager) DropMessage(messageId uint64) {
+	for _, mq := range nm.MessageQueues {
+		if mq.Peek() != nil {
+			if mq.Peek().MessageId == messageId {
+				mq.PopFront()
+			}
+		}
+	}
+}
+
 func (nm *Manager) GetActions() []*Message {
 	var actions []*Message
 

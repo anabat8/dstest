@@ -555,7 +555,7 @@ func (ni *AptosTCPInterceptor) session(
 	}
 
 	for {
-		buf := make([]aptos.DecodedConsensusMsg, 16)
+		buf := make([]aptos.DecodedConsensusMsg, 128)
 		n, err := socket.Read(buf)
 		if err == io.EOF {
 			ni.Log.Printf("EOF reached")
@@ -570,31 +570,32 @@ func (ni *AptosTCPInterceptor) session(
 			return
 		}
 		buf = buf[:n]
-		for _, msg := range buf {
+		for _, cmsg := range buf {
 			// queue the request in the network manager
 			// we only queue successfully decoded consensus messages
 			// in order to apply scheduling decisions to them
-			// all other messages are forwarded immediately without queuing
-			// awaitSendRequest := make(chan struct{})
-			// networkMsg := &Message{
-			// 	Sender:    sender,
-			// 	Receiver:  receiver,
-			// 	Payload:   msg,
-			// 	Type:      Aptos,
-			// 	Name:      "Aptos Consensus Message",
-			// 	MessageId: ni.NetworkManager.GenerateUniqueId(),
-			// 	Send:      awaitSendRequest,
-			// }
+			// only consensus msgs arrive here
+			awaitSendRequest := make(chan struct{})
+			networkMsg := &Message{
+				Sender:    sender,
+				Receiver:  receiver,
+				Payload:   cmsg.Msg,
+				Type:      Aptos,
+				Name:      "Aptos Consensus Message",
+				MessageId: ni.NetworkManager.GenerateUniqueId(),
+				Send:      awaitSendRequest,
+			}
 
-			// ni.NetworkManager.Router.QueueMessage(networkMsg)
-			// <-awaitSendRequest
+			ni.NetworkManager.Router.QueueMessage(networkMsg)
+			<-awaitSendRequest
 
-			err := socket.Write(msg)
+			err := socket.Write(cmsg)
 			if err != nil {
 				ni.Log.Printf("Error writing consensus message: %v", err)
 			}
-			ni.Log.Printf("Forwarded consensus message: node%d->node%d dir=%v sessionId=%d msg=%+v",
-				nLayer.noiseSession.Sender, nLayer.noiseSession.Receiver, nLayer.noiseSession.ForwardDir, nLayer.noiseSession.SessionId, msg.Msg,
+			ni.Log.Printf("Forwarded consensus message: node%d->node%d dir=%v sessionId=%d msg=%+v with MessageId=%d\n",
+				nLayer.noiseSession.Sender, nLayer.noiseSession.Receiver, nLayer.noiseSession.ForwardDir, nLayer.noiseSession.SessionId, cmsg.Msg,
+				networkMsg.MessageId,
 			)
 		}
 	}

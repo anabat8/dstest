@@ -2,13 +2,14 @@ package engine
 
 import (
 	"fmt"
-	"github.com/egeberkaygulcan/dstest/cmd/dstest/faults"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/egeberkaygulcan/dstest/cmd/dstest/faults"
 
 	"github.com/egeberkaygulcan/dstest/cmd/dstest/config"
 	"github.com/egeberkaygulcan/dstest/cmd/dstest/network"
@@ -83,6 +84,12 @@ func (te *TestEngine) Run() error {
 		te.Log.Printf("Starting experiment %d...\n", i+1)
 
 		te.Scheduler.Init(te.Config)
+
+		// Check if scheduler needs access to NetworkManager, and provide it if so
+		if s, ok := te.Scheduler.(interface{ SetNetworkManager(*network.Manager) }); ok {
+			s.SetNetworkManager(te.NetworkManager)
+		}
+
 		for j := 0; j < te.Iterations; j++ {
 			te.Log.Printf("Starting iteration %d\n", j+1)
 
@@ -145,6 +152,17 @@ func (te *TestEngine) Run() error {
 					s++
 				}
 
+				if decision.DecisionType == scheduling.DeliverMutatedMessage {
+					action := decision.Index
+					te.NetworkManager.SendMessage(actions[action].MessageId)
+					schedule = append(schedule, Action{
+						Sender:   actions[action].Sender,
+						Receiver: actions[action].Receiver,
+						Name:     fmt.Sprintf("DeliverMutated_%s", actions[action].Name),
+					})
+					s++
+				}
+
 				if decision.DecisionType == scheduling.InjectFault {
 					fault := te.FaultManager.GetFaults()[decision.Index]
 					te.Log.Printf("Applying fault: %+v\n", fault)
@@ -153,6 +171,17 @@ func (te *TestEngine) Run() error {
 						te.Log.Printf("Error applying fault: %s\n", err)
 					}
 					// TODO - Append fault to schedule
+				}
+
+				if decision.DecisionType == scheduling.DropMessage {
+					action := decision.Index
+					te.NetworkManager.DropMessage(actions[action].MessageId)
+					schedule = append(schedule, Action{
+						Sender:   actions[action].Sender,
+						Receiver: actions[action].Receiver,
+						Name:     fmt.Sprintf("Drop_%s", actions[action].Name),
+					})
+					s++
 				}
 
 				time.Sleep(te.SleepDuration)

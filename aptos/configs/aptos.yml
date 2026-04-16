@@ -2,20 +2,20 @@ TestConfig:
   Name: aptos-localnet
   Experiments: 1
   Iterations: 2
-  WaitDuration: 100
-  StartupDuration: 1
+  WaitDuration: 200
+  StartupDuration: 10
 
 SchedulerConfig:
-  Type: "pct"
-  Steps: 50
+  Type: "byzzfuzz"
+  Steps: 500
   Seed: 42
-  Params: {"client_request_probability": 0.01, "d": 2}
+  Params: {"c": 10, "d": 0, "r": 10}
 
 NetworkConfig:
   BaseReplicaPort: 8000
   BaseInterceptorPort: 10000
   Protocol: "aptostcp"
-  MessageType: TCP
+  MessageType: Aptos
 
 FaultConfig:
   Faults: []
@@ -23,7 +23,7 @@ FaultConfig:
 ProcessConfig:
   NumReplicas: 2
   Timeout: 100
-  OutputDir:  output/aptos/20260407_174226
+  OutputDir:  output/aptos/20260415_152048
   ReplicaScript: aptos/aptos_server.sh
   ClientScripts: []
   CleanScript: aptos/aptos_clean.sh

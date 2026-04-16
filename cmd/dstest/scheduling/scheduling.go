@@ -16,6 +16,7 @@ type Scheduler interface {
 	GetClientRequest() int
 	Next([]*network.Message, []*faults.Fault, faults.FaultContext) SchedulerDecision
 	ApplyFault(*faults.Fault) error
+	SetNetworkManager(*network.Manager)
 }
 
 type DecisionType int
