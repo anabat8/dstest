@@ -15,7 +15,15 @@ require (
 	gorgonia.org/tensor v0.9.9
 )
 
-require golang.org/x/crypto v0.46.0 // indirect
+require (
+	filippo.io/edwards25519 v1.1.1 // indirect
+	github.com/coder/websocket v1.8.14 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/hasura/go-graphql-client v0.15.1 // indirect
+	github.com/hdevalence/ed25519consensus v0.2.0 // indirect
+	golang.org/x/crypto v0.46.0 // indirect
+)
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
@@ -70,7 +78,7 @@ require (
 	github.com/xtgo/set v1.0.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/image v0.0.0-20190802002840-cff245a6509b // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect

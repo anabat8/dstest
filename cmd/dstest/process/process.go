@@ -121,9 +121,8 @@ func (pm *ProcessManager) Run() {
 		pm.Log.Printf("Client %d status: %s\n", workerId, worker.Status.String())
 	}
 
-	if !bug {
-		pm.deleteDir()
-	} else {
+	// We want to keep log directories for further analysis to check for semantic bugs (agreement/lievness violations).
+	if bug {
 		pm.Log.Printf("Found bug candidate at iteration %d\n", pm.Iteration)
 		pm.BugCandidate = true
 	}

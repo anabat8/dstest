@@ -1,10 +1,13 @@
 package scheduling
 
 import (
+	"encoding/csv"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -176,6 +179,10 @@ type ByzzFuzzScheduler struct {
 	senderRound map[ReplicaID]aptos.Round
 
 	delayStore *DelayMessagesStore
+
+	mutationLog  *csv.Writer
+	mutationFile *os.File
+	iteration    int
 }
 
 // assert ByzzFuzz implements the Scheduler interface
@@ -183,7 +190,7 @@ var _ Scheduler = &ByzzFuzzScheduler{}
 
 func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 	s.Config = config
-	s.Mutator = network.NewAptosMutator()
+	s.Mutator = network.NewAptosMutator(collectValidatorAddresses())
 
 	seed := int64(config.SchedulerConfig.Seed)
 	if seed == 0 {
@@ -199,11 +206,14 @@ func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 	s.delayStore = NewDelayMessagesStore()
 
 	s.Log = log.New(os.Stdout, "[ByzzFuzz Scheduler] ", log.LstdFlags)
+
+	s.iteration = 0
 }
 
 func (s *ByzzFuzzScheduler) Reset() {}
 
 func (s *ByzzFuzzScheduler) NextIteration() {
+	s.iteration++
 	// sample network faults for the iteration
 	s.networkFaults = make([]NetworkFaultSpec, s.params.D)
 	for i := 0; i < s.params.D; i++ {
@@ -235,9 +245,43 @@ func (s *ByzzFuzzScheduler) NextIteration() {
 	}
 
 	s.Log.Printf("Sampled process faults for iteration: %v\n", s.procFaults)
+
+	// create a new mutation log csv for each iteration
+	if s.mutationFile != nil {
+		s.mutationLog.Flush()
+		s.mutationFile.Close()
+	}
+
+	path := filepath.Join(s.Config.ProcessConfig.OutputDir,
+		fmt.Sprintf("%s_%s_%d",
+			s.Config.TestConfig.Name,
+			s.Config.SchedulerConfig.Type,
+			s.iteration),
+		"mutations.csv")
+
+	os.MkdirAll(filepath.Dir(path), os.ModePerm)
+
+	f, err := os.Create(path)
+	if err != nil {
+		s.Log.Printf("Failed to create mutations CSV: %v", err)
+	} else {
+		s.mutationFile = f
+		s.mutationLog = csv.NewWriter(f)
+		s.mutationLog.Write([]string{
+			"sender_id", "receiver_id", "timestamp", "round",
+			"message", "mutated_message", "mutation_method", "message_id",
+		})
+	}
 }
 
-func (s *ByzzFuzzScheduler) Shutdown() {}
+func (s *ByzzFuzzScheduler) Shutdown() {
+	if s.mutationLog != nil {
+		s.mutationLog.Flush()
+	}
+	if s.mutationFile != nil {
+		s.mutationFile.Close()
+	}
+}
 
 // Returns a random index from available messages
 func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.Fault, context faults.FaultContext) SchedulerDecision {
@@ -270,6 +314,7 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 	}
 
 	round := c.GetRound()
+	timestamp := c.GetTimestamp()
 	sender := ReplicaID(chosenMsg.Sender)
 	receiver := ReplicaID(chosenMsg.Receiver)
 
@@ -306,13 +351,30 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 				Index:        index,
 			}
 		} else {
-			s.Log.Printf("Mutating message from %d to %d in round %d with msg id %d\n", sender, receiver, round, chosenMsg.MessageId)
-			err := s.Mutator.Mutate(chosenMsg, seedProcFault) //msg is mutated in place
+			ogMsg := c.String()
+
+			mname, err := s.Mutator.Mutate(c, seedProcFault) //msg is mutated in place
+
+			s.Log.Printf("Mutating message from %d to %d in round %d with msg id %d\n and mutation %s", sender, receiver, round, chosenMsg.MessageId, mname)
+
 			if err != nil {
-				s.Log.Printf("Error in mutation: %v", err)
+				s.Log.Printf("Error in mutation %s: %v", mname, err)
 				return SchedulerDecision{
 					DecisionType: NoOp,
 				}
+			}
+			if s.mutationLog != nil {
+				s.mutationLog.Write([]string{
+					fmt.Sprintf("%d", sender),
+					fmt.Sprintf("%d", receiver),
+					fmt.Sprintf("%d", timestamp),
+					fmt.Sprintf("%d", round),
+					ogMsg,
+					c.String(),
+					mname,
+					fmt.Sprintf("%d", chosenMsg.MessageId),
+				})
+				s.mutationLog.Flush()
 			}
 			return SchedulerDecision{
 				DecisionType:   DeliverMutatedMessage,
@@ -336,4 +398,48 @@ func (s *ByzzFuzzScheduler) GetClientRequest() int {
 
 func (s *ByzzFuzzScheduler) SetNetworkManager(networkManager *network.Manager) {
 	s.NetworkManager = networkManager
+}
+
+// Helper function to collect the addresses of the validators in the network,
+// which can be used by the AptosMutator interface for targeted mutations in the process faults
+func collectValidatorAddresses() []aptos.AccountAddress {
+	baseDir := os.Getenv("BASE_DIR")
+	if baseDir == "" {
+		baseDir = "/tmp/aptos-dstest"
+	}
+
+	var addrs []aptos.AccountAddress
+	nodesDir := filepath.Join(baseDir, "nodes")
+
+	entries, err := os.ReadDir(nodesDir)
+	if err != nil {
+		return nil
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		idPath := filepath.Join(nodesDir, entry.Name(), "genesis", "validator-identity.yaml")
+		data, err := os.ReadFile(idPath)
+		if err != nil {
+			continue
+		}
+		for _, line := range strings.Split(string(data), "\n") {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "account_address:") {
+				hexStr := strings.TrimSpace(strings.TrimPrefix(line, "account_address:"))
+				hexStr = strings.Trim(hexStr, "\"")
+				b, err := hex.DecodeString(hexStr)
+				if err != nil || len(b) != 32 {
+					continue
+				}
+				var addr aptos.AccountAddress
+				copy(addr[:], b)
+				addrs = append(addrs, addr)
+			}
+		}
+	}
+
+	return addrs
 }

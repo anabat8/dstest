@@ -490,7 +490,10 @@ func (ni *AptosTCPInterceptor) handleConnection(clientConn net.Conn) {
 		clientConn.LocalAddr(),
 	)
 
-	ni.skipHandshake(clientConn, targetConn)
+	if err := ni.skipHandshake(clientConn, targetConn); err != nil {
+		ni.Log.Printf("[%d] Handshake failed for node%d->node%d: %v\n. Conn is closed, node will redial when ready", sessionId.Int64(), sender, receiver, err)
+		return
+	}
 
 	// client -> target
 	go func() {
@@ -510,28 +513,29 @@ func (ni *AptosTCPInterceptor) handleConnection(clientConn net.Conn) {
 	ni.Log.Printf("[%d] Connection closed: node%d -> node%d\n", sessionId.Int64(), sender, receiver)
 }
 
-func (ni *AptosTCPInterceptor) skipHandshake(clientConn, serverConn net.Conn) {
+func (ni *AptosTCPInterceptor) skipHandshake(clientConn, serverConn net.Conn) error {
 	// 1) initiator -> responder handshake
 	buf1 := make([]byte, 168)
 	_, err := io.ReadFull(clientConn, buf1)
 	if err != nil {
-		ni.Log.Printf("Error reading handshake from initiator: %s\n", err.Error())
+		return fmt.Errorf("reading handshake from initiator: %w", err)
 	}
 	_, err = serverConn.Write(buf1)
 	if err != nil {
-		ni.Log.Printf("Error writing handshake to responder: %s\n", err.Error())
+		return fmt.Errorf("writing handshake to responder: %w", err)
 	}
 
 	// 2) responder -> initiator handshake
 	buf2 := make([]byte, 48)
 	_, err = io.ReadFull(serverConn, buf2)
 	if err != nil {
-		ni.Log.Printf("Error reading handshake from responder: %s\n", err.Error())
+		return fmt.Errorf("reading handshake from responder: %w", err)
 	}
 	_, err = clientConn.Write(buf2)
 	if err != nil {
-		ni.Log.Printf("Error writing handshake to initiator: %s\n", err.Error())
+		return fmt.Errorf("writing handshake to initiator: %w", err)
 	}
+	return nil
 }
 
 func (ni *AptosTCPInterceptor) session(

@@ -33,6 +33,7 @@ func DebugUnmarshal(logf func(string, ...any), name string, data []byte, v any) 
 // -------------------------------------------------------------------
 type IConsensusMessage interface {
 	GetRound() Round
+	GetTimestamp() uint64
 	fmt.Stringer
 }
 
@@ -48,6 +49,10 @@ type ProposalMsg struct {
 
 func (m ProposalMsg) GetRound() Round {
 	return m.Proposal.BlockData.Round
+}
+
+func (m ProposalMsg) GetTimestamp() uint64 {
+	return m.Proposal.BlockData.TimestampUsecs
 }
 
 func (m ProposalMsg) String() string {
@@ -67,6 +72,10 @@ type OptProposalMsg struct {
 
 func (m OptProposalMsg) GetRound() Round {
 	return m.BlockData.Round
+}
+
+func (m OptProposalMsg) GetTimestamp() uint64 {
+	return m.BlockData.TimestampUsecs
 }
 
 func (m OptProposalMsg) String() string {
@@ -91,6 +100,10 @@ func (v VoteMsg) GetRound() Round {
 	return v.Vote.VoteData.Proposed.Round
 }
 
+func (v VoteMsg) GetTimestamp() uint64 {
+	return v.Vote.VoteData.Proposed.TimestampUsecs
+}
+
 func (v VoteMsg) String() string {
 	return "VoteMsg:\n" +
 		indent(v.Vote.String(), "    ") + "\n" +
@@ -110,6 +123,10 @@ type CommitVote struct {
 
 func (c CommitVote) GetRound() Round {
 	return c.LedgerInfo.CommitInfo.Round
+}
+
+func (c CommitVote) GetTimestamp() uint64 {
+	return c.LedgerInfo.CommitInfo.TimestampUsecs
 }
 
 func (c CommitVote) String() string {
@@ -135,6 +152,16 @@ func (c CommitMessage) GetRound() Round {
 	}
 	if c.Decision != nil {
 		return c.Decision.LedgerInfo.V0.LedgerInfo.CommitInfo.Round
+	}
+	return 0
+}
+
+func (c CommitMessage) GetTimestamp() uint64 {
+	if c.Vote != nil {
+		return c.Vote.GetTimestamp()
+	}
+	if c.Decision != nil {
+		return c.Decision.LedgerInfo.V0.LedgerInfo.CommitInfo.TimestampUsecs
 	}
 	return 0
 }
@@ -171,6 +198,10 @@ type RoundTimeoutMsg struct {
 
 func (r RoundTimeoutMsg) GetRound() Round {
 	return r.RoundTimeout.Timeout.Round
+}
+
+func (r RoundTimeoutMsg) GetTimestamp() uint64 {
+	return r.RoundTimeout.Timeout.QuorumCert.VoteData.Proposed.TimestampUsecs
 }
 
 func (r RoundTimeoutMsg) String() string {
