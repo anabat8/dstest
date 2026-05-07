@@ -198,7 +198,6 @@ Stop signals the poller to shut down cleanly and waits for it to exit
 */
 func (m *AgreementMonitor) Stop() {
 	close(m.finishSignal)
-	close(m.contentChan)
 	m.agreementFile.Close()
 }
 

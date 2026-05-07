@@ -2,7 +2,6 @@ package scheduling
 
 import (
 	"encoding/csv"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"math/rand"
@@ -190,7 +189,7 @@ var _ Scheduler = &ByzzFuzzScheduler{}
 
 func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 	s.Config = config
-	s.Mutator = network.NewAptosMutator(collectValidatorAddresses())
+	s.Mutator = network.NewAptosMutator(aptos.CollectValidatorKeysByAuthor())
 
 	seed := int64(config.SchedulerConfig.Seed)
 	if seed == 0 {
@@ -398,48 +397,4 @@ func (s *ByzzFuzzScheduler) GetClientRequest() int {
 
 func (s *ByzzFuzzScheduler) SetNetworkManager(networkManager *network.Manager) {
 	s.NetworkManager = networkManager
-}
-
-// Helper function to collect the addresses of the validators in the network,
-// which can be used by the AptosMutator interface for targeted mutations in the process faults
-func collectValidatorAddresses() []aptos.AccountAddress {
-	baseDir := os.Getenv("BASE_DIR")
-	if baseDir == "" {
-		baseDir = "/tmp/aptos-dstest"
-	}
-
-	var addrs []aptos.AccountAddress
-	nodesDir := filepath.Join(baseDir, "nodes")
-
-	entries, err := os.ReadDir(nodesDir)
-	if err != nil {
-		return nil
-	}
-
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		idPath := filepath.Join(nodesDir, entry.Name(), "genesis", "validator-identity.yaml")
-		data, err := os.ReadFile(idPath)
-		if err != nil {
-			continue
-		}
-		for _, line := range strings.Split(string(data), "\n") {
-			line = strings.TrimSpace(line)
-			if strings.HasPrefix(line, "account_address:") {
-				hexStr := strings.TrimSpace(strings.TrimPrefix(line, "account_address:"))
-				hexStr = strings.Trim(hexStr, "\"")
-				b, err := hex.DecodeString(hexStr)
-				if err != nil || len(b) != 32 {
-					continue
-				}
-				var addr aptos.AccountAddress
-				copy(addr[:], b)
-				addrs = append(addrs, addr)
-			}
-		}
-	}
-
-	return addrs
 }

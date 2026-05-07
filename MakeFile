@@ -178,7 +178,7 @@ config:
 	echo "TestConfig:"; \
 	echo "  Name: $(TEST_NAME)"; \
 	echo "  Experiments: 1"; \
-	echo "  Iterations: 3"; \
+	echo "  Iterations: 10"; \
 	echo "  WaitDuration: 50"; \
 	echo "  StartupDuration: 10"; \
 	echo ""; \
@@ -186,7 +186,7 @@ config:
 	echo "  Type: \"$(SCHED_TYPE)\""; \
 	echo "  Steps: 500"; \
 	echo "  Seed: 42"; \
-	echo "  Params: {\"c\": 1, \"d\": 0, \"r\": 10}"; \
+	echo "  Params: {\"c\": 5, \"d\": 0, \"r\": 8}"; \
 	echo ""; \
 	echo "NetworkConfig:"; \
 	echo "  BaseReplicaPort: $(BASE_PORT)"; \
