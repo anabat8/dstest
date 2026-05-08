@@ -370,6 +370,9 @@ func (c *ConsensusMsgLayer) decodeConsensusMessage(env *aptos.AptosNetworkEnvelo
 	case 7: // CommitVoteMsg
 		msgType = &aptos.CommitVote{}
 
+	case 8: // CommitDecisionMsg
+		msgType = &aptos.CommitDecision{}
+
 	case 15: // CommitMessage
 		msgType = &aptos.CommitMessage{}
 

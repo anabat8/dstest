@@ -44,6 +44,8 @@ func (m *AptosMutator) Mutate(cMsg aptos.IConsensusMessage, seed int64) (string,
 		mname = mutateCommitMessage(v, seed, m.keysByAuthor, m.orderedAddrs)
 	case *aptos.CommitVote:
 		mname = mutateCommitVote(v, seed, m.keysByAuthor)
+	case *aptos.CommitDecision:
+		mname = mutateCommitDecision(v, seed, m.keysByAuthor, m.orderedAddrs)
 	case *aptos.RoundTimeoutMsg:
 		mname = mutateRoundTimeoutMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
 	default:

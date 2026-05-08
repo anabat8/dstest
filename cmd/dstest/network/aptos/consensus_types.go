@@ -151,7 +151,7 @@ func (c CommitMessage) GetRound() Round {
 		return c.Vote.GetRound()
 	}
 	if c.Decision != nil {
-		return c.Decision.LedgerInfo.V0.LedgerInfo.CommitInfo.Round
+		return c.Decision.GetRound()
 	}
 	return 0
 }
@@ -161,7 +161,7 @@ func (c CommitMessage) GetTimestamp() uint64 {
 		return c.Vote.GetTimestamp()
 	}
 	if c.Decision != nil {
-		return c.Decision.LedgerInfo.V0.LedgerInfo.CommitInfo.TimestampUsecs
+		return c.Decision.GetTimestamp()
 	}
 	return 0
 }
@@ -215,6 +215,14 @@ func (r RoundTimeoutMsg) String() string {
 // ---------
 type CommitDecision struct {
 	LedgerInfo LedgerInfoWithSignatures
+}
+
+func (c CommitDecision) GetRound() Round {
+	return c.LedgerInfo.V0.LedgerInfo.CommitInfo.Round
+}
+
+func (c CommitDecision) GetTimestamp() uint64 {
+	return c.LedgerInfo.V0.LedgerInfo.CommitInfo.TimestampUsecs
 }
 
 func (c CommitDecision) String() string {
