@@ -273,11 +273,12 @@ func TestQCWithMutatedVoteData(t *testing.T) {
 		t.Skip("captured QC has no aggregate signature (genesis/placeholder QC) — capture a Block from a later round (5+)")
 	}
 
-	origAgg := append([]byte{}, *block.BlockData.QuorumCert.SignedLedgerInfo.V0.Signatures.Sig.Some...)
 	origCDH := block.BlockData.QuorumCert.SignedLedgerInfo.V0.LedgerInfo.ConsensusDataHash
 
-	// BLS aggregation is deterministic, so re-aggregating the same contributors over
-	// the same LedgerInfo must produce the exact same 96 bytes of aggregate signature
+	// Re-aggregate without mutation; capture the resulting aggregate as our baseline.
+	// We don't compare against the original captured 96 bytes because that requires the
+	// current validator keys on disk to match the keys that produced the capture. Localnet
+	// restarts regenerates the keys.
 	if err := ResignQC(&block.BlockData.QuorumCert, keysByAuthor, orderedAddrs); err != nil {
 		t.Fatalf("ResignQC (no mutation): %v", err)
 	}
@@ -285,11 +286,7 @@ func TestQCWithMutatedVoteData(t *testing.T) {
 		t.Fatalf("CDH changed without mutation\n stored:     %x\n recomputed: %x",
 			origCDH[:], block.BlockData.QuorumCert.SignedLedgerInfo.V0.LedgerInfo.ConsensusDataHash[:])
 	}
-	newAgg := *block.BlockData.QuorumCert.SignedLedgerInfo.V0.Signatures.Sig.Some
-	if !bytes.Equal(newAgg, origAgg) {
-		t.Fatalf("ResignQC didn't reproduce original aggregate\n captured: %x\n computed: %x",
-			origAgg, newAgg)
-	}
+	baselineAgg := append([]byte{}, *block.BlockData.QuorumCert.SignedLedgerInfo.V0.Signatures.Sig.Some...)
 
 	// Mutate VoteData, ResignQC, verify the new aggregate is valid
 	// Joint shift to keep Proposed.Round > Parent.Round
@@ -305,9 +302,9 @@ func TestQCWithMutatedVoteData(t *testing.T) {
 	if mutatedCDH == origCDH {
 		t.Fatalf("CDH didn't change after mutation")
 	}
-	// Aggregate must have changed because the signed LedgerInfo changed
+	// Aggregate must have changed relative to the no-mutation baseline (different LI bytes)
 	mutatedAgg := *block.BlockData.QuorumCert.SignedLedgerInfo.V0.Signatures.Sig.Some
-	if bytes.Equal(mutatedAgg, origAgg) {
+	if bytes.Equal(mutatedAgg, baselineAgg) {
 		t.Fatalf("aggregate sig didn't change after mutation; aggregation didn't pick up the new LedgerInfo")
 	}
 
@@ -339,5 +336,268 @@ func TestQCWithMutatedVoteData(t *testing.T) {
 	}
 	if !VerifyAggregate(aggSig, contributorPKs, payload) {
 		t.Fatalf("mutated aggregate signature does not verify under contributor PKs")
+	}
+}
+
+func TestBuildFullQuorumLedgerInfoWithSignatures(t *testing.T) {
+	keysByAuthor, orderedAddrs := CollectValidatorKeysByAuthor()
+	if len(keysByAuthor) == 0 {
+		t.Skip("no validator keys loaded; ensure ${BASE_DIR}/nodes/* is populated")
+	}
+
+	li := LedgerInfo{
+		CommitInfo: BlockInfo{
+			Epoch:           1,
+			Round:           5,
+			ID:              HashValue{0x01, 0x02, 0x03},
+			ExecutedStateID: HashValue{0xaa, 0xbb, 0xcc},
+			Version:         42,
+			TimestampUsecs:  1700000000000000,
+			NextEpochState:  &OptionEpochState{None: &BcsUnit{}},
+		},
+		ConsensusDataHash: HashValue{0xde, 0xad, 0xbe, 0xef},
+	}
+
+	lis, err := BuildFullQuorumLedgerInfoWithSignatures(li, keysByAuthor, orderedAddrs)
+	if err != nil {
+		t.Fatalf("BuildFullQuorumLedgerInfoWithSignatures: %v", err)
+	}
+
+	if lis.V0 == nil {
+		t.Fatalf("LedgerInfoWithSignatures.V0 is nil")
+	}
+	if lis.V0.LedgerInfo.CommitInfo != li.CommitInfo {
+		t.Fatalf("commit_info changed during build")
+	}
+	if lis.V0.LedgerInfo.ConsensusDataHash != li.ConsensusDataHash {
+		t.Fatalf("consensus_data_hash changed during build")
+	}
+
+	n := len(orderedAddrs)
+	expectedBytes := (n + 7) / 8
+	bm := lis.V0.Signatures.ValidatorBitmask.Inner
+	if len(bm) != expectedBytes {
+		t.Fatalf("bitmask length: got %d, want %d", len(bm), expectedBytes)
+	}
+	for i := 0; i < n; i++ {
+		if int(bm[i/8])&(1<<(7-uint(i%8))) == 0 {
+			t.Fatalf("bitmask bit %d not set; expected all-1s for full quorum", i)
+		}
+	}
+	for i := n; i < expectedBytes*8; i++ {
+		if int(bm[i/8])&(1<<(7-uint(i%8))) != 0 {
+			t.Fatalf("bitmask bit %d set unexpectedly; should be 0 (only %d validators)", i, n)
+		}
+	}
+
+	if lis.V0.Signatures.Sig == nil || lis.V0.Signatures.Sig.Some == nil {
+		t.Fatalf("aggregate signature is nil")
+	}
+	aggSigBytes := *lis.V0.Signatures.Sig.Some
+	if len(aggSigBytes) != 96 {
+		t.Fatalf("expected 96-byte aggregate sig, got %d", len(aggSigBytes))
+	}
+
+	liBytes, err := bcs.Marshal(lis.V0.LedgerInfo)
+	if err != nil {
+		t.Fatalf("Marshal LedgerInfo: %v", err)
+	}
+	seed := Seed("LedgerInfo")
+	payload := append(seed[:], liBytes...)
+
+	pks := make([]*PK, 0, n)
+	for _, addr := range orderedAddrs {
+		sk := keysByAuthor[addr]
+		if sk == nil {
+			t.Fatalf("missing SK for validator %x", addr[:4])
+		}
+		pks = append(pks, new(PK).From(sk))
+	}
+
+	aggSig := new(Signature).Uncompress(aggSigBytes)
+	if aggSig == nil {
+		t.Fatalf("uncompress aggregate sig failed")
+	}
+	if !VerifyAggregate(aggSig, pks, payload) {
+		t.Fatalf("aggregate signature does not verify under full validator-set PKs")
+	}
+}
+
+func TestBuildFullQuorumTwoChainTimeoutCert(t *testing.T) {
+	keysByAuthor, orderedAddrs := CollectValidatorKeysByAuthor()
+	if len(keysByAuthor) == 0 {
+		t.Skip("no validator keys loaded; ensure ${BASE_DIR}/nodes/* is populated")
+	}
+
+	const epoch = uint64(1)
+	const tcRound = Round(10)
+	const hqcRound = Round(5)
+
+	qc := QuorumCert{
+		VoteData: VoteData{
+			Proposed: BlockInfo{Epoch: epoch, Round: hqcRound, ID: HashValue{0x11}},
+			Parent:   BlockInfo{Epoch: epoch, Round: hqcRound - 1, ID: HashValue{0x10}},
+		},
+	}
+
+	// Build tc over epoch=1, round=10, hqc_round=5, with signatures from all validators
+	tc, err := BuildFullQuorumTwoChainTimeoutCert(epoch, tcRound, qc, keysByAuthor, orderedAddrs)
+	if err != nil {
+		t.Fatalf("BuildFullQuorumTwoChainTimeoutCert: %v", err)
+	}
+
+	if tc.Timeout.Epoch != epoch || tc.Timeout.Round != tcRound {
+		t.Fatalf("timeout fields: got epoch=%d round=%d, want %d/%d",
+			tc.Timeout.Epoch, tc.Timeout.Round, epoch, tcRound)
+	}
+	if tc.Timeout.QuorumCert.VoteData.Proposed.Round != hqcRound {
+		t.Fatalf("inner qc proposed.round: got %d want %d",
+			tc.Timeout.QuorumCert.VoteData.Proposed.Round, hqcRound)
+	}
+
+	n := len(orderedAddrs)
+	expectedBytes := (n + 7) / 8
+	bm := tc.SignaturesWithRounds.Sig.ValidatorBitmask.Inner
+	if len(bm) != expectedBytes {
+		t.Fatalf("bitmask length: got %d want %d", len(bm), expectedBytes)
+	}
+	for i := 0; i < n; i++ {
+		if int(bm[i/8])&(1<<(7-uint(i%8))) == 0 {
+			t.Fatalf("bitmask bit %d not set; expected all-1s", i)
+		}
+	}
+	for i := n; i < expectedBytes*8; i++ {
+		if int(bm[i/8])&(1<<(7-uint(i%8))) != 0 {
+			t.Fatalf("padding bit %d set unexpectedly", i)
+		}
+	}
+
+	if len(tc.SignaturesWithRounds.Rounds) != n {
+		t.Fatalf("Rounds vec length: got %d want %d", len(tc.SignaturesWithRounds.Rounds), n)
+	}
+	for i, r := range tc.SignaturesWithRounds.Rounds {
+		if r != hqcRound {
+			t.Fatalf("Rounds[%d] = %d, want %d (all signers share hqc_round)", i, r, hqcRound)
+		}
+	}
+
+	if tc.SignaturesWithRounds.Sig.Sig == nil || tc.SignaturesWithRounds.Sig.Sig.Some == nil {
+		t.Fatalf("aggregate signature is nil")
+	}
+	aggSigBytes := *tc.SignaturesWithRounds.Sig.Sig.Some
+	if len(aggSigBytes) != 96 {
+		t.Fatalf("expected 96-byte aggregate sig, got %d", len(aggSigBytes))
+	}
+
+	timeoutBytes, err := bcs.Marshal(TimeoutRepr{Epoch: epoch, Round: tcRound, HQCRound: hqcRound})
+	if err != nil {
+		t.Fatalf("Marshal TimeoutRepr: %v", err)
+	}
+	seed := Seed("TimeoutSigningRepr")
+	payload := append(seed[:], timeoutBytes...)
+
+	pks := make([]*PK, 0, n)
+	for _, addr := range orderedAddrs {
+		pks = append(pks, new(PK).From(keysByAuthor[addr]))
+	}
+	aggSig := new(Signature).Uncompress(aggSigBytes)
+	if aggSig == nil {
+		t.Fatalf("uncompress aggregate sig failed")
+	}
+
+	// The aggregate sig shall verify against all validator PKs over
+	// seed("TimeoutSigningRepr") || bcs(TimeoutRepr{1,10,5})
+	if !VerifyAggregate(aggSig, pks, payload) {
+		t.Fatalf("aggregate signature does not verify under full validator-set PKs")
+	}
+}
+
+func TestBuildTwoChainTimeoutCertWithBitmask(t *testing.T) {
+	keysByAuthor, orderedAddrs := CollectValidatorKeysByAuthor()
+	n := len(orderedAddrs)
+	if n < 2 {
+		t.Skip("need >=2 validators for a subset bitmask")
+	}
+
+	const epoch = uint64(1)
+	const tcRound = Round(10)
+	const hqcRound = Round(5)
+
+	qc := QuorumCert{
+		VoteData: VoteData{
+			Proposed: BlockInfo{Epoch: epoch, Round: hqcRound, ID: HashValue{0x11}},
+			Parent:   BlockInfo{Epoch: epoch, Round: hqcRound - 1, ID: HashValue{0x10}},
+		},
+	}
+
+	// All-1s, then drop validator 0
+	bitmask := make([]byte, (n+7)/8)
+	for i := 0; i < n; i++ {
+		bitmask[i/8] |= 1 << (7 - uint(i%8))
+	}
+	bitmask[0] &^= 1 << 7
+
+	tc, err := BuildTwoChainTimeoutCertWithBitmask(epoch, tcRound, qc, bitmask, keysByAuthor, orderedAddrs)
+	if err != nil {
+		t.Fatalf("BuildTwoChainTimeoutCertWithBitmask: %v", err)
+	}
+
+	if tc.Timeout.Epoch != epoch || tc.Timeout.Round != tcRound {
+		t.Fatalf("timeout fields: got epoch=%d round=%d, want %d/%d",
+			tc.Timeout.Epoch, tc.Timeout.Round, epoch, tcRound)
+	}
+
+	gotBM := tc.SignaturesWithRounds.Sig.ValidatorBitmask.Inner
+	if !bytes.Equal(gotBM, bitmask) {
+		t.Fatalf("bitmask in TC differs from input: got %x want %x", gotBM, bitmask)
+	}
+
+	expectedSigners := n - 1
+	if len(tc.SignaturesWithRounds.Rounds) != expectedSigners {
+		t.Fatalf("Rounds vec length: got %d want %d", len(tc.SignaturesWithRounds.Rounds), expectedSigners)
+	}
+	for i, r := range tc.SignaturesWithRounds.Rounds {
+		if r != hqcRound {
+			t.Fatalf("Rounds[%d] = %d, want %d", i, r, hqcRound)
+		}
+	}
+
+	if tc.SignaturesWithRounds.Sig.Sig == nil || tc.SignaturesWithRounds.Sig.Sig.Some == nil {
+		t.Fatalf("aggregate signature is nil")
+	}
+	aggSigBytes := *tc.SignaturesWithRounds.Sig.Sig.Some
+	if len(aggSigBytes) != 96 {
+		t.Fatalf("expected 96-byte aggregate sig, got %d", len(aggSigBytes))
+	}
+
+	timeoutBytes, err := bcs.Marshal(TimeoutRepr{Epoch: epoch, Round: tcRound, HQCRound: hqcRound})
+	if err != nil {
+		t.Fatalf("Marshal TimeoutRepr: %v", err)
+	}
+	seed := Seed("TimeoutSigningRepr")
+	payload := append(seed[:], timeoutBytes...)
+
+	subsetPKs := make([]*PK, 0, expectedSigners)
+	for i := 0; i < n; i++ {
+		if int(bitmask[i/8])&(1<<(7-uint(i%8))) == 0 {
+			continue
+		}
+		subsetPKs = append(subsetPKs, new(PK).From(keysByAuthor[orderedAddrs[i]]))
+	}
+	aggSig := new(Signature).Uncompress(aggSigBytes)
+	if aggSig == nil {
+		t.Fatalf("uncompress aggregate sig failed")
+	}
+	if !VerifyAggregate(aggSig, subsetPKs, payload) {
+		t.Fatalf("aggregate signature does not verify under subset PKs")
+	}
+
+	// should not verify under full set (validator 0 didn't sign)
+	fullPKs := make([]*PK, 0, n)
+	for _, addr := range orderedAddrs {
+		fullPKs = append(fullPKs, new(PK).From(keysByAuthor[addr]))
+	}
+	if VerifyAggregate(aggSig, fullPKs, payload) {
+		t.Fatalf("aggregate sig unexpectedly verifies under full set; bitmask should exclude validator 0")
 	}
 }

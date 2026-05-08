@@ -267,9 +267,9 @@ func reaggregateLedgerInfo(signedLI *LedgerInfoWithSignatures,
 // validator in orderedAddrs co-signing it (full-quorum aggregate). The resulting
 // LedgerInfoWithSignatures is what a legitimate CommitDecision would carry once 2f+1
 // validators agree on the commit; producing it here lets us fabricate a Decision from
-// a single Vote (or any LedgerInfo) without waiting for real quorum
+// a single Vote (or any LedgerInfo) without waiting for real quorum.
 //
-// Bitmask is all-1s for the first len(orderedAddrs) bits
+// Bitmask is all-1s for the first len(orderedAddrs) bits.
 func BuildFullQuorumLedgerInfoWithSignatures(li LedgerInfo,
 	keysByAuthor map[AccountAddress]*SK,
 	orderedAddrs []AccountAddress) (LedgerInfoWithSignatures, error) {
@@ -306,6 +306,129 @@ func BuildFullQuorumLedgerInfoWithSignatures(li LedgerInfo,
 				ValidatorBitmask: BitVec{Inner: bitmask},
 				Sig:              &OptionBLSSignature{Some: &aggBytes},
 			},
+		},
+	}, nil
+}
+
+// Constructs a new TwoChainTimeoutCertificate where every validator in orderedAddrs
+// co-signs the same TimeoutSigningRepr{epoch, round, hqc_round = qc.votedata.proposed.round}.
+// We can build a H2CTC for SyncInfo when no real timeout cert is present.
+func BuildFullQuorumTwoChainTimeoutCert(
+	epoch uint64,
+	round Round,
+	qc QuorumCert,
+	keysByAuthor map[AccountAddress]*SK,
+	orderedAddrs []AccountAddress,
+) (TwoChainTimeoutCertificate, error) {
+	n := len(orderedAddrs)
+	if n == 0 {
+		return TwoChainTimeoutCertificate{}, fmt.Errorf("no validators in orderedAddrs")
+	}
+	hqcRound := qc.VoteData.Proposed.Round
+	if hqcRound >= round {
+		return TwoChainTimeoutCertificate{}, fmt.Errorf("hqc_round (%d) must be < round (%d)", hqcRound, round)
+	}
+
+	bitmask := make([]byte, (n+7)/8)
+	individuals := make([]*Signature, 0, n)
+	rounds := make([]Round, 0, n)
+	for i := 0; i < n; i++ {
+		sk := keysByAuthor[orderedAddrs[i]]
+		if sk == nil {
+			return TwoChainTimeoutCertificate{}, fmt.Errorf("missing SK for validator %d", i)
+		}
+		sigBytes, err := SignTimeoutRepr(sk, epoch, round, hqcRound)
+		if err != nil {
+			return TwoChainTimeoutCertificate{}, err
+		}
+		sig := new(Signature).Uncompress(sigBytes)
+		if sig == nil {
+			return TwoChainTimeoutCertificate{}, fmt.Errorf("uncompress sig %d failed", i)
+		}
+		individuals = append(individuals, sig)
+		rounds = append(rounds, hqcRound)
+		bitmask[i/8] |= 1 << (7 - uint(i%8))
+	}
+
+	agg := aggregate(individuals)
+	aggBytes := BLSSignature(agg.Compress())
+	return TwoChainTimeoutCertificate{
+		Timeout: TwoChainTimeout{
+			Epoch:      epoch,
+			Round:      round,
+			QuorumCert: qc,
+		},
+		SignaturesWithRounds: AggregateSignatureWithRounds{
+			Sig: AggregateSignature{
+				ValidatorBitmask: BitVec{Inner: bitmask},
+				Sig:              &OptionBLSSignature{Some: &aggBytes},
+			},
+			Rounds: rounds,
+		},
+	}, nil
+}
+
+// Like BuildFullQuorumTwoChainTimeoutCert but uses the supplied bitmask instead of all-1s.
+// Bit i set means orderedAddrs[i] contributes a signature; the resulting Rounds vector
+// has one entry per set bit (each = qc.votedata.proposed.round, since all signers use the same hqc_round).
+// Caller is responsible for ensuring the resulting subset has enough voting power for the
+// receiver's quorum check (= 2f+1).
+func BuildTwoChainTimeoutCertWithBitmask(
+	epoch uint64,
+	round Round,
+	qc QuorumCert,
+	bitmask []byte,
+	keysByAuthor map[AccountAddress]*SK,
+	orderedAddrs []AccountAddress,
+) (TwoChainTimeoutCertificate, error) {
+	n := len(orderedAddrs)
+	if n == 0 {
+		return TwoChainTimeoutCertificate{}, fmt.Errorf("no validators in orderedAddrs")
+	}
+	hqcRound := qc.VoteData.Proposed.Round
+	if hqcRound >= round {
+		return TwoChainTimeoutCertificate{}, fmt.Errorf("hqc_round (%d) must be < round (%d)", hqcRound, round)
+	}
+
+	individuals := make([]*Signature, 0, n)
+	rounds := make([]Round, 0, n)
+	for i := 0; i < n; i++ {
+		if int(bitmask[i/8])&(1<<(7-uint(i%8))) == 0 {
+			continue
+		}
+		sk := keysByAuthor[orderedAddrs[i]]
+		if sk == nil {
+			return TwoChainTimeoutCertificate{}, fmt.Errorf("missing SK for validator %d", i)
+		}
+		sigBytes, err := SignTimeoutRepr(sk, epoch, round, hqcRound)
+		if err != nil {
+			return TwoChainTimeoutCertificate{}, err
+		}
+		sig := new(Signature).Uncompress(sigBytes)
+		if sig == nil {
+			return TwoChainTimeoutCertificate{}, fmt.Errorf("uncompress sig %d failed", i)
+		}
+		individuals = append(individuals, sig)
+		rounds = append(rounds, hqcRound)
+	}
+	if len(individuals) == 0 {
+		return TwoChainTimeoutCertificate{}, fmt.Errorf("bitmask has no contributors")
+	}
+
+	agg := aggregate(individuals)
+	aggBytes := BLSSignature(agg.Compress())
+	return TwoChainTimeoutCertificate{
+		Timeout: TwoChainTimeout{
+			Epoch:      epoch,
+			Round:      round,
+			QuorumCert: qc,
+		},
+		SignaturesWithRounds: AggregateSignatureWithRounds{
+			Sig: AggregateSignature{
+				ValidatorBitmask: BitVec{Inner: bitmask},
+				Sig:              &OptionBLSSignature{Some: &aggBytes},
+			},
+			Rounds: rounds,
 		},
 	}, nil
 }
