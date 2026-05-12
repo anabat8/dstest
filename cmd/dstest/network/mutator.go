@@ -11,11 +11,13 @@ type Mutator interface {
 	Mutate(msg aptos.IConsensusMessage, seed int64) (string, error)
 }
 
-//   - keysByAuthor maps validator addresses to their consensus private keys,
-//     needed for resigning msgs after mutations
-//   - orderedAddrs are the validator addresses in genesis registration order
-//     (v0, v1, v2...); used for QC bitmask mutations where we need to know the order of validators
-//     to produce valid (aggregated) signatures
+/*
+  - keysByAuthor maps validator addresses to their consensus private keys,
+    needed for resigning msgs after mutations
+  - orderedAddrs are the validator addresses in genesis registration order
+    (v0, v1, v2...); used for QC bitmask mutations where we need to know the order of validators
+    to produce valid (aggregated) signatures
+*/
 type AptosMutator struct {
 	keysByAuthor map[aptos.AccountAddress]*aptos.SK
 	orderedAddrs []aptos.AccountAddress
@@ -28,9 +30,11 @@ func NewAptosMutator(keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAdd
 	}
 }
 
-// Mutate function applies a random mutation on the given original message based on the seed.
-// It returns the name of the mutation applied and an error if the consensus msg type is not supported.
-// The payload is mutated in place.
+/*
+Mutate function applies a random mutation on the given original message based on the seed.
+It returns the name of the mutation applied and an error if the consensus msg type is not supported.
+The payload is mutated in place.
+*/
 func (m *AptosMutator) Mutate(cMsg aptos.IConsensusMessage, seed int64) (string, error) {
 	mname := ""
 	switch v := cMsg.(type) {
@@ -67,18 +71,21 @@ func pickMutation(mutations []mutation, seed int64) string {
 	return chosen.name
 }
 
-// syncInfoMutations returns mutations that operate on a SyncInfo
-// Reused by every message type that carries a SyncInfo (ProposalMsg, OptProposalMsg,
-// VoteMsg, RoundTimeoutMsg);
-// Mutations that change a QC/WrappedLedgerInfo VoteData also re-sign
-// the QC/WrappedLedgerInfo aggregate signature (via ResignAggregate / ResignQC / ResignWrappedLedgerInfo)
-//
-// There are a few invariants we need to consider when applying our mutations, so that our mutated msgs
-// are not immediately discarded by the receiver:
-//   - Per QC (in every VoteData): Proposed.Round > Parent.Round, Proposed.Epoch == Parent.Epoch,
-//     Parent.Version <= Proposed.Version, Parent.Timestamp <= Proposed.Timestamp
-//   - HQC.round >= HOC.round >= HCC.round
-//   - HQC, HOC, HCC must be in the same epoch
+/*
+syncInfoMutations returns mutations that operate on a SyncInfo.
+
+Reused by every message type that carries a SyncInfo (ProposalMsg, OptProposalMsg,
+VoteMsg, RoundTimeoutMsg);
+Mutations that change a QC/WrappedLedgerInfo VoteData also re-sign
+the QC/WrappedLedgerInfo aggregate signature (via ResignAggregate / ResignQC / ResignWrappedLedgerInfo).
+
+There are a few invariants we need to consider when applying our mutations, so that our mutated msgs
+are not immediately discarded by the receiver:
+  - Per QC (in every VoteData): Proposed.Round > Parent.Round, Proposed.Epoch == Parent.Epoch,
+    Parent.Version <= Proposed.Version, Parent.Timestamp <= Proposed.Timestamp
+  - HQC.round >= HOC.round >= HCC.round
+  - HQC, HOC, HCC must be in the same epoch
+*/
 func syncInfoMutations(
 	si *aptos.SyncInfo,
 	keysByAuthor map[aptos.AccountAddress]*aptos.SK,
@@ -256,14 +263,17 @@ func syncInfoMutations(
 	}
 }
 
-// Mutations for Highest2ChainTimeoutCert (H2CTC) in SyncInfo
-// Inject a fabricated TwoChainTimeoutCertificate into SyncInfo
-// when one isn't already present or modify the inner timeout fields.
-// Appended only by message types that allow a TC: ProposalMsg, VoteMsg, RoundTimeoutMsg.
-//
-// Invariants:
-//   - TC.timeout.qc.cert.round  <  TC.timeout.round (where cert = votedata.proposed) (1)
-//   - TC.timeout.round  <=  sync_info.HQC.cert.round (2)
+/*
+Mutations for Highest2ChainTimeoutCert (H2CTC) in SyncInfo.
+
+Inject a fabricated TwoChainTimeoutCertificate into SyncInfo
+when one isn't already present or modify the inner timeout fields.
+Appended only by message types that allow a TC: ProposalMsg, VoteMsg, RoundTimeoutMsg.
+
+Invariants:
+  - TC.timeout.qc.cert.round  <  TC.timeout.round (where cert = votedata.proposed) (1)
+  - TC.timeout.round  <=  sync_info.HQC.cert.round (2)
+*/
 func h2ctcMutations(
 	si *aptos.SyncInfo,
 	rng *rand.Rand,
@@ -506,19 +516,21 @@ func h2ctcMutations(
 	}
 }
 
-// ProposalMsg need resigning with the proposer's SK
-// if the mutation touches any field that is part of the BlockData struct (which is the signed payload)
-//
-// There are a few invariants we need to consider when applying our mutations, so that our mutated msgs
-// are not immediately discarded by the receiver:
-//   - Parent.Round < BlockProposed.Round, where parent of this proposed block is QC.VoteData.Proposed
-//   - Parent.Epoch == BlockProposed.Epoch == SyncInfo.HQC.Proposed.Epoch
-//   - Parent.ID == SyncInfo.HQC.Proposed.ID
-//   - BlockProposed.Round - 1 == max(Parent.Round, SyncInfo.H2CTC.Timeout.Round (if it exists))
-//   - BlockProposed.Timestamp_usecs > Parent.Timestamp_usecs; for nil/reconfig blocks they should be equal
-//   - BlockProposed.Timestamp_usecs <= now + 5min (for non-nil,non-reconfig blocks)
-//   - BlockProposed.Author == sender
-//   - BlockProposed.Epoch == receiver_local_epoch
+/*
+ProposalMsg need resigning with the proposer's SK
+if the mutation touches any field that is part of the BlockData struct (which is the signed payload)
+
+There are a few invariants we need to consider when applying our mutations, so that our mutated msgs
+are not immediately discarded by the receiver:
+  - Parent.Round < BlockProposed.Round, where parent of this proposed block is QC.VoteData.Proposed
+  - Parent.Epoch == BlockProposed.Epoch == SyncInfo.HQC.Proposed.Epoch
+  - Parent.ID == SyncInfo.HQC.Proposed.ID
+  - BlockProposed.Round - 1 == max(Parent.Round, SyncInfo.H2CTC.Timeout.Round (if it exists))
+  - BlockProposed.Timestamp_usecs > Parent.Timestamp_usecs; for nil/reconfig blocks they should be equal
+  - BlockProposed.Timestamp_usecs <= now + 5min (for non-nil, non-reconfig blocks)
+  - BlockProposed.Author == sender
+  - BlockProposed.Epoch == receiver_local_epoch
+*/
 func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) string {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	resign := func() {
@@ -714,25 +726,27 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 	return pickMutation(mutations, seed)
 }
 
-// OptProposalMsg carries no proposer signature; the message is authenticated through
-// the grandparent QC's aggregate signature. Mutations that touch the grandparent QC's
-// (OptBlockData.BlockBody.V0.GrandparentQC) VoteData require ResignQC;
-// Mutations on plain fields from OptBlockData (like Parent or Timestamp) require no resigning
-//
-// There are a few invariants we need to consider when applying our mutations, so that our mutated msgs
-// are not immediately discarded by the receiver:
-//   - BlockProposed.Epoch == receiver_local_epoch
-//   - BlockProposed.Epoch == Parent.Epoch == GrandparentQC.VoteData.Proposed.Epoch == SyncInfo.HQC.VoteData.Proposed.Epoch
-//   - BlockProposed.Round > 1
-//   - Strict +1 chain: BlockProposed.Round == Parent.Round + 1 == GrandparentQC.VoteData.Proposed.Round + 2
-//   - GrandparentQC.VoteData.Proposed.ID == SyncInfo.HQC.VoteData.Proposed.ID
-//   - !GrandparentQC.VoteData.Proposed.has_reconfiguration() (opt proposals are disallowed after a reconfig event
-//     which is the event in which the epoch changes)
-//   - SyncInfo.H2CTC == None (opt proposals can't carry a timeout cert)
-//   - BlockProposed.TimestampUsecs > Parent.TimestampUsecs > GrandparentQC.VoteData.Proposed.TimestampUsecs
-//   - BlockProposed.TimestampUsecs <= now + 5min
-//   - local_hqc.Round + 1 == BlockData.Round
-//     and local_hqc.ID == BlockData.Parent.ID (receiver's local stored hqc)
+/*
+OptProposalMsg carries no proposer signature; the message is authenticated through
+the grandparent QC's aggregate signature. Mutations that touch the grandparent QC's
+(OptBlockData.BlockBody.V0.GrandparentQC) VoteData require ResignQC;
+Mutations on plain fields from OptBlockData (like Parent or Timestamp) require no resigning.
+
+There are a few invariants we need to consider when applying our mutations, so that our mutated msgs
+are not immediately discarded by the receiver:
+  - BlockProposed.Epoch == receiver_local_epoch
+  - BlockProposed.Epoch == Parent.Epoch == GrandparentQC.VoteData.Proposed.Epoch == SyncInfo.HQC.VoteData.Proposed.Epoch
+  - BlockProposed.Round > 1
+  - Strict +1 chain: BlockProposed.Round == Parent.Round + 1 == GrandparentQC.VoteData.Proposed.Round + 2
+  - GrandparentQC.VoteData.Proposed.ID == SyncInfo.HQC.VoteData.Proposed.ID
+  - !GrandparentQC.VoteData.Proposed.has_reconfiguration() (opt proposals are disallowed after a reconfig event
+    which is the event in which the epoch changes)
+  - SyncInfo.H2CTC == None (opt proposals can't carry a timeout cert)
+  - BlockProposed.TimestampUsecs > Parent.TimestampUsecs > GrandparentQC.VoteData.Proposed.TimestampUsecs
+  - BlockProposed.TimestampUsecs <= now + 5min
+  - local_hqc.Round + 1 == BlockData.Round
+    and local_hqc.ID == BlockData.Parent.ID (receiver's local stored hqc)
+*/
 func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) string {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	mutations := []mutation{
@@ -875,21 +889,23 @@ func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor ma
 	return pickMutation(mutations, seed)
 }
 
-// VoteMsg need resigning with the voter's SK
-// if the mutation touches any field that is part of the VoteData or LedgerInfo structs.
-//
-// There are a few invariants we need to consider when applying our mutations, so that our mutated msgs
-// are not immediately discarded by the receiver:
-//   - VoteData.Proposed.Epoch == receiver_local_epoch
-//   - VoteData.Proposed.Epoch == SyncInfo.HQC.Cert.Epoch (where .Cert == VoteData.Proposed)
-//   - VoteData.Proposed.Round > SyncInfo.HighestRound (= max(HQC.Cert.Round, highest_timeout_round))
-//   - Vote.Author == network sender
-//   - In VoteData: Parent.Epoch == Proposed.Epoch; Parent.Round < Proposed.Round; Parent.Ts <= Proposed.Ts;
-//     Proposed.Version == 0 or Parent.Version <= Proposed.Version
-//   - LedgerInfo.ConsensusDataHash == VoteData.hash()
-//   - If TwoChainTimeout.Some, Timeout.Qc.HQC.Cert.Round <= SyncInfo.HQC.Cert.Round
-//   - VoteData.Proposed.Round == receiver_local_round (after sync_up)
-//   - Receiver must be the leader for VoteData.Proposed.Round + 1 to process the incoming vote
+/*
+VoteMsg need resigning with the voter's SK
+if the mutation touches any field that is part of the VoteData or LedgerInfo structs.
+
+There are a few invariants we need to consider when applying our mutations, so that our mutated msgs
+are not immediately discarded by the receiver:
+  - VoteData.Proposed.Epoch == receiver_local_epoch
+  - VoteData.Proposed.Epoch == SyncInfo.HQC.Cert.Epoch (where .Cert == VoteData.Proposed)
+  - VoteData.Proposed.Round > SyncInfo.HighestRound (= max(HQC.Cert.Round, highest_timeout_round))
+  - Vote.Author == network sender
+  - In VoteData: Parent.Epoch == Proposed.Epoch; Parent.Round < Proposed.Round; Parent.Ts <= Proposed.Ts;
+    Proposed.Version == 0 or Parent.Version <= Proposed.Version
+  - LedgerInfo.ConsensusDataHash == VoteData.hash()
+  - If TwoChainTimeout.Some, Timeout.Qc.HQC.Cert.Round <= SyncInfo.HQC.Cert.Round
+  - VoteData.Proposed.Round == receiver_local_round (after sync_up)
+  - Receiver must be the leader for VoteData.Proposed.Round + 1 to process the incoming vote
+*/
 func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) string {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	resign := func() {
@@ -1130,16 +1146,18 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 	return pickMutation(mutations, seed)
 }
 
-// CommitMessage is an enum with 4 variants:
-//   - Vote(CommitVote): voter signs LedgerInfo; mutations on the LedgerInfo require ResignCommitVote
-//   - Decision(CommitDecision): aggregate sig over LedgerInfo; mutations on the LedgerInfo
-//     require ResignCommitDecision (re-aggregates with the same bitmask)
-//   - Ack(()) / Nack: response-direction unit messages; no signatures
-//
-// There are a few invariants we need to consider when applying our mutations, so that our mutated msgs
-// are not immediately discarded by the receiver:
-//   - For incoming Vote/Decision: CommitMessage.Epoch == receiver_local_epoch
-//   - For Vote: Vote.Author == network sender
+/*
+CommitMessage is an enum with 4 variants:
+  - Vote(CommitVote): voter signs LedgerInfo; mutations on the LedgerInfo require ResignCommitVote
+  - Decision(CommitDecision): aggregate sig over LedgerInfo; mutations on the LedgerInfo
+    require ResignCommitDecision (re-aggregates with the same bitmask)
+  - Ack(()) / Nack: response-direction unit messages; no signatures
+
+There are a few invariants we need to consider when applying our mutations, so that our mutated msgs
+are not immediately discarded by the receiver:
+  - For incoming Vote/Decision: CommitMessage.Epoch == receiver_local_epoch
+  - For Vote: Vote.Author == network sender
+*/
 func mutateCommitMessage(msg *aptos.CommitMessage, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) string {
 	if msg.Decision != nil {
 		return mutateCommitDecision(msg.Decision, seed, keysByAuthor, orderedAddrs)
@@ -1181,8 +1199,12 @@ func mutateCommitVote(msg *aptos.CommitVote, seed int64, keysByAuthor map[aptos.
 	return pickMutation(commitVoteMutations(msg, rng, keysByAuthor), seed)
 }
 
-// Returns a list of mutations for CommitVote. Used by plain CommitVote messages and also CommitMessage.
-// Mutations that touch any field in the inner struct LedgerInfo require resigning the commit vote with the voter's SK
+/*
+Returns a list of mutations for CommitVote.
+Used by plain CommitVote messages and also CommitMessage.
+Mutations that touch any field in the inner struct LedgerInfo
+require resigning the commit vote with the voter's SK.
+*/
 func commitVoteMutations(msg *aptos.CommitVote, rng *rand.Rand, keysByAuthor map[aptos.AccountAddress]*aptos.SK) []mutation {
 	resign := func() {
 		sk := keysByAuthor[msg.Author]
@@ -1243,8 +1265,12 @@ func mutateCommitDecision(msg *aptos.CommitDecision, seed int64, keysByAuthor ma
 	return pickMutation(commitDecisionMutations(msg, rng, keysByAuthor, orderedAddrs), seed)
 }
 
-// Returns a list of mutations for CommitDecision. Used by plain CommitDecision messages and also CommitMessage.
-// Mutations that touch any field in the inner struct LedgerInfo require resigning the commit decision with aggregate signatures;
+/*
+Returns a list of mutations for CommitDecision.
+Used by plain CommitDecision messages and also CommitMessage.
+Mutations that touch any field in the inner struct LedgerInfo require
+resigning the commit decision with aggregate signatures.
+*/
 func commitDecisionMutations(msg *aptos.CommitDecision, rng *rand.Rand, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) []mutation {
 	resign := func() {
 		_ = aptos.ResignCommitDecision(msg, keysByAuthor, orderedAddrs)
@@ -1337,18 +1363,21 @@ func commitDecisionMutations(msg *aptos.CommitDecision, rng *rand.Rand, keysByAu
 	}
 }
 
-// RoundTimeoutMsg need resigning with the timout sender's SK
-// if we mutate any of the following subset of fields (which are the signed payload) in the inner TwoChainTimeout struct:
-// - Timeout.Epoch, Timeout.Round, Timeout.QuorumCert.VoteData.Proposed.Round (hqcRound)
-//
-// There are a few invariants we need to consider when applying our mutations, so that our mutated msgs
-// are not immediately discarded by the receiver:
-//   - Timeout.Epoch == QC.Proposed.Epoch == receiver_local_epoch == SyncInfo.HQC.VoteData.Proposed.Epoch
-//   - Timeout.Round > QC.VoteData.Proposed.Round (timing out a round after the QC)
-//   - Timeout.Round > SyncInfo.HighestRound (= max(HQC.VoteData.Proposed.Round, highest_timeout_round = Highest2ChainTimeoutCert.Some.Timeout.Round_if_present))
-//   - Timeout.Round == receiver_local_round (after sync_up)
-//   - Timeout.QC.VoteData.Proposed.Round (= hqc_round) <= SyncInfo.HQC.VoteData.Proposed.Round
-//   - Same QC.VoteData invariants apply: Parent.Epoch == Proposed.Epoch; Parent.Round < Proposed.Round; Parent.Ts <= Proposed.Ts;
+/*
+RoundTimeoutMsg need resigning with the timeout sender's SK
+if we mutate any of the following subset of fields (which are the signed payload)
+in the inner TwoChainTimeout struct:
+- Timeout.Epoch, Timeout.Round, Timeout.QuorumCert.VoteData.Proposed.Round (hqcRound)
+
+There are a few invariants we need to consider when applying our mutations, so that our mutated msgs
+are not immediately discarded by the receiver:
+  - Timeout.Epoch == QC.Proposed.Epoch == receiver_local_epoch == SyncInfo.HQC.VoteData.Proposed.Epoch
+  - Timeout.Round > QC.VoteData.Proposed.Round (timing out a round after the QC)
+  - Timeout.Round > SyncInfo.HighestRound (= max(HQC.VoteData.Proposed.Round, highest_timeout_round = Highest2ChainTimeoutCert.Some.Timeout.Round_if_present))
+  - Timeout.Round == receiver_local_round (after sync_up)
+  - Timeout.QC.VoteData.Proposed.Round (= hqc_round) <= SyncInfo.HQC.VoteData.Proposed.Round
+  - Same QC.VoteData invariants apply: Parent.Epoch == Proposed.Epoch; Parent.Round < Proposed.Round; Parent.Ts <= Proposed.Ts;
+*/
 func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) string {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	resign := func() {

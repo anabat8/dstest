@@ -21,8 +21,7 @@ type AgreementMonitor struct {
 	blockCommitsLog  *csv.Writer
 	blockCommitsFile *os.File
 	agreementFile    *os.File
-
-	log bufio.Writer
+	log              bufio.Writer
 
 	livenessTimeout int
 }
@@ -47,7 +46,7 @@ func (c Content) Equals(other Content) bool {
 
 /*
 The agreement monitor periodically polls each node for its latest block and logs the results.
-It also compares the latest blocks across nodes to detect any disagreements in ledger state.
+It also compares the latest blocks across nodes to detect any disagreements in ledger state or any liveness violations.
 */
 func StartAgreementMonitor(
 	outputDir, testName, schedulerType string,
@@ -147,22 +146,28 @@ func (m *AgreementMonitor) PollForNode(node_id, port int) {
 
 /*
 The monitor continuously receives block commits from the pollers and checks for agreement/liveness across nodes.
-We either receive a signal that the test iteration has ended, that a new block has been committed,
-or that T(=30 by default) seconds have passed without a new block commit (indicating a liveness failure).
-In case of receiving a new block commit, we log the block info and check if it matches the other block info logged
+We either receive a signal that the test iteration has ended, info on a block that has been committed,
+or that T(=30 by default) seconds have passed without a new block commit for a new blockchain height (indicating
+that a quorum of nodes have failed to reach consensus for new block in order to advance the height, hence a liveness violation).
+In case of receiving info on a block commit, we log the block info and check if it matches the other block info logged
 from other nodes at the same height, hence detecting any disagreement in ledger state across nodes.
 */
 func (m *AgreementMonitor) Monitor() {
 	byHeight := make(map[uint64][]Content)
 	livenessDuration := time.Second * time.Duration(m.livenessTimeout)
 	timer := time.NewTimer(livenessDuration)
+	maxHeight := uint64(0)
 
 	for {
 		select {
 		case <-m.finishSignal:
 			return
 		case content := <-m.contentChan:
-			timer.Reset(livenessDuration)
+			if content.Block.BlockHeight > maxHeight {
+				maxHeight = content.Block.BlockHeight
+				timer.Reset(livenessDuration)
+			}
+
 			m.blockCommitsLog.Write([]string{
 				fmt.Sprintf("%d", content.NodeId),
 				fmt.Sprintf("%d", content.Block.BlockHeight),
@@ -184,11 +189,15 @@ func (m *AgreementMonitor) Monitor() {
 							content.NodeId,
 							other.NodeId),
 					)
+					m.log.Flush()
 				}
 			}
 			byHeight[content.Block.BlockHeight] = append(byHeight[content.Block.BlockHeight], content)
 		case <-timer.C:
-			m.log.WriteString("Liveness failure: no new blocks committed in 30 seconds\n")
+			m.log.WriteString(fmt.Sprintf(
+				"Liveness failure: no new blocks committed in %d seconds\n",
+				m.livenessTimeout))
+			m.log.Flush()
 		}
 	}
 }
@@ -198,11 +207,23 @@ Stop signals the poller to shut down cleanly and waits for it to exit
 */
 func (m *AgreementMonitor) Stop() {
 	close(m.finishSignal)
-	m.agreementFile.Close()
+	m.closeAndFlushFiles()
 }
 
 func (m *AgreementMonitor) Put(content Content) {
 	m.contentChan <- content
+}
+
+func (m *AgreementMonitor) closeAndFlushFiles() {
+	if m.blockCommitsFile != nil {
+		m.blockCommitsLog.Flush()
+		m.blockCommitsFile.Close()
+	}
+
+	if m.agreementFile != nil {
+		m.log.Flush()
+		m.agreementFile.Close()
+	}
 }
 
 /*
@@ -214,10 +235,7 @@ func (m *AgreementMonitor) Init(
 	outputDir, testName, schedulerType string,
 	iteration int,
 ) {
-	if m.blockCommitsFile != nil {
-		m.blockCommitsLog.Flush()
-		m.blockCommitsFile.Close()
-	}
+	m.closeAndFlushFiles()
 
 	path := filepath.Join(outputDir,
 		fmt.Sprintf("%s_%s_%d",
@@ -252,5 +270,6 @@ func (m *AgreementMonitor) Init(
 		log.Fatalf("error opening agreement log file: %v", err)
 	}
 
+	m.agreementFile = f
 	m.log = *bufio.NewWriter(f)
 }
