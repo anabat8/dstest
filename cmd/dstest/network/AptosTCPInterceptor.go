@@ -352,6 +352,7 @@ func (c *ConsensusMsgLayer) decodeConsensusMessage(env *aptos.AptosNetworkEnvelo
 	if err != nil {
 		return aptos.DecodedConsensusMsg{}, err
 	}
+	env.Payload = decoded //if decoding involved decompression, update the payload to the decoded version for downstream layers
 
 	// The body is the remaining bytes after the enum tag
 	consensusBody := decoded[consensusTagLen:]
