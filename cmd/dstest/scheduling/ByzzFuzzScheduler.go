@@ -32,9 +32,11 @@ type Partition struct {
 	of     map[ReplicaID]int
 }
 
-// For network faults
-// We sample from a uniform distribution of all possible partitions of the set of processes P
-// by sampling from the precomputed set of partitions, since in Aptos we have small validators sets
+/*
+For network faults
+We sample from a uniform distribution of all possible partitions of the set of processes P
+by sampling from the precomputed set of partitions, since in Aptos we have small validators sets
+*/
 func NewPartition(nodes []ReplicaID, rng *rand.Rand) Partition {
 	p := Partition{
 		blocks: 0,
@@ -65,13 +67,17 @@ func (p Partition) Isolates(a, b ReplicaID) bool {
 	return p.of[a] != p.of[b]
 }
 
-// Set of (round, and a partition of P (processes))
+/*
+Set of (round, and a partition of P (processes))
+*/
 type NetworkFaultSpec struct {
 	Round     aptos.Round
 	Partition Partition
 }
 
-// Set of (round, a subset of P, and a seed)
+/*
+Set of (round, a subset of P, and a seed)
+*/
 type ProcFaultSpec struct {
 	Round     aptos.Round            // round number in which the faulty process sends mutated messages (or omits them)
 	Receivers map[ReplicaID]struct{} // set of receivers of the mutated messages
@@ -84,7 +90,9 @@ type ByzzFuzzParams struct {
 	R int // bound on rounds with faults
 }
 
-// For choosing the set of process faults uniformly at random
+/*
+For choosing the set of process faults uniformly at random
+*/
 func randomSubsetOf(s []int, rng *rand.Rand) map[ReplicaID]struct{} {
 	out := make(map[ReplicaID]struct{})
 
@@ -157,10 +165,15 @@ func (store *DelayMessagesStore) SetDelayed(messageId uint64, delayTime time.Dur
 
 type ByzzFuzzScheduler struct {
 	Scheduler
-	Config         *config.Config
-	NetworkManager *network.Manager
-	Mutator        network.Mutator
-	Log            *log.Logger
+	Config           *config.Config
+	NetworkManager   *network.Manager
+	Mutator          network.Mutator
+	Log              *log.Logger
+	NumClientTypes   int
+	AvailableClients chan int
+
+	RequestQuota             int
+	ClientRequestProbability float64
 
 	rng    *rand.Rand
 	params ByzzFuzzParams
@@ -169,13 +182,6 @@ type ByzzFuzzScheduler struct {
 	pByz          ReplicaID // sender == pByz
 	networkFaults []NetworkFaultSpec
 	procFaults    []ProcFaultSpec
-
-	// optional cached indexes for fast lookup
-	networkByRound map[aptos.Round][]NetworkFaultSpec
-	procByRound    map[aptos.Round][]ProcFaultSpec
-
-	// logical protocol round tracking if some msgs do not expose round directly
-	senderRound map[ReplicaID]aptos.Round
 
 	delayStore *DelayMessagesStore
 
@@ -204,15 +210,41 @@ func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 	}
 	s.delayStore = NewDelayMessagesStore()
 
+	s.RequestQuota = config.SchedulerConfig.ClientRequests
+	s.NumClientTypes = len(config.ProcessConfig.ClientScripts)
+
+	// Handle both int and float64 for client_request_probability
+	if prob, ok := config.SchedulerConfig.Params["client_request_probability"].(float64); ok {
+		s.ClientRequestProbability = prob
+	} else if probInt, ok := config.SchedulerConfig.Params["client_request_probability"].(int); ok {
+		s.ClientRequestProbability = float64(probInt)
+	} else {
+		s.ClientRequestProbability = 0.05 // default
+	}
+
+	s.AvailableClients = make(chan int, s.NumClientTypes)
+	for i := range s.NumClientTypes {
+		s.AvailableClients <- i
+	}
+
 	s.Log = log.New(os.Stdout, "[ByzzFuzz Scheduler] ", log.LstdFlags)
 
 	s.iteration = 0
 }
 
-func (s *ByzzFuzzScheduler) Reset() {}
+func (s *ByzzFuzzScheduler) Reset() {
+	s.RequestQuota = s.Config.SchedulerConfig.ClientRequests
+	seed := int64(s.Config.SchedulerConfig.Seed)
+	if seed == 0 {
+		seed = time.Now().UnixNano()
+	}
+	s.rng = rand.New(rand.NewSource(seed))
+}
 
 func (s *ByzzFuzzScheduler) NextIteration() {
 	s.iteration++
+	s.RequestQuota = s.Config.SchedulerConfig.ClientRequests
+
 	// sample network faults for the iteration
 	s.networkFaults = make([]NetworkFaultSpec, s.params.D)
 	for i := 0; i < s.params.D; i++ {
@@ -282,17 +314,10 @@ func (s *ByzzFuzzScheduler) Shutdown() {
 	}
 }
 
-// Returns a random index from available messages
+/*
+Returns a random index from available messages
+*/
 func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.Fault, context faults.FaultContext) SchedulerDecision {
-	// onMessage
-	// Extract round
-	// Extract sender / receiver
-	// If (round, partition) isolates sender and receiver : drop
-	// Else if sender == pByz and receiver is in a sampled proc fault set for that round : mutate and send msg
-	// Else deliver unchanged
-	// To introduce randomized msg delays: insert a callback function after returning NoOp, which is called after a random delay, and then send the cached message
-	// Indicating msg delays can be done through a flag
-
 	// if there are no messages, return a noOp
 	if len(messages) == 0 {
 		s.Log.Println("No messages to schedule, returning NoOp")
@@ -343,7 +368,6 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 				chosenMsg.MessageId,
 				time.Duration(5*time.Second),
 				chosenMsg.SendMessage,
-				//s.NetworkManager.SendMessage,
 			)
 			return SchedulerDecision{
 				DecisionType: DropMessage,
@@ -391,8 +415,55 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 	}
 }
 
+/*
+Decides whether to fire a client request this scheduler step. Returns the
+index of a client-script slot (an entry of config.ProcessConfig.ClientScripts)
+or -1 to skip.
+
+Returns -1 if any of:
+  - request quota for the iteration is exhausted
+  - no client scripts are configured
+  - the Bernoulli trial against ClientRequestProbability fails
+  - all client slots are currently in flight (pool empty)
+
+Quota is decremented only on a successful pop, so failed Bernoulli trials and
+empty-pool skips don't consume the iteration's request budget.
+
+AvailableClients is a queue of client-script indices [0..NumClientTypes).
+GetClientRequest pops a slot (a client script) from the queue non-blockingly when the scheduler decides to.
+ClientRequestDone returns the slot once the engine's worker goroutine signals completion.
+
+The pool guarantees no two in-flight workers share the same client identity (and client script).
+Without this, concurrent workers signing with the same account race on its
+sequence number when sending batches of txs.
+*/
 func (s *ByzzFuzzScheduler) GetClientRequest() int {
+	if s.RequestQuota <= 0 {
+		return -1
+	}
+	if s.NumClientTypes == 0 {
+		return -1
+	}
+
+	r := s.rng.Float64()
+	if r <= s.ClientRequestProbability {
+		select {
+		case clientId := <-s.AvailableClients:
+			s.RequestQuota--
+			return clientId
+		default:
+			return -1
+		}
+	}
 	return -1
+}
+
+/*
+Returns a client-script slot to the pool once its worker has finished. Called
+by TestEngine.Run from a goroutine waiting on the worker's done-channel.
+*/
+func (s *ByzzFuzzScheduler) ClientRequestDone(client int) {
+	s.AvailableClients <- client
 }
 
 func (s *ByzzFuzzScheduler) SetNetworkManager(networkManager *network.Manager) {

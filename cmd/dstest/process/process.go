@@ -195,7 +195,7 @@ func (pm *ProcessManager) generateClientWorkerConfig(clientType int) map[string]
 	return conf
 }
 
-func (pm *ProcessManager) RunClient(clientType int) {
+func (pm *ProcessManager) RunClient(clientType int) chan struct{} {
 	// Initialize client
 	config := pm.generateClientWorkerConfig(clientType)
 	clientWorker := new(Worker)
@@ -203,10 +203,13 @@ func (pm *ProcessManager) RunClient(clientType int) {
 	pm.ClientWorkers[config["workerId"].(int)] = clientWorker
 	pm.ClientIds = append(pm.ClientIds, config["workerId"].(int))
 
+	done := make(chan struct{})
 	// Call client worker as goroutine
 	go func(worker *Worker) {
 		worker.RunWorker()
+		close(done)
 	}(clientWorker)
+	return done
 }
 
 func (pm *ProcessManager) deleteDir() {

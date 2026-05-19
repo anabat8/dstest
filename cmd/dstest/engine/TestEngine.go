@@ -35,13 +35,14 @@ type FaultManager interface {
 }
 
 type TestEngine struct {
-	Config         *config.Config
-	Scheduler      scheduling.Scheduler
-	NetworkManager *network.Manager
-	ProcessManager *process.ProcessManager
-	FaultManager   FaultManager
-	Log            *log.Logger
-	AptosMonitor   *aptos.AgreementMonitor
+	Config           *config.Config
+	Scheduler        scheduling.Scheduler
+	NetworkManager   *network.Manager
+	ProcessManager   *process.ProcessManager
+	FaultManager     FaultManager
+	Log              *log.Logger
+	AptosMonitor     *aptos.AgreementMonitor
+	AptosFundingTask *aptos.FundingTask
 
 	Experiments   int
 	Iterations    int
@@ -125,6 +126,7 @@ func (te *TestEngine) Run() error {
 
 			time.Sleep(time.Duration(te.Config.TestConfig.StartupDuration) * time.Second)
 
+			te.StartFundingAptosClientAccounts()
 			te.StartAptosAgreementMonitor(j)
 
 			schedule := make([]Action, 0)
@@ -133,14 +135,26 @@ func (te *TestEngine) Run() error {
 					break
 				}
 				actions := te.NetworkManager.GetActions()
-				sc := te.Scheduler.GetClientRequest()
-				if sc >= 0 {
-					te.ProcessManager.RunClient(sc)
-					schedule = append(schedule, Action{
-						Sender:   -1,
-						Receiver: -1,
-						Name:     fmt.Sprintf("ClientRequest_%d_%d", s, sc),
-					})
+				funded := te.AptosFundingTask == nil || te.AptosFundingTask.IsDone()
+				if funded {
+					sc := te.Scheduler.GetClientRequest()
+					if sc >= 0 {
+						done := te.ProcessManager.RunClient(sc)
+
+						// add sc back to available scripts
+						if s, ok := te.Scheduler.(interface{ ClientRequestDone(id int) }); ok {
+							go func() {
+								<-done
+								s.ClientRequestDone(sc)
+							}()
+						}
+
+						schedule = append(schedule, Action{
+							Sender:   -1,
+							Receiver: -1,
+							Name:     fmt.Sprintf("ClientRequest_%d_%d", s, sc),
+						})
+					}
 				}
 				// TODO - Get fault from scheduler
 				var faultContext faults.FaultContext = NewEngineFaultContext(te)
@@ -192,6 +206,9 @@ func (te *TestEngine) Run() error {
 				time.Sleep(te.SleepDuration)
 			}
 			// te.Schedules = append(te.Schedules, schedule)
+			if te.AptosFundingTask != nil {
+				te.AptosFundingTask.Stop()
+			}
 			if te.AptosMonitor != nil {
 				te.Log.Println("Stopping agreement monitor...")
 				te.AptosMonitor.Stop()
@@ -224,6 +241,21 @@ func (te *TestEngine) Run() error {
 		te.Scheduler.Reset()
 	}
 	return nil
+}
+
+func (te *TestEngine) StartFundingAptosClientAccounts() {
+	if te.Config.NetworkConfig.Protocol != "aptostcp" {
+		return
+	}
+	baseDir := os.Getenv("BASE_DIR")
+	if baseDir == "" {
+		baseDir = "/tmp/aptos-dstest"
+	}
+	te.AptosFundingTask = aptos.StartFundingClientAccounts(
+		te.Config.NetworkConfig.BaseReplicaPort, baseDir,
+		te.Config.ProcessConfig.NumReplicas,
+		te.Log,
+	)
 }
 
 func (te *TestEngine) StartAptosAgreementMonitor(iter int) {
