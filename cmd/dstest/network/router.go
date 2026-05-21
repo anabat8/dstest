@@ -15,7 +15,7 @@ type Router struct {
 func (r *Router) Init(NetworkManager *Manager, numReplicas int) {
 	r.NetworkManager = NetworkManager
 	r.RoutingTable = make([][]bool, numReplicas)
-	r.MessageTranslator = NewMessageTranslator(GRPC)
+	r.MessageTranslator = NewMessageTranslator(NetworkManager.MessageType)
 	r.Log = log.New(log.Writer(), "[Router] ", log.LstdFlags)
 
 	// create N*N routing table

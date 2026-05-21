@@ -2,13 +2,16 @@ package engine
 
 import (
 	"fmt"
-	"github.com/egeberkaygulcan/dstest/cmd/dstest/faults"
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/egeberkaygulcan/dstest/cmd/dstest/faults"
+	"github.com/egeberkaygulcan/dstest/cmd/dstest/network/aptos"
 
 	"github.com/egeberkaygulcan/dstest/cmd/dstest/config"
 	"github.com/egeberkaygulcan/dstest/cmd/dstest/network"
@@ -32,12 +35,14 @@ type FaultManager interface {
 }
 
 type TestEngine struct {
-	Config         *config.Config
-	Scheduler      scheduling.Scheduler
-	NetworkManager *network.Manager
-	ProcessManager *process.ProcessManager
-	FaultManager   FaultManager
-	Log            *log.Logger
+	Config           *config.Config
+	Scheduler        scheduling.Scheduler
+	NetworkManager   *network.Manager
+	ProcessManager   *process.ProcessManager
+	FaultManager     FaultManager
+	Log              *log.Logger
+	AptosMonitor     *aptos.AgreementMonitor
+	AptosFundingTask *aptos.FundingTask
 
 	Experiments   int
 	Iterations    int
@@ -83,6 +88,12 @@ func (te *TestEngine) Run() error {
 		te.Log.Printf("Starting experiment %d...\n", i+1)
 
 		te.Scheduler.Init(te.Config)
+
+		// Check if scheduler needs access to NetworkManager, and provide it if so
+		if s, ok := te.Scheduler.(interface{ SetNetworkManager(*network.Manager) }); ok {
+			s.SetNetworkManager(te.NetworkManager)
+		}
+
 		for j := 0; j < te.Iterations; j++ {
 			te.Log.Printf("Starting iteration %d\n", j+1)
 
@@ -115,20 +126,35 @@ func (te *TestEngine) Run() error {
 
 			time.Sleep(time.Duration(te.Config.TestConfig.StartupDuration) * time.Second)
 
+			te.StartFundingAptosClientAccounts()
+			te.StartAptosAgreementMonitor(j)
+
 			schedule := make([]Action, 0)
 			for s := 0; s < te.Steps; {
 				if te.ProcessManager.BugCandidate {
 					break
 				}
 				actions := te.NetworkManager.GetActions()
-				sc := te.Scheduler.GetClientRequest()
-				if sc >= 0 {
-					te.ProcessManager.RunClient(sc)
-					schedule = append(schedule, Action{
-						Sender:   -1,
-						Receiver: -1,
-						Name:     fmt.Sprintf("ClientRequest_%d_%d", s, sc),
-					})
+				funded := te.AptosFundingTask == nil || te.AptosFundingTask.IsDone()
+				if funded {
+					sc := te.Scheduler.GetClientRequest()
+					if sc >= 0 {
+						done := te.ProcessManager.RunClient(sc)
+
+						// add sc back to available scripts
+						if s, ok := te.Scheduler.(interface{ ClientRequestDone(id int) }); ok {
+							go func() {
+								<-done
+								s.ClientRequestDone(sc)
+							}()
+						}
+
+						schedule = append(schedule, Action{
+							Sender:   -1,
+							Receiver: -1,
+							Name:     fmt.Sprintf("ClientRequest_%d_%d", s, sc),
+						})
+					}
 				}
 				// TODO - Get fault from scheduler
 				var faultContext faults.FaultContext = NewEngineFaultContext(te)
@@ -145,6 +171,17 @@ func (te *TestEngine) Run() error {
 					s++
 				}
 
+				if decision.DecisionType == scheduling.DeliverMutatedMessage {
+					action := decision.Index
+					te.NetworkManager.SendMessage(actions[action].MessageId)
+					schedule = append(schedule, Action{
+						Sender:   actions[action].Sender,
+						Receiver: actions[action].Receiver,
+						Name:     fmt.Sprintf("DeliverMutated_%s", actions[action].Name),
+					})
+					s++
+				}
+
 				if decision.DecisionType == scheduling.InjectFault {
 					fault := te.FaultManager.GetFaults()[decision.Index]
 					te.Log.Printf("Applying fault: %+v\n", fault)
@@ -155,9 +192,27 @@ func (te *TestEngine) Run() error {
 					// TODO - Append fault to schedule
 				}
 
+				if decision.DecisionType == scheduling.DropMessage {
+					action := decision.Index
+					te.NetworkManager.DropMessage(actions[action].MessageId)
+					schedule = append(schedule, Action{
+						Sender:   actions[action].Sender,
+						Receiver: actions[action].Receiver,
+						Name:     fmt.Sprintf("Drop_%s", actions[action].Name),
+					})
+					s++
+				}
+
 				time.Sleep(te.SleepDuration)
 			}
 			// te.Schedules = append(te.Schedules, schedule)
+			if te.AptosFundingTask != nil {
+				te.AptosFundingTask.Stop()
+			}
+			if te.AptosMonitor != nil {
+				te.Log.Println("Stopping agreement monitor...")
+				te.AptosMonitor.Stop()
+			}
 			te.Log.Println("Shutting down ProcessManager...")
 			te.ProcessManager.Shutdown()
 			te.Log.Println("Shutting down NetworkManager...")
@@ -167,22 +222,64 @@ func (te *TestEngine) Run() error {
 
 			te.Log.Println("Checking for bugs...")
 			if te.ProcessManager.BugCandidate {
-				outputFile, err := os.OpenFile(filepath.Join(te.ProcessManager.Basedir, "schedule.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-				if err != nil {
-					te.Log.Printf("Could not create schedule file.\n Err: %s\n", err)
-				}
+				te.Log.Printf("Bug candidate detected at iteration %d\n", j)
+			}
 
+			outputFile, err := os.OpenFile(filepath.Join(te.ProcessManager.Basedir, "schedule.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				te.Log.Printf("Could not create schedule file.\n Err: %s\n", err)
+			} else {
 				for _, action := range schedule {
 					fmt.Fprintln(outputFile, action)
 				}
 				outputFile.Close()
 			}
+
 			te.Log.Println("Iteration complete.")
 			te.Scheduler.NextIteration()
 		}
 		te.Scheduler.Reset()
 	}
 	return nil
+}
+
+func (te *TestEngine) StartFundingAptosClientAccounts() {
+	if te.Config.NetworkConfig.Protocol != "aptostcp" {
+		return
+	}
+	baseDir := os.Getenv("BASE_DIR")
+	if baseDir == "" {
+		baseDir = "/tmp/aptos-dstest"
+	}
+	te.AptosFundingTask = aptos.StartFundingClientAccounts(
+		te.Config.NetworkConfig.BaseReplicaPort, baseDir,
+		te.Config.ProcessConfig.NumReplicas,
+		te.Log,
+	)
+}
+
+func (te *TestEngine) StartAptosAgreementMonitor(iter int) {
+	if te.Config.NetworkConfig.Protocol != "aptostcp" {
+		return
+	}
+	livenessTimeout, err := strconv.Atoi(os.Getenv("LIVENESS_TIMEOUT"))
+	if err != nil {
+		livenessTimeout = 30 //default value
+	}
+	m, err := aptos.StartAgreementMonitor(
+		te.Config.ProcessConfig.OutputDir,
+		te.Config.TestConfig.Name,
+		te.Config.SchedulerConfig.Type,
+		iter,
+		te.Config.ProcessConfig.NumReplicas,
+		te.Config.NetworkConfig.BaseReplicaPort,
+		livenessTimeout,
+	)
+	if err != nil {
+		te.Log.Printf("Aptos Consensus Agreement monitor disabled (start failed): %s\n", err)
+	} else {
+		te.AptosMonitor = m
+	}
 }
 
 type EngineFaultContext struct {

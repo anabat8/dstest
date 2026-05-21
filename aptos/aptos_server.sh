@@ -12,6 +12,13 @@ APTOS_NODE_BIN="${APTOS_NODE_BIN:-${APTOS_ROOT}/target/release/aptos-node}"
 
 NODE_DIR="${BASE_DIR}/nodes/v${NODE_INDEX}"
 
+# ByzzFuzz: write Noise session secrets to a per-node file (enabled only if byzzfuzz feature compiled in)
+# e.g. path for node 0 : /tmp/aptos-dstest/nodes/v0/noise_secrets.jsonl
+export BYZZFUZZ_NOISE_SECRETS_PATH="${NODE_DIR}/noise_secrets.jsonl"
+
+# optional: start fresh each run
+rm -f "${BYZZFUZZ_NOISE_SECRETS_PATH}" || true
+
 if [[ ! -x "${APTOS_NODE_BIN}" ]]; then
   echo "ERROR: aptos-node binary not found/executable: ${APTOS_NODE_BIN}"
   echo "Build it: (cd aptos-core && cargo build -p aptos-node --release)"
@@ -19,7 +26,7 @@ if [[ ! -x "${APTOS_NODE_BIN}" ]]; then
 fi
 
 test -f "${NODE_DIR}/node.yaml" || {
-  echo "Missing ${NODE_DIR}/node.yaml (run make_node_configs.sh first)"
+  echo "Missing ${NODE_DIR}/node.yaml (run aptos_make_node_configs.sh first)"
   exit 1
 }
 

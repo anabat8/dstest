@@ -116,6 +116,10 @@ for nd in node_dirs:
     network_public_key = derive_public_key_hex(network_private_key)
     node_info[idx] = {"account_address": account_address, "network_public_key": network_public_key}
     print(f"Node {idx}: account={account_address[:16]}..., pubkey={network_public_key[:16]}...")
+    
+    # Export node static pubkey
+    out_path = nd / "node_static_key.hex"
+    out_path.write_text(network_public_key + "\n")
 
 
 # -----------------------------

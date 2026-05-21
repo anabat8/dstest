@@ -140,11 +140,13 @@ if isinstance(cons, dict):
                 wp = ff.get("waypoint")
                 if isinstance(wp, dict):
                     wp["from_file"] = str(node_dir / "genesis" / "waypoint.txt")
+    # Increase round timeout to tolerate proxy latency
+    cons["round_initial_timeout_ms"] = 5000
 
 # --- Ports
 api = cfg.get("api")
 if isinstance(api, dict):
-    api["enabled"] = False
+    api["enabled"] = True
     api["address"] = f"0.0.0.0:{${API_PORT}}"
 
 # internal services to avoid collisions

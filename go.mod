@@ -1,16 +1,29 @@
 module github.com/egeberkaygulcan/dstest
 
-go 1.20
+go 1.24.0
 
 require (
 	github.com/aunum/gold v0.0.0-20201022151355-225e849d893f
 	github.com/aunum/log v0.0.0-20200821225356-38d2e2c8b489
+	github.com/fardream/go-bcs v0.9.0
 	github.com/k0kubun/pp v3.0.1+incompatible
+	github.com/pierrec/lz4/v4 v4.1.8
 	github.com/segmentio/fasthash v1.0.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.18.2
-	golang.org/x/net v0.19.0
+	golang.org/x/net v0.47.0
 	gorgonia.org/tensor v0.9.9
+)
+
+require (
+	filippo.io/edwards25519 v1.1.1 // indirect
+	github.com/coder/websocket v1.8.14 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/hasura/go-graphql-client v0.15.1 // indirect
+	github.com/hdevalence/ed25519consensus v0.2.0 // indirect
+	github.com/supranational/blst v0.3.16 // indirect
+	golang.org/x/crypto v0.46.0 // indirect
 )
 
 require (
@@ -19,6 +32,7 @@ require (
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af // indirect
+	github.com/aptos-labs/aptos-go-sdk v1.12.0
 	github.com/aunum/sphere v0.0.0-20200323032354-adb109813e4c // indirect
 	github.com/awalterschulze/gographviz v0.0.0-20190522210029-fa59802746ab // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
@@ -60,15 +74,15 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xtgo/set v1.0.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/image v0.0.0-20190802002840-cff245a6509b // indirect
-	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/text v0.32.0 // indirect
 	gonum.org/v1/gonum v0.8.2 // indirect
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5 // indirect
 	google.golang.org/genproto v0.0.0-20231106174013-bbf56f31fb17 // indirect

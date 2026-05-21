@@ -9,3 +9,4 @@ pkill -f "aptos-node" || true
 
 # Optional: wipe node data between iterations for determinism
 rm -rf "${BASE_DIR}/nodes"/*/data || true
+rm "${BASE_DIR}/nodes"/*/noise_secrets.jsonl || true

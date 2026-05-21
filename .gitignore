@@ -123,3 +123,6 @@ output/
 
 # Ignore dstest built binary
 cmd/dstest/main*
+
+# Ignore aptos client built binary
+cmd/aptos_client/main

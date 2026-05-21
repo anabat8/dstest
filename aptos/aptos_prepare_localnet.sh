@@ -15,6 +15,8 @@ set -euo pipefail
 #   CHAIN_ID             : blockchain's id  (used for generating the layout.yaml, essential for genesis)
 #   EPOCH_DURATIONS_SECS : timing of epochs (used for generating the layout.yaml, essential for genesis)
 #   PYTHON_BIN           : python with pyyaml installed (e.g., venv)
+#   VAL_NET_BASE         : base port for validator network addresses in genesis (e.g., 6100, 6101, ...)
+#   FN_NET_BASE          : base port for fullnode network addresses in genesis (e.g., 6200, 6201, ...)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

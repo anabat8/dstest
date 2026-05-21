@@ -45,7 +45,7 @@ func (nm *Manager) Init(config *config.Config, replicaIds []int) error {
 	nm.Config = config
 	nm.MessageType = MessageType(config.NetworkConfig.MessageType)
 	nm.Router = new(Router)
-	nm.Interceptors = make([]Interceptor, numReplicas * (numReplicas - 1))
+	nm.Interceptors = make([]Interceptor, numReplicas*(numReplicas-1))
 	nm.MessageQueues = make([]*MessageQueue, numReplicas)
 	nm.ReplicaIds = replicaIds
 	// nm.VectorClocks = make(map[int]map[int]int)
@@ -159,6 +159,16 @@ func (nm *Manager) SendMessage(messageId uint64) {
 				message := mq.PopFront()
 				message.SendMessage()
 				// nm.updateVectorClocks(message.Sender, message.Receiver)
+			}
+		}
+	}
+}
+
+func (nm *Manager) DropMessage(messageId uint64) {
+	for _, mq := range nm.MessageQueues {
+		if mq.Peek() != nil {
+			if mq.Peek().MessageId == messageId {
+				mq.PopFront()
 			}
 		}
 	}

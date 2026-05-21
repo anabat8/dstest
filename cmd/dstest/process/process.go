@@ -121,9 +121,8 @@ func (pm *ProcessManager) Run() {
 		pm.Log.Printf("Client %d status: %s\n", workerId, worker.Status.String())
 	}
 
-	if !bug {
-		pm.deleteDir()
-	} else {
+	// We want to keep log directories for further analysis to check for semantic bugs (agreement/lievness violations).
+	if bug {
 		pm.Log.Printf("Found bug candidate at iteration %d\n", pm.Iteration)
 		pm.BugCandidate = true
 	}
@@ -196,7 +195,7 @@ func (pm *ProcessManager) generateClientWorkerConfig(clientType int) map[string]
 	return conf
 }
 
-func (pm *ProcessManager) RunClient(clientType int) {
+func (pm *ProcessManager) RunClient(clientType int) chan struct{} {
 	// Initialize client
 	config := pm.generateClientWorkerConfig(clientType)
 	clientWorker := new(Worker)
@@ -204,10 +203,13 @@ func (pm *ProcessManager) RunClient(clientType int) {
 	pm.ClientWorkers[config["workerId"].(int)] = clientWorker
 	pm.ClientIds = append(pm.ClientIds, config["workerId"].(int))
 
+	done := make(chan struct{})
 	// Call client worker as goroutine
 	go func(worker *Worker) {
 		worker.RunWorker()
+		close(done)
 	}(clientWorker)
+	return done
 }
 
 func (pm *ProcessManager) deleteDir() {

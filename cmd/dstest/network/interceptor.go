@@ -46,6 +46,8 @@ func createInterceptor(interceptorType string) (Interceptor, error) {
 		return new(HttpInterceptor), nil
 	case "tcp":
 		return new(TCPInterceptor), nil
+	case "aptostcp":
+		return new(AptosTCPInterceptor), nil
 	default:
 		return nil, errors.New(fmt.Sprintf("Unknown interceptor type: %s", interceptorType))
 	}

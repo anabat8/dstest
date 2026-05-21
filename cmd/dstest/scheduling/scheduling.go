@@ -2,6 +2,7 @@ package scheduling
 
 import (
 	"fmt"
+
 	"github.com/egeberkaygulcan/dstest/cmd/dstest/config"
 	"github.com/egeberkaygulcan/dstest/cmd/dstest/faults"
 	"github.com/egeberkaygulcan/dstest/cmd/dstest/network"
@@ -23,6 +24,8 @@ const (
 	NoOp DecisionType = iota
 	SendMessage
 	InjectFault
+	DropMessage
+	DeliverMutatedMessage
 )
 
 func (dt DecisionType) String() string {
@@ -33,6 +36,10 @@ func (dt DecisionType) String() string {
 		return "SendMessage"
 	case InjectFault:
 		return "InjectFault"
+	case DropMessage:
+		return "DropMessage"
+	case DeliverMutatedMessage:
+		return "DeliverMutatedMessage"
 	default:
 		return "Unknown"
 	}
@@ -41,15 +48,19 @@ func (dt DecisionType) String() string {
 type SchedulerDecision struct {
 	DecisionType DecisionType
 	Index        int
+
+	// for ByzzFuzz
+	MutatedMessage *network.Message
 }
 
 type SchedulerType string
 
 const (
-	Random SchedulerType = "random"
-	QL     SchedulerType = "ql"
-	Pct    SchedulerType = "pct"
-	Replay SchedulerType = "replay"
+	Random   SchedulerType = "random"
+	QL       SchedulerType = "ql"
+	Pct      SchedulerType = "pct"
+	Replay   SchedulerType = "replay"
+	ByzzFuzz SchedulerType = "byzzfuzz"
 )
 
 func NewScheduler(schedulerType SchedulerType) (Scheduler, error) {
@@ -62,6 +73,8 @@ func NewScheduler(schedulerType SchedulerType) (Scheduler, error) {
 		return new(PCT), nil
 	case Replay:
 		return new(ReplayScheduler), nil
+	case ByzzFuzz:
+		return new(ByzzFuzzScheduler), nil
 	default:
 		return nil, fmt.Errorf("unknown scheduler type: %s", schedulerType)
 	}
