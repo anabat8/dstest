@@ -4,7 +4,7 @@ set -euo pipefail
 # Invoked each time the dsTest scheduler fires a client request.
 #
 # Submits a batch of transactions to one Aptos validator REST
-# endpoints and exits.
+# endpoint when the node has reached a specific block height, and exits.
 #
 # Each client worker uses a distinct pre-generated Aptos account identity. 
 #
@@ -18,16 +18,17 @@ set -euo pipefail
 #
 # Usage:
 #
-#   ./aptos_client.sh [CLIENT_ID] [NODE_INDEX] [NUM_TXS]
+#   ./aptos_client.sh [CLIENT_ID] [NODE_INDEX] [NUM_TXS] [BLOCK_HEIGHT]
 #
 # Example:
 #
-#   ./aptos_client.sh 3 1 20
+#   ./aptos_client.sh 3 1 20 4
 #
 # Meaning:
 #   - use client account c03.yaml
 #   - submit through validator REST node 1
 #   - submit 20 txs
+#   - submit when the validator's chain reaches (at least) block height 4
 #
 # Positional args:
 #
@@ -43,6 +44,9 @@ set -euo pipefail
 #   NUM_TXS
 #       Number of transactions to submit in this invocation.
 #
+#   BLOCK_HEIGHT
+#       Submit only after the chain reaches this block height.
+#
 # Environment vars:
 #   BASE_PORT: REST API port for validator 0 (default: 8000)
 #              Validator i REST port: BASE_PORT + i * 10
@@ -57,12 +61,14 @@ set -euo pipefail
 # - Funding an account through one validator does not bind the account to that
 #   validator. The account can later submit transactions through any validator.
 #
-# - Using independent client accounts avoids shared sequence-number streams and
-#   removes the need for global locking between concurrent dstest workers.
+# - Using independent client accounts (one per CLIENT_ID) avoids cross-script
+#   sequence-number races. The ByzzFuzz scheduler uses a 1-token mutex 
+#   so only one client script (the next in sequence) runs at a time per iter.
 
 CLIENT_ID="${1:-0}"
 NODE_INDEX="${2:-0}"
 NUM_TXS="${3:-10}"
+BLOCK_HEIGHT="${4:-0}"
 
 BASE_PORT="${BASE_PORT:-8000}"
 BASE_DIR="${BASE_DIR:-/tmp/aptos-dstest}"
@@ -97,7 +103,7 @@ fi
 
 port=$(( BASE_PORT + NODE_INDEX * 10 ))
 
-echo "[aptos_client] client=${CLIENT_ID} port=${port} txs=${NUM_TXS}"
+echo "[aptos_client] client=${CLIENT_ID} port=${port} txs=${NUM_TXS} block=${BLOCK_HEIGHT}"
 
 # -----------------------------------------------------------------------------
 # Invoke transaction submitter binary
@@ -106,4 +112,5 @@ echo "[aptos_client] client=${CLIENT_ID} port=${port} txs=${NUM_TXS}"
 "${BIN}" \
   --port "${port}" \
   --identity "${IDENTITY}" \
-  --num-txs "${NUM_TXS}"
+  --num-txs "${NUM_TXS}" \
+  --block-height "${BLOCK_HEIGHT}"

@@ -1,16 +1,16 @@
 TestConfig:
   Name: aptos-localnet
   Experiments: 1
-  Iterations: 20
+  Iterations: 10
   WaitDuration: 50
   StartupDuration: 10
 
 SchedulerConfig:
   Type: "byzzfuzz"
-  Steps: 500
+  Steps: 1000
   Seed: 42
-  ClientRequests: 10
-  Params: {"c": 5, "d": 0, "r": 8, "client_request_probability": 0.01}
+  ClientRequests: 0
+  Params: {"c": 10, "d": 0, "r": 10}
 
 NetworkConfig:
   BaseReplicaPort: 8000
@@ -24,13 +24,14 @@ FaultConfig:
 ProcessConfig:
   NumReplicas: 4
   Timeout: 100
-  OutputDir:  output/aptos/20260518_190948
+  OutputDir:  output/aptos/20260525_162512
   ReplicaScript: aptos/aptos_server.sh
+  # NOTE: each ClientScripts entry must have a different clientId
   ClientScripts:
-    - aptos/aptos_client.sh 0 0 5
-    - aptos/aptos_client.sh 1 3 2
-    - aptos/aptos_client.sh 2 1 5
-    - aptos/aptos_client.sh 3 2 3
+    - aptos/aptos_client.sh 0 0 5 5
+    - aptos/aptos_client.sh 1 3 2 6
+    - aptos/aptos_client.sh 2 1 5 7
+    - aptos/aptos_client.sh 3 2 3 8
   CleanScript: aptos/aptos_clean.sh
   ReplicaParams:
     - "0 /tmp/aptos-dstest"

@@ -11,9 +11,9 @@ Client workers use pre-generated Aptos accounts stored under:
 
 Each client account is funded from the genesis root account at the start of each test iter.
 
-Each account has an independent sequence-number stream, allowing concurrent
-dstest client workers to submit transactions without global synchronization or
-shared-sender contention.
+Each account has an independent sequence-number stream; combined with the
+ByzzFuzzScheduler's 1-token mutex this guarantees no two
+workers share a client sender, eliminating sequence-number races.
 
 Transactions are submitted through validator REST APIs, but account state is
 global blockchain state replicated across all validators through consensus.
@@ -49,6 +49,26 @@ type submitter struct {
 	port   int
 	client *aptos.Client
 	sender *aptos.Account
+}
+
+/*
+Checks if the node at the target port has reached the specified block height.
+If yes, then the client submitter can proceed to send transactions, otherwise
+it has to retry in the future (the binary exits with code 2, a signal which the
+scheduler interprets as a retry later, don't drop the script).
+*/
+func (s *submitter) HasHeight(blockHeight uint64) bool {
+	nodeInfo, err := s.client.Info()
+	if err != nil {
+		fmt.Printf("[Port: %d] Error fetching node info: %s\n", s.port, err)
+		return false
+	}
+
+	latestBlockHeight := nodeInfo.BlockHeight()
+	if latestBlockHeight >= blockHeight {
+		return true
+	}
+	return false
 }
 
 /*
@@ -120,8 +140,8 @@ This is the submission validator's view, not a global one: other validators
 may still be lagging. Cluster-wide agreement is checked separately by the aptos
 agreement monitor.
 
-Each dstest client worker uses an independent Aptos account identity,
-so concurrent workers do not share sequence-number streams.
+Each dstest client worker uses an independent Aptos account identity;
+the ByzzFuzz scheduler ensures another workes isn't using it concurrently.
 
 If the waiting for commits times out, this could indicate a potential
 liveness signal (txs were accepted but the submission validator did not
@@ -186,17 +206,23 @@ func sendBatch(s *submitter, numTransactions uint64) error {
 
 func main() {
 	portArg := flag.Int("port", 8000,
-		"Validator REST API port (e.g. 8000, 8010, 8020, 8030)")
+		"Validator REST API port (e.g. 8000, 8010, 8020, 8030).")
 	identityArg := flag.String("identity",
 		"/tmp/aptos-dstest/genesis/clients/c00.yaml",
 		"Path to a client identity YAML containing account_private_key and account_address.")
-	numTxs := flag.Uint64("num-txs", 10, "Number of transactions to submit in this batch")
+	numTxs := flag.Uint64("num-txs", 10, "Number of transactions to submit in this batch.")
+	blockHeight := flag.Uint64("block-height", 0, "Height of the blockchain at which to send the batch of txs to the node.")
 	flag.Parse()
 
 	s, err := newSubmitter(*portArg, *identityArg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "setup failed for port %d: %v\n", *portArg, err)
 		os.Exit(1)
+	}
+
+	if !s.HasHeight(*blockHeight) {
+		fmt.Fprintf(os.Stderr, "node at port %d has not reached block height %d yet\n", s.port, *blockHeight)
+		os.Exit(2)
 	}
 
 	fmt.Fprintf(os.Stderr, "[aptos_client] sending %d txs to localhost:%d (sender=%s)\n",

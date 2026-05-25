@@ -16,14 +16,18 @@ VENV_DIR := $(DSTEST_ROOT)/.venv
 VENV_PY  := $(VENV_DIR)/bin/python3
 PIP      := $(VENV_DIR)/bin/pip
 
+# Per-run tag (string suffix) and port offset, for running parallel experiments
+RUN_TAG    ?=
+RUN_OFFSET ?= 0
+
 # base directory for the generated genesis + node configs
-BASE_DIR ?= /tmp/aptos-dstest
+BASE_DIR ?= /tmp/aptos-dstest$(RUN_TAG)
 
 # Log for DSTest output 
-DSTEST_LOG ?= /tmp/dstest.log
+DSTEST_LOG ?= /tmp/dstest$(RUN_TAG).log
 
 # dsTest config path
-CONFIG ?= $(DSTEST_ROOT)/aptos/configs/aptos.yml
+CONFIG ?= $(DSTEST_ROOT)/aptos/configs/aptos$(RUN_TAG).yml
 
 # localnet config
 NUM_REPLICAS ?= 4
@@ -35,21 +39,21 @@ GENESIS_DIR  := $(BASE_DIR)/genesis
 FRAMEWORK_MRB := $(GENESIS_DIR)/framework.mrb
 
 # node config ports
-BASE_PORT ?= 8000
+BASE_PORT ?= $(shell expr 8000 + $(RUN_OFFSET))
 
 # DSTest interceptor ports
-BASE_INTERCEPTOR_PORT ?= 10000
+BASE_INTERCEPTOR_PORT ?= $(shell expr 10000 + $(RUN_OFFSET))
 
 # validator and fullnode network ports used in genesis for discovery
-VAL_NET_BASE ?= 6100
-FN_NET_BASE  ?= 6200
+VAL_NET_BASE ?= $(shell expr 6100 + $(RUN_OFFSET))
+FN_NET_BASE  ?= $(shell expr 6200 + $(RUN_OFFSET))
 
 # number of client accounts to generate and pre-fund (reusable)
 NUM_CLIENT_ACCOUNTS ?= 4
 
 # logs output directory
 RUN_ID ?= $(shell date +"%Y%m%d_%H%M%S")
-OUTPUT_BASE ?= output/aptos
+OUTPUT_BASE ?= output/aptos$(RUN_TAG)
 OUTPUT_DIR ?= $(OUTPUT_BASE)/$(RUN_ID)
 
 # for filtering the logs output
@@ -71,11 +75,11 @@ LIVENESS_TIMEOUT ?= 30
 
 # aptos.yml template vars
 SEED                 ?= 42
-PARAM_C              ?= 5
+PARAM_C              ?= 10
 PARAM_D              ?= 0
-PARAM_R              ?= 8
-CLIENT_REQUESTS      ?= 10
-CLIENT_PROB          ?= 0.01
+PARAM_R              ?= 10
+# Note: CLIENT_REQUESTS is not currently read by ByzzFuzz Scheduler.
+CLIENT_REQUESTS      ?= 0
 
 # -----------------------------
 # Helpers
@@ -94,8 +98,8 @@ help:
 	@echo "  make clean                 # kill nodes + wipe state"
 	@echo "  make run                   # run dsTest with CONFIG"
 	@echo "  make all                   # build + genesis + node-configs + seeds + config + run"
-	@echo "  make filter-logs           # filter the consensus log output
-	@echo "  make run-and-filter        # run dsTest with CONFIG and filter the logs
+	@echo "  make filter-logs           # filter the consensus log output"
+	@echo "  make run-and-filter        # run dsTest with CONFIG and filter the logs"
 	@echo ""
 	@echo "Vars:"
 	@echo "  APTOS_CORE=$(APTOS_CORE)"
@@ -143,17 +147,19 @@ build: build-aptos build-dstest build-aptos-client
 # -----------------------------
 # Aptos Framework MRB
 # -----------------------------
-$(FRAMEWORK_MRB):
+# Built once per aptos-core checkout at a shared cache location. Each run's
+# per-BASE_DIR FRAMEWORK_MRB is just a copy of this artifact.
+APTOS_HEAD_MRB := $(APTOS_CORE)/head.mrb
+
+$(APTOS_HEAD_MRB):
+	@echo "[framework] Building $@ ..."
+	cd "$(APTOS_CORE)" && cargo run -p aptos-framework -- release --target head >/dev/null
+	@test -f "$@" || (echo "ERROR: $@ missing after cargo build"; exit 1)
+
+$(FRAMEWORK_MRB): $(APTOS_HEAD_MRB)
 	@mkdir -p "$(GENESIS_DIR)"
-	@if [ -f "$(FRAMEWORK_MRB)" ]; then \
-	  echo "[framework] Reusing existing $(FRAMEWORK_MRB)"; \
-	else \
-	  echo "[framework] Building framework MRB..."; \
-	  cd "$(APTOS_CORE)" && cargo run -p aptos-framework -- release --target head >/dev/null; \
-	  test -f "$(APTOS_CORE)/head.mrb" || (echo "ERROR: head.mrb missing"; exit 1); \
-	  cp -f "$(APTOS_CORE)/head.mrb" "$(FRAMEWORK_MRB)"; \
-	  echo "[framework] Wrote $(FRAMEWORK_MRB)"; \
-	fi
+	@cp -f "$<" "$@"
+	@echo "[framework] $@ (from $<)"
 
 .PHONY: framework
 framework: $(FRAMEWORK_MRB)
@@ -189,7 +195,7 @@ node-configs: genesis client-accounts
 
 # Seed patch
 .PHONY: seeds
-seeds: node-configs
+seeds: node-configs config
 	BASE_DIR="$(BASE_DIR)" CONFIG="$(CONFIG)" \
 	"$(VENV_PY)" "$(APTOS_DIR)/aptos_update_seeds.py"
 
@@ -217,16 +223,16 @@ config:
 	echo "TestConfig:"; \
 	echo "  Name: $(TEST_NAME)"; \
 	echo "  Experiments: 1"; \
-	echo "  Iterations: 20"; \
+	echo "  Iterations: 10"; \
 	echo "  WaitDuration: 50"; \
 	echo "  StartupDuration: 10"; \
 	echo ""; \
 	echo "SchedulerConfig:"; \
 	echo "  Type: \"$(SCHED_TYPE)\""; \
-	echo "  Steps: 500"; \
+	echo "  Steps: 1000"; \
 	echo "  Seed: $(SEED)"; \
 	echo "  ClientRequests: $(CLIENT_REQUESTS)"; \
-	echo "  Params: {\"c\": $(PARAM_C), \"d\": $(PARAM_D), \"r\": $(PARAM_R), \"client_request_probability\": $(CLIENT_PROB)}"; \
+	echo "  Params: {\"c\": $(PARAM_C), \"d\": $(PARAM_D), \"r\": $(PARAM_R)}"; \
 	echo ""; \
 	echo "NetworkConfig:"; \
 	echo "  BaseReplicaPort: $(BASE_PORT)"; \
@@ -244,10 +250,10 @@ config:
 	echo "  ReplicaScript: aptos/aptos_server.sh"; \
 	echo "  # NOTE: each ClientScripts entry must have a different clientId"; \
 	echo "  ClientScripts:"; \
-	echo "    - aptos/aptos_client.sh 0 0 5"; \
-	echo "    - aptos/aptos_client.sh 1 3 2"; \
-	echo "    - aptos/aptos_client.sh 2 1 5"; \
-	echo "    - aptos/aptos_client.sh 3 2 3"; \
+	echo "    - aptos/aptos_client.sh 0 0 5 5"; \
+	echo "    - aptos/aptos_client.sh 1 3 2 6"; \
+	echo "    - aptos/aptos_client.sh 2 1 5 7"; \
+	echo "    - aptos/aptos_client.sh 3 2 3 8"; \
 	echo "  CleanScript: aptos/aptos_clean.sh"; \
 	echo "  ReplicaParams:"; \
 	for i in $$(seq 0 $$(( $(NUM_REPLICAS) - 1 ))); do \
@@ -279,6 +285,7 @@ run:
 	@echo "  LOG_LEVEL=$(LOG_LEVEL)"
 	cd $(DSTEST_ROOT)/cmd/dstest && \
 	  RUST_LOG="$(RUST_LOG)" LOG_LEVEL="$(LOG_LEVEL)" BASE_DIR="$(BASE_DIR)" \
+	  BASE_PORT="$(BASE_PORT)" \
 	  LIVENESS_TIMEOUT="$(LIVENESS_TIMEOUT)" \
 	  ./main run -c "$(CONFIG)"
 
@@ -301,3 +308,29 @@ run-and-filter:
 		$(MAKE) RUN_ID=$$RUN_ID run; \
 		$(MAKE) RUN_ID=$$RUN_ID filter-logs; \
 	} 2>&1 | tee "$(DSTEST_LOG)"
+
+# -----------------------------
+# Plot graphs
+# -----------------------------
+.PHONY: build-aptos-plot
+build-aptos-plot:
+	cd $(DSTEST_ROOT)/cmd/aptos_plot && go build -o main .
+
+.PHONY: plot
+plot: build-aptos-plot
+	$(DSTEST_ROOT)/cmd/aptos_plot/main \
+	  --run $(OUTPUT_DIR) \
+	  --config $(CONFIG) \
+	  --out $(OUTPUT_DIR)/plots
+
+.PHONY: plot-latest
+plot-latest: build-aptos-plot
+	@RUN_ID=$$(for r in $$(ls -t $(OUTPUT_BASE)); do \
+	  if ls "$(OUTPUT_BASE)/$$r" 2>/dev/null | grep -q "^aptos-localnet_"; then echo "$$r"; break; fi; \
+	done); \
+	if [ -z "$$RUN_ID" ]; then echo "[plot-latest] no populated run under $(OUTPUT_BASE)"; exit 1; fi; \
+	echo "[plot-latest] $(OUTPUT_BASE)/$$RUN_ID"; \
+	$(DSTEST_ROOT)/cmd/aptos_plot/main \
+	  --run $(OUTPUT_BASE)/$$RUN_ID \
+	  --config $(CONFIG) \
+	  --out $(OUTPUT_BASE)/$$RUN_ID/plots

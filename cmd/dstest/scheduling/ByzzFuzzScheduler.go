@@ -170,10 +170,8 @@ type ByzzFuzzScheduler struct {
 	Mutator          network.Mutator
 	Log              *log.Logger
 	NumClientTypes   int
-	AvailableClients chan int
-
-	RequestQuota             int
-	ClientRequestProbability float64
+	AvailableClients []int
+	ClientDone       chan struct{}
 
 	rng    *rand.Rand
 	params ByzzFuzzParams
@@ -210,22 +208,14 @@ func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 	}
 	s.delayStore = NewDelayMessagesStore()
 
-	s.RequestQuota = config.SchedulerConfig.ClientRequests
 	s.NumClientTypes = len(config.ProcessConfig.ClientScripts)
 
-	// Handle both int and float64 for client_request_probability
-	if prob, ok := config.SchedulerConfig.Params["client_request_probability"].(float64); ok {
-		s.ClientRequestProbability = prob
-	} else if probInt, ok := config.SchedulerConfig.Params["client_request_probability"].(int); ok {
-		s.ClientRequestProbability = float64(probInt)
-	} else {
-		s.ClientRequestProbability = 0.05 // default
-	}
-
-	s.AvailableClients = make(chan int, s.NumClientTypes)
+	s.AvailableClients = make([]int, s.NumClientTypes)
 	for i := range s.NumClientTypes {
-		s.AvailableClients <- i
+		s.AvailableClients[i] = i
 	}
+	s.ClientDone = make(chan struct{}, 1)
+	s.ClientDone <- struct{}{}
 
 	s.Log = log.New(os.Stdout, "[ByzzFuzz Scheduler] ", log.LstdFlags)
 
@@ -233,7 +223,6 @@ func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 }
 
 func (s *ByzzFuzzScheduler) Reset() {
-	s.RequestQuota = s.Config.SchedulerConfig.ClientRequests
 	seed := int64(s.Config.SchedulerConfig.Seed)
 	if seed == 0 {
 		seed = time.Now().UnixNano()
@@ -243,7 +232,13 @@ func (s *ByzzFuzzScheduler) Reset() {
 
 func (s *ByzzFuzzScheduler) NextIteration() {
 	s.iteration++
-	s.RequestQuota = s.Config.SchedulerConfig.ClientRequests
+
+	<-s.ClientDone
+	s.AvailableClients = make([]int, s.NumClientTypes)
+	for i := range s.NumClientTypes {
+		s.AvailableClients[i] = i
+	}
+	s.ClientDone <- struct{}{}
 
 	// sample network faults for the iteration
 	s.networkFaults = make([]NetworkFaultSpec, s.params.D)
@@ -416,54 +411,55 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 }
 
 /*
-Decides whether to fire a client request this scheduler step. Returns the
-index of a client-script slot (an entry of config.ProcessConfig.ClientScripts)
-or -1 to skip.
+Pops the next client-script index off AvailableClients (FIFO), or returns -1
+if there's nothing to fire right now.
 
-Returns -1 if any of:
-  - request quota for the iteration is exhausted
-  - no client scripts are configured
-  - the Bernoulli trial against ClientRequestProbability fails
-  - all client slots are currently in flight (pool empty)
+AvailableClients is guarded by ClientDone, a 1-token
+buffered channel acting as a mutex. Only the goroutine holding the token may
+mutate the slice. This guarantees at most one client worker is in flight at
+a time. Without it, concurrent workers sharing the same client account
+race on its sequence number.
 
-Quota is decremented only on a successful pop, so failed Bernoulli trials and
-empty-pool skips don't consume the iteration's request budget.
+Returns -1 when any of:
+  - no client scripts are configured;
+  - the mutex is held (another worker in flight);
+  - all scripts already fired successfully: in this
+    case we return the token immediately so NextIteration isn't starved.
 
-AvailableClients is a queue of client-script indices [0..NumClientTypes).
-GetClientRequest pops a slot (a client script) from the queue non-blockingly when the scheduler decides to.
-ClientRequestDone returns the slot once the engine's worker goroutine signals completion.
-
-The pool guarantees no two in-flight workers share the same client identity (and client script).
-Without this, concurrent workers signing with the same account race on its
-sequence number when sending batches of txs.
+A popped script that exits with code 2 (target block height not yet reached)
+is re-prepended by ClientRequestDone for a later retry. A script that exits
+successfully is dropped; each script fires at most once per iter, in order.
 */
 func (s *ByzzFuzzScheduler) GetClientRequest() int {
-	if s.RequestQuota <= 0 {
-		return -1
-	}
 	if s.NumClientTypes == 0 {
 		return -1
 	}
 
-	r := s.rng.Float64()
-	if r <= s.ClientRequestProbability {
-		select {
-		case clientId := <-s.AvailableClients:
-			s.RequestQuota--
-			return clientId
-		default:
+	select {
+	case <-s.ClientDone:
+		if len(s.AvailableClients) == 0 {
+			s.ClientDone <- struct{}{}
 			return -1
 		}
+		clientId := s.AvailableClients[0]
+		s.AvailableClients = s.AvailableClients[1:]
+		return clientId
+	default:
+		return -1
 	}
-	return -1
 }
 
 /*
-Returns a client-script slot to the pool once its worker has finished. Called
-by TestEngine.Run from a goroutine waiting on the worker's done-channel.
+Returns the mutex token after a worker finishes. If the worker exited with code 2
+(height not reached), the client script index is re-prepended to AvailableClients for a later retry.
+On any other exit, the slot is dropped (each script fires at most once per iter).
+Called by TestEngine.Run from a goroutine waiting on the worker's done-channel.
 */
-func (s *ByzzFuzzScheduler) ClientRequestDone(client int) {
-	s.AvailableClients <- client
+func (s *ByzzFuzzScheduler) ClientRequestDone(client, exitCode int) {
+	if exitCode == 2 {
+		s.AvailableClients = append([]int{client}, s.AvailableClients...)
+	}
+	s.ClientDone <- struct{}{}
 }
 
 func (s *ByzzFuzzScheduler) SetNetworkManager(networkManager *network.Manager) {

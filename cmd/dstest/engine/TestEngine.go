@@ -142,10 +142,10 @@ func (te *TestEngine) Run() error {
 						done := te.ProcessManager.RunClient(sc)
 
 						// add sc back to available scripts
-						if s, ok := te.Scheduler.(interface{ ClientRequestDone(id int) }); ok {
+						if s, ok := te.Scheduler.(interface{ ClientRequestDone(id, exitCode int) }); ok {
 							go func() {
-								<-done
-								s.ClientRequestDone(sc)
+								exitCode := <-done
+								s.ClientRequestDone(sc, exitCode)
 							}()
 						}
 
