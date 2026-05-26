@@ -8,7 +8,7 @@ import (
 )
 
 type Mutator interface {
-	Mutate(msg aptos.IConsensusMessage, seed int64) (string, error)
+	Mutate(msg aptos.IConsensusMessage, seed int64) (mutation, error)
 }
 
 /*
@@ -35,40 +35,48 @@ Mutate function applies a random mutation on the given original message based on
 It returns the name of the mutation applied and an error if the consensus msg type is not supported.
 The payload is mutated in place.
 */
-func (m *AptosMutator) Mutate(cMsg aptos.IConsensusMessage, seed int64) (string, error) {
-	mname := ""
+func (m *AptosMutator) Mutate(cMsg aptos.IConsensusMessage, seed int64) (mutation, error) {
+	var mut mutation
 	switch v := cMsg.(type) {
 	case *aptos.ProposalMsg:
-		mname = mutateProposalMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
+		mut = mutateProposalMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
 	case *aptos.OptProposalMsg:
-		mname = mutateOptProposalMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
+		mut = mutateOptProposalMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
 	case *aptos.VoteMsg:
-		mname = mutateVoteMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
+		mut = mutateVoteMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
 	case *aptos.CommitMessage:
-		mname = mutateCommitMessage(v, seed, m.keysByAuthor, m.orderedAddrs)
+		mut = mutateCommitMessage(v, seed, m.keysByAuthor, m.orderedAddrs)
 	case *aptos.CommitVote:
-		mname = mutateCommitVote(v, seed, m.keysByAuthor)
+		mut = mutateCommitVote(v, seed, m.keysByAuthor)
 	case *aptos.CommitDecision:
-		mname = mutateCommitDecision(v, seed, m.keysByAuthor, m.orderedAddrs)
+		mut = mutateCommitDecision(v, seed, m.keysByAuthor, m.orderedAddrs)
 	case *aptos.RoundTimeoutMsg:
-		mname = mutateRoundTimeoutMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
+		mut = mutateRoundTimeoutMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
 	default:
-		return "", fmt.Errorf("unsupported consensus message type: %T", cMsg)
+		return mutation{}, fmt.Errorf("unsupported consensus message type: %T", cMsg)
 	}
 
-	return mname, nil
+	return mut, nil
 }
 
 type mutation struct {
-	name string
-	fn   func()
+	Name   string
+	Method mutationMethod
+	fn     func()
 }
 
-func pickMutation(mutations []mutation, seed int64) string {
+type mutationMethod string
+
+const (
+	ss mutationMethod = "small_scope"
+	as mutationMethod = "structure_aware"
+)
+
+func pickMutation(mutations []mutation, seed int64) mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	chosen := mutations[rng.Intn(len(mutations))]
 	chosen.fn()
-	return chosen.name
+	return chosen
 }
 
 /*
@@ -120,10 +128,10 @@ func syncInfoMutations(
 
 	return []mutation{
 		// Small-scope mutations
-		{"syncinfo_hqc_shift_rounds_up", func() {
+		{"syncinfo_hqc_shift_rounds_up", ss, func() {
 			bumpRounds(&si.HighestQuorumCert.VoteData, &si.HighestQuorumCert.SignedLedgerInfo)
 		}},
-		{"syncinfo_hqc_shift_rounds_down", func() {
+		{"syncinfo_hqc_shift_rounds_down", ss, func() {
 			// HQC.round >= HOC.round >= HCC.round; bail out if
 			// dropping HQC by 1 would break that ordering with HOC (or with HCC if HOC is None)
 			hqcRound := si.HighestQuorumCert.VoteData.Proposed.Round
@@ -138,40 +146,40 @@ func syncInfoMutations(
 			}
 			dropRounds(&si.HighestQuorumCert.VoteData, &si.HighestQuorumCert.SignedLedgerInfo)
 		}},
-		{"syncinfo_all_qcs_shift_rounds_up", func() {
+		{"syncinfo_all_qcs_shift_rounds_up", ss, func() {
 			bumpRounds(&si.HighestQuorumCert.VoteData, &si.HighestQuorumCert.SignedLedgerInfo)
 			if si.HighestOrderedCert.Some != nil {
 				bumpRounds(&si.HighestOrderedCert.Some.VoteData, &si.HighestOrderedCert.Some.SignedLedgerInfo)
 			}
 			bumpRounds(&si.HighestCommitCert.VoteData, &si.HighestCommitCert.SignedLedgerInfo)
 		}},
-		{"syncinfo_all_qcs_shift_rounds_down", func() {
+		{"syncinfo_all_qcs_shift_rounds_down", ss, func() {
 			dropRounds(&si.HighestQuorumCert.VoteData, &si.HighestQuorumCert.SignedLedgerInfo)
 			if si.HighestOrderedCert.Some != nil {
 				dropRounds(&si.HighestOrderedCert.Some.VoteData, &si.HighestOrderedCert.Some.SignedLedgerInfo)
 			}
 			dropRounds(&si.HighestCommitCert.VoteData, &si.HighestCommitCert.SignedLedgerInfo)
 		}},
-		{"syncinfo_all_qcs_shift_epochs_up", func() {
+		{"syncinfo_all_qcs_shift_epochs_up", ss, func() {
 			bumpEpochs(&si.HighestQuorumCert.VoteData, &si.HighestQuorumCert.SignedLedgerInfo)
 			if si.HighestOrderedCert.Some != nil {
 				bumpEpochs(&si.HighestOrderedCert.Some.VoteData, &si.HighestOrderedCert.Some.SignedLedgerInfo)
 			}
 			bumpEpochs(&si.HighestCommitCert.VoteData, &si.HighestCommitCert.SignedLedgerInfo)
 		}},
-		{"syncinfo_all_qcs_shift_epochs_down", func() {
+		{"syncinfo_all_qcs_shift_epochs_down", ss, func() {
 			dropEpochs(&si.HighestQuorumCert.VoteData, &si.HighestQuorumCert.SignedLedgerInfo)
 			if si.HighestOrderedCert.Some != nil {
 				dropEpochs(&si.HighestOrderedCert.Some.VoteData, &si.HighestOrderedCert.Some.SignedLedgerInfo)
 			}
 			dropEpochs(&si.HighestCommitCert.VoteData, &si.HighestCommitCert.SignedLedgerInfo)
 		}},
-		{"syncinfo_hqc_timestamp_increase", func() {
+		{"syncinfo_hqc_timestamp_increase", ss, func() {
 			si.HighestQuorumCert.VoteData.Proposed.TimestampUsecs += 5_000_000
 			_ = aptos.ResignQC(&si.HighestQuorumCert, keysByAuthor, orderedAddrs)
 		}},
 		// Structure-aware mutations
-		{"syncinfo_all_qcs_downgrade_to_commit_block", func() {
+		{"syncinfo_all_qcs_downgrade_to_commit_block", as, func() {
 			if si.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -204,7 +212,7 @@ func syncInfoMutations(
 			}
 			_ = aptos.ResignWrappedLedgerInfo(&si.HighestCommitCert, keysByAuthor, orderedAddrs)
 		}},
-		{"syncinfo_hqc_align_with_hoc", func() {
+		{"syncinfo_hqc_align_with_hoc", as, func() {
 			if si.HighestOrderedCert.Some == nil {
 				return
 			}
@@ -213,20 +221,20 @@ func syncInfoMutations(
 			si.HighestQuorumCert.VoteData = si.HighestOrderedCert.Some.VoteData
 			si.HighestQuorumCert.SignedLedgerInfo = si.HighestOrderedCert.Some.SignedLedgerInfo
 		}},
-		{"syncinfo_hoc_align_with_hqc", func() {
+		{"syncinfo_hoc_align_with_hqc", as, func() {
 			if si.HighestOrderedCert.Some == nil {
 				si.HighestOrderedCert.Some = &aptos.WrappedLedgerInfo{}
 			}
 			si.HighestOrderedCert.Some.VoteData = si.HighestQuorumCert.VoteData
 			si.HighestOrderedCert.Some.SignedLedgerInfo = si.HighestQuorumCert.SignedLedgerInfo
 		}},
-		{"syncinfo_hcc_align_with_hoc", func() {
+		{"syncinfo_hcc_align_with_hoc", as, func() {
 			if si.HighestOrderedCert.Some == nil {
 				return
 			}
 			si.HighestCommitCert = *si.HighestOrderedCert.Some
 		}},
-		{"syncinfo_qc_parent_swap_with_commit_id", func() {
+		{"syncinfo_qc_parent_swap_with_commit_id", as, func() {
 			if si.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -252,7 +260,7 @@ func syncInfoMutations(
 
 			_ = aptos.ResignQC(&si.HighestQuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"syncinfo_qc_executed_state_swap", func() {
+		{"syncinfo_qc_executed_state_swap", as, func() {
 			if si.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -282,7 +290,7 @@ func h2ctcMutations(
 ) []mutation {
 	return []mutation{
 		// Small-scope mutations
-		{"syncinfo_h2ctc_round_shift_up", func() {
+		{"syncinfo_h2ctc_round_shift_up", ss, func() {
 			if si.Highest2ChainTimeoutCert == nil || si.Highest2ChainTimeoutCert.Some == nil {
 				return
 			}
@@ -305,7 +313,7 @@ func h2ctcMutations(
 			}
 			si.Highest2ChainTimeoutCert = &aptos.OptionTwoChainTimeoutCertificate{Some: &tc}
 		}},
-		{"syncinfo_h2ctc_round_shift_down", func() {
+		{"syncinfo_h2ctc_round_shift_down", ss, func() {
 			if si.Highest2ChainTimeoutCert == nil || si.Highest2ChainTimeoutCert.Some == nil {
 				return
 			}
@@ -331,7 +339,7 @@ func h2ctcMutations(
 			si.Highest2ChainTimeoutCert = &aptos.OptionTwoChainTimeoutCertificate{Some: &tc}
 		}},
 		// Structure-aware mutations
-		{"syncinfo_inject_h2ctc_with_hcc_qc", func() {
+		{"syncinfo_inject_h2ctc_with_hcc_qc", as, func() {
 			if si.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -357,7 +365,7 @@ func h2ctcMutations(
 			}
 			si.Highest2ChainTimeoutCert = &aptos.OptionTwoChainTimeoutCertificate{Some: &tc}
 		}},
-		{"syncinfo_inject_h2ctc_with_hoc_qc", func() {
+		{"syncinfo_inject_h2ctc_with_hoc_qc", as, func() {
 			if si.HighestOrderedCert.Some == nil ||
 				si.HighestOrderedCert.Some.SignedLedgerInfo.V0 == nil {
 				return
@@ -384,13 +392,13 @@ func h2ctcMutations(
 			}
 			si.Highest2ChainTimeoutCert = &aptos.OptionTwoChainTimeoutCertificate{Some: &tc}
 		}},
-		{"syncinfo_h2ctc_drop_to_none", func() {
+		{"syncinfo_h2ctc_drop_to_none", as, func() {
 			if si.Highest2ChainTimeoutCert == nil || si.Highest2ChainTimeoutCert.Some == nil {
 				return
 			}
 			si.Highest2ChainTimeoutCert = &aptos.OptionTwoChainTimeoutCertificate{None: &aptos.BcsUnit{}}
 		}},
-		{"syncinfo_h2ctc_inner_qc_swap_to_hcc", func() {
+		{"syncinfo_h2ctc_inner_qc_swap_to_hcc", as, func() {
 			if si.Highest2ChainTimeoutCert == nil || si.Highest2ChainTimeoutCert.Some == nil {
 				return
 			}
@@ -419,7 +427,7 @@ func h2ctcMutations(
 			}
 			si.Highest2ChainTimeoutCert = &aptos.OptionTwoChainTimeoutCertificate{Some: &tc}
 		}},
-		{"syncinfo_h2ctc_inner_qc_swap_to_hoc", func() {
+		{"syncinfo_h2ctc_inner_qc_swap_to_hoc", as, func() {
 			if si.Highest2ChainTimeoutCert == nil || si.Highest2ChainTimeoutCert.Some == nil {
 				return
 			}
@@ -449,7 +457,7 @@ func h2ctcMutations(
 			}
 			si.Highest2ChainTimeoutCert = &aptos.OptionTwoChainTimeoutCertificate{Some: &tc}
 		}},
-		{"syncinfo_h2ctc_inner_qc_swap_to_hqc", func() {
+		{"syncinfo_h2ctc_inner_qc_swap_to_hqc", as, func() {
 			if si.Highest2ChainTimeoutCert == nil || si.Highest2ChainTimeoutCert.Some == nil {
 				return
 			}
@@ -475,7 +483,7 @@ func h2ctcMutations(
 			}
 			si.Highest2ChainTimeoutCert = &aptos.OptionTwoChainTimeoutCertificate{Some: &tc}
 		}},
-		{"syncinfo_h2ctc_drop_bitmask_one_bit", func() {
+		{"syncinfo_h2ctc_drop_bitmask_one_bit", as, func() {
 			if si.Highest2ChainTimeoutCert == nil || si.Highest2ChainTimeoutCert.Some == nil {
 				return
 			}
@@ -531,7 +539,7 @@ are not immediately discarded by the receiver:
   - BlockProposed.Author == sender
   - BlockProposed.Epoch == receiver_local_epoch
 */
-func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) string {
+func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	resign := func() {
 		if msg.Proposal.BlockData.BlockType.Proposal == nil {
@@ -546,15 +554,15 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 
 	mutations := []mutation{
 		// Small-scope mutations
-		{"proposal_large_timestamp_future", func() {
+		{"proposal_large_timestamp_future", ss, func() {
 			msg.Proposal.BlockData.TimestampUsecs += 5_000_000
 			resign()
 		}},
-		{"proposal_short_timestamp_future", func() {
+		{"proposal_short_timestamp_future", ss, func() {
 			msg.Proposal.BlockData.TimestampUsecs += 500_000
 			resign()
 		}},
-		{"proposal_timestamps_shift_past", func() {
+		{"proposal_timestamps_shift_past", ss, func() {
 			const delta = uint64(1_000_000)
 			parentTs := &msg.Proposal.BlockData.QuorumCert.VoteData.Proposed.TimestampUsecs
 			grandpTs := &msg.Proposal.BlockData.QuorumCert.VoteData.Parent.TimestampUsecs
@@ -568,7 +576,7 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 			}
 		}},
 		// Structure-aware mutations
-		{"proposal_qc_votedata_swap_with_syncinfo_highest_qc_votedata", func() {
+		{"proposal_qc_votedata_swap_with_syncinfo_highest_qc_votedata", as, func() {
 			newVD := msg.SyncInfo.HighestQuorumCert.VoteData
 			block := &msg.Proposal.BlockData
 
@@ -591,7 +599,7 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 			aptos.ResignQC(&block.QuorumCert, keysByAuthor, orderedAddrs)
 			resign()
 		}},
-		{"proposal_to_optimistic_proposal", func() {
+		{"proposal_to_optimistic_proposal", as, func() {
 			if msg.Proposal.BlockData.BlockType.Proposal == nil {
 				return
 			}
@@ -608,7 +616,7 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 			// we resign, although we expect the proposer signature to be ignored on OptProposal block types
 			resign()
 		}},
-		{"proposal_parent_swap_executed_state_with_hcc", func() {
+		{"proposal_parent_swap_executed_state_with_hcc", as, func() {
 			if msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -617,7 +625,7 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 			aptos.ResignQC(&msg.Proposal.BlockData.QuorumCert, keysByAuthor, orderedAddrs)
 			resign()
 		}},
-		{"proposal_parent_swap_executed_state_with_hoc", func() {
+		{"proposal_parent_swap_executed_state_with_hoc", as, func() {
 			if msg.SyncInfo.HighestOrderedCert.Some == nil ||
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0 == nil {
 				return
@@ -627,7 +635,7 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 			aptos.ResignQC(&msg.Proposal.BlockData.QuorumCert, keysByAuthor, orderedAddrs)
 			resign()
 		}},
-		{"proposal_parent_swap_executed_state_with_hqc", func() {
+		{"proposal_parent_swap_executed_state_with_hqc", as, func() {
 			if msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -636,12 +644,12 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 			aptos.ResignQC(&msg.Proposal.BlockData.QuorumCert, keysByAuthor, orderedAddrs)
 			resign()
 		}},
-		{"proposal_parent_executed_state_random_value", func() {
+		{"proposal_parent_executed_state_random_value", as, func() {
 			msg.Proposal.BlockData.QuorumCert.VoteData.Proposed.ExecutedStateID = randomHash(rng)
 			aptos.ResignQC(&msg.Proposal.BlockData.QuorumCert, keysByAuthor, orderedAddrs)
 			resign()
 		}},
-		{"proposal_grandparent_swap_executed_state_with_hcc", func() {
+		{"proposal_grandparent_swap_executed_state_with_hcc", as, func() {
 			if msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -650,7 +658,7 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 			aptos.ResignQC(&msg.Proposal.BlockData.QuorumCert, keysByAuthor, orderedAddrs)
 			resign()
 		}},
-		{"proposal_grandparent_swap_executed_state_with_hoc", func() {
+		{"proposal_grandparent_swap_executed_state_with_hoc", as, func() {
 			if msg.SyncInfo.HighestOrderedCert.Some == nil ||
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0 == nil {
 				return
@@ -660,7 +668,7 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 			aptos.ResignQC(&msg.Proposal.BlockData.QuorumCert, keysByAuthor, orderedAddrs)
 			resign()
 		}},
-		{"proposal_grandparent_swap_executed_state_with_hqc", func() {
+		{"proposal_grandparent_swap_executed_state_with_hqc", as, func() {
 			if msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -669,12 +677,12 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 			aptos.ResignQC(&msg.Proposal.BlockData.QuorumCert, keysByAuthor, orderedAddrs)
 			resign()
 		}},
-		{"proposal_grandparent_executed_state_random_value", func() {
+		{"proposal_grandparent_executed_state_random_value", as, func() {
 			msg.Proposal.BlockData.QuorumCert.VoteData.Parent.ExecutedStateID = randomHash(rng)
 			aptos.ResignQC(&msg.Proposal.BlockData.QuorumCert, keysByAuthor, orderedAddrs)
 			resign()
 		}},
-		{"proposal_parent_inject_next_epoch_state", func() {
+		{"proposal_parent_inject_next_epoch_state", as, func() {
 			if msg.Proposal.BlockData.BlockType.Proposal == nil {
 				return
 			}
@@ -688,12 +696,12 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 			aptos.ResignQC(&msg.Proposal.BlockData.QuorumCert, keysByAuthor, orderedAddrs)
 			resign()
 		}},
-		{"proposal_grandparent_id_swap", func() {
+		{"proposal_grandparent_id_swap", as, func() {
 			msg.Proposal.BlockData.QuorumCert.VoteData.Parent.ID = randomHash(rng)
 			aptos.ResignQC(&msg.Proposal.BlockData.QuorumCert, keysByAuthor, orderedAddrs)
 			resign()
 		}},
-		{"proposal_parent_id_swap", func() {
+		{"proposal_parent_id_swap", as, func() {
 			id := randomHash(rng)
 			msg.Proposal.BlockData.QuorumCert.VoteData.Proposed.ID = id
 			msg.SyncInfo.HighestQuorumCert.VoteData.Proposed.ID = id
@@ -701,7 +709,7 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 			aptos.ResignQC(&msg.SyncInfo.HighestQuorumCert, keysByAuthor, orderedAddrs)
 			resign()
 		}},
-		{"proposal_payload_empty", func() {
+		{"proposal_payload_empty", as, func() {
 			if msg.Proposal.BlockData.BlockType.Proposal == nil {
 				return
 			}
@@ -747,17 +755,17 @@ are not immediately discarded by the receiver:
   - local_hqc.Round + 1 == BlockData.Round
     and local_hqc.ID == BlockData.Parent.ID (receiver's local stored hqc)
 */
-func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) string {
+func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	mutations := []mutation{
 		// Small-scope mutations
-		{"optproposal_large_timestamp_future", func() {
+		{"optproposal_large_timestamp_future", ss, func() {
 			msg.BlockData.TimestampUsecs += 5_000_000
 		}},
-		{"optproposal_short_timestamp_future", func() {
+		{"optproposal_short_timestamp_future", ss, func() {
 			msg.BlockData.TimestampUsecs += 500_000
 		}},
-		{"optproposal_timestamps_shift_past", func() {
+		{"optproposal_timestamps_shift_past", ss, func() {
 			// Shift block, parent, and grandparent_qc.cert/parent timestamps back by 1s
 			// equally so the strict ordering (block > parent > grandparent) is preserved
 			// Within grandparent_qc it is also required that proposed.ts >= parent.ts
@@ -778,18 +786,18 @@ func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor ma
 				_ = aptos.ResignQC(&msg.BlockData.BlockBody.V0.GrandparentQC, keysByAuthor, orderedAddrs)
 			}
 		}},
-		{"optproposal_parent_version_shift_up", func() {
+		{"optproposal_parent_version_shift_up", ss, func() {
 			msg.BlockData.Parent.Version++
 		}},
 		// Structure-aware mutations
-		{"optproposal_parent_executed_state_swap_with_syncinfo_hcc_executed_state", func() {
+		{"optproposal_parent_executed_state_swap_with_syncinfo_hcc_executed_state", as, func() {
 			if msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
 			msg.BlockData.Parent.ExecutedStateID =
 				msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 		}},
-		{"optproposal_parent_executed_state_swap_with_syncinfo_hoc_executed_state", func() {
+		{"optproposal_parent_executed_state_swap_with_syncinfo_hoc_executed_state", as, func() {
 			if msg.SyncInfo.HighestOrderedCert.Some == nil ||
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0 == nil {
 				return
@@ -797,17 +805,17 @@ func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor ma
 			msg.BlockData.Parent.ExecutedStateID =
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 		}},
-		{"optproposal_parent_executed_state_swap_with_syncinfo_hqc_executed_state", func() {
+		{"optproposal_parent_executed_state_swap_with_syncinfo_hqc_executed_state", as, func() {
 			if msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
 			msg.BlockData.Parent.ExecutedStateID =
 				msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 		}},
-		{"optproposal_parent_executed_state_random_value", func() {
+		{"optproposal_parent_executed_state_random_value", as, func() {
 			msg.BlockData.Parent.ExecutedStateID = randomHash(rng)
 		}},
-		{"optproposal_grandparent_qc_executed_state_swap_with_syncinfo_hcc_executed_state", func() {
+		{"optproposal_grandparent_qc_executed_state_swap_with_syncinfo_hcc_executed_state", as, func() {
 			if msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -818,7 +826,7 @@ func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor ma
 				msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			_ = aptos.ResignQC(&msg.BlockData.BlockBody.V0.GrandparentQC, keysByAuthor, orderedAddrs)
 		}},
-		{"optproposal_grandparent_qc_executed_state_swap_with_syncinfo_hoc_executed_state", func() {
+		{"optproposal_grandparent_qc_executed_state_swap_with_syncinfo_hoc_executed_state", as, func() {
 			if msg.SyncInfo.HighestOrderedCert.Some == nil ||
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0 == nil {
 				return
@@ -830,7 +838,7 @@ func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor ma
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			_ = aptos.ResignQC(&msg.BlockData.BlockBody.V0.GrandparentQC, keysByAuthor, orderedAddrs)
 		}},
-		{"optproposal_grandparent_qc_executed_state_swap_with_syncinfo_hqc_executed_state", func() {
+		{"optproposal_grandparent_qc_executed_state_swap_with_syncinfo_hqc_executed_state", as, func() {
 			if msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -841,14 +849,14 @@ func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor ma
 				msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			_ = aptos.ResignQC(&msg.BlockData.BlockBody.V0.GrandparentQC, keysByAuthor, orderedAddrs)
 		}},
-		{"optproposal_grandparent_qc_executed_state_random_value", func() {
+		{"optproposal_grandparent_qc_executed_state_random_value", as, func() {
 			if msg.BlockData.BlockBody == nil || msg.BlockData.BlockBody.V0 == nil {
 				return
 			}
 			msg.BlockData.BlockBody.V0.GrandparentQC.VoteData.Proposed.ExecutedStateID = randomHash(rng)
 			_ = aptos.ResignQC(&msg.BlockData.BlockBody.V0.GrandparentQC, keysByAuthor, orderedAddrs)
 		}},
-		{"optproposal_greatgrandparent_id_swap", func() {
+		{"optproposal_greatgrandparent_id_swap", as, func() {
 			// Mutate GrandParentQC.VoteData.Parent.ID (the great-grandparent of the opt block)
 			if msg.BlockData.BlockBody == nil || msg.BlockData.BlockBody.V0 == nil {
 				return
@@ -856,7 +864,7 @@ func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor ma
 			msg.BlockData.BlockBody.V0.GrandparentQC.VoteData.Parent.ID = randomHash(rng)
 			_ = aptos.ResignQC(&msg.BlockData.BlockBody.V0.GrandparentQC, keysByAuthor, orderedAddrs)
 		}},
-		{"optproposal_grandparent_qc_proposed_id_swap", func() {
+		{"optproposal_grandparent_qc_proposed_id_swap", as, func() {
 			if msg.BlockData.BlockBody == nil || msg.BlockData.BlockBody.V0 == nil {
 				return
 			}
@@ -866,7 +874,7 @@ func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor ma
 			_ = aptos.ResignQC(&msg.BlockData.BlockBody.V0.GrandparentQC, keysByAuthor, orderedAddrs)
 			_ = aptos.ResignQC(&msg.SyncInfo.HighestQuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"optproposal_payload_empty", func() {
+		{"optproposal_payload_empty", as, func() {
 			if msg.BlockData.BlockBody == nil || msg.BlockData.BlockBody.V0 == nil {
 				return
 			}
@@ -906,7 +914,7 @@ are not immediately discarded by the receiver:
   - VoteData.Proposed.Round == receiver_local_round (after sync_up)
   - Receiver must be the leader for VoteData.Proposed.Round + 1 to process the incoming vote
 */
-func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) string {
+func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	resign := func() {
 		sk := keysByAuthor[msg.Vote.Author]
@@ -917,23 +925,23 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 	}
 	mutations := []mutation{
 		// Small-scope mutations
-		{"vote_parent_version_shift_up", func() {
+		{"vote_parent_version_shift_up", ss, func() {
 			msg.Vote.VoteData.Parent.Version++
 			resign()
 		}},
-		{"vote_proposed_version_shift_up", func() {
+		{"vote_proposed_version_shift_up", ss, func() {
 			msg.Vote.VoteData.Proposed.Version++
 			resign()
 		}},
-		{"vote_proposed_timestamp_large_future", func() {
+		{"vote_proposed_timestamp_large_future", ss, func() {
 			msg.Vote.VoteData.Proposed.TimestampUsecs += 5_000_000
 			resign()
 		}},
-		{"vote_proposed_timestamp_short_future", func() {
+		{"vote_proposed_timestamp_short_future", ss, func() {
 			msg.Vote.VoteData.Proposed.TimestampUsecs += 500_000
 			resign()
 		}},
-		{"vote_timestamps_shift_past", func() {
+		{"vote_timestamps_shift_past", ss, func() {
 			// Shift proposed and parent timestamps back by 1s equally so parent.ts <= proposed.ts holds
 			const delta = uint64(1_000_000)
 			proposedTs := &msg.Vote.VoteData.Proposed.TimestampUsecs
@@ -944,7 +952,7 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 				resign()
 			}
 		}},
-		{"vote_parent_round_shift_down", func() {
+		{"vote_parent_round_shift_down", ss, func() {
 			if msg.Vote.VoteData.Parent.Round == 0 {
 				return
 			}
@@ -952,15 +960,15 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 			resign()
 		}},
 		// Structure-aware mutations
-		{"vote_proposed_id_swap", func() {
+		{"vote_proposed_id_swap", as, func() {
 			msg.Vote.VoteData.Proposed.ID = randomHash(rng)
 			resign()
 		}},
-		{"vote_parent_id_swap", func() {
+		{"vote_parent_id_swap", as, func() {
 			msg.Vote.VoteData.Parent.ID = randomHash(rng)
 			resign()
 		}},
-		{"vote_proposed_executed_state_swap_with_syncinfo_hcc_executed_state", func() {
+		{"vote_proposed_executed_state_swap_with_syncinfo_hcc_executed_state", as, func() {
 			if msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -968,7 +976,7 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 				msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			resign()
 		}},
-		{"vote_proposed_executed_state_swap_with_syncinfo_hoc_executed_state", func() {
+		{"vote_proposed_executed_state_swap_with_syncinfo_hoc_executed_state", as, func() {
 			if msg.SyncInfo.HighestOrderedCert.Some == nil ||
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0 == nil {
 				return
@@ -977,7 +985,7 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			resign()
 		}},
-		{"vote_proposed_executed_state_swap_with_syncinfo_hqc_executed_state", func() {
+		{"vote_proposed_executed_state_swap_with_syncinfo_hqc_executed_state", as, func() {
 			if msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -985,11 +993,11 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 				msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			resign()
 		}},
-		{"vote_proposed_executed_state_random_value", func() {
+		{"vote_proposed_executed_state_random_value", as, func() {
 			msg.Vote.VoteData.Proposed.ExecutedStateID = randomHash(rng)
 			resign()
 		}},
-		{"vote_parent_executed_state_swap_with_syncinfo_hcc_executed_state", func() {
+		{"vote_parent_executed_state_swap_with_syncinfo_hcc_executed_state", as, func() {
 			if msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -997,7 +1005,7 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 				msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			resign()
 		}},
-		{"vote_parent_executed_state_swap_with_syncinfo_hoc_executed_state", func() {
+		{"vote_parent_executed_state_swap_with_syncinfo_hoc_executed_state", as, func() {
 			if msg.SyncInfo.HighestOrderedCert.Some == nil ||
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0 == nil {
 				return
@@ -1006,7 +1014,7 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			resign()
 		}},
-		{"vote_parent_executed_state_swap_with_syncinfo_hqc_executed_state", func() {
+		{"vote_parent_executed_state_swap_with_syncinfo_hqc_executed_state", as, func() {
 			if msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -1014,11 +1022,11 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 				msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			resign()
 		}},
-		{"vote_parent_executed_state_random_value", func() {
+		{"vote_parent_executed_state_random_value", as, func() {
 			msg.Vote.VoteData.Parent.ExecutedStateID = randomHash(rng)
 			resign()
 		}},
-		{"vote_proposed_inject_next_epoch_state", func() {
+		{"vote_proposed_inject_next_epoch_state", as, func() {
 			proposed := &msg.Vote.VoteData.Proposed
 			proposed.NextEpochState = &aptos.OptionEpochState{
 				Some: &aptos.EpochState{
@@ -1028,7 +1036,7 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 			}
 			resign()
 		}},
-		{"vote_parent_inject_next_epoch_state", func() {
+		{"vote_parent_inject_next_epoch_state", as, func() {
 			parent := &msg.Vote.VoteData.Parent
 			parent.NextEpochState = &aptos.OptionEpochState{
 				Some: &aptos.EpochState{
@@ -1038,14 +1046,14 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 			}
 			resign()
 		}},
-		{"vote_ledger_info_commit_info_swap_with_syncinfo_hcc", func() {
+		{"vote_ledger_info_commit_info_swap_with_syncinfo_hcc", as, func() {
 			if msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
 			msg.Vote.LedgerInfo.CommitInfo = msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo
 			resign()
 		}},
-		{"attach_timeout_to_vote", func() {
+		{"attach_timeout_to_vote", as, func() {
 			// Upgrade a regular vote into a timeout vote by attaching a 2-chain timeout signed by the
 			// voter
 			epoch := msg.Vote.VoteData.Proposed.Epoch
@@ -1073,7 +1081,7 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 				},
 			}
 		}},
-		{"attach_timeout_to_vote_with_hcc_qc", func() {
+		{"attach_timeout_to_vote_with_hcc_qc", as, func() {
 			// Variant of attach_timeout_to_vote that embeds sync_info.HCC's certificate instead of HQC
 			if msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
@@ -1106,7 +1114,7 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 				},
 			}
 		}},
-		{"attach_timeout_to_vote_with_hoc_qc", func() {
+		{"attach_timeout_to_vote_with_hoc_qc", as, func() {
 			if msg.SyncInfo.HighestOrderedCert.Some == nil {
 				return
 			}
@@ -1158,19 +1166,19 @@ are not immediately discarded by the receiver:
   - For incoming Vote/Decision: CommitMessage.Epoch == receiver_local_epoch
   - For Vote: Vote.Author == network sender
 */
-func mutateCommitMessage(msg *aptos.CommitMessage, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) string {
+func mutateCommitMessage(msg *aptos.CommitMessage, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) mutation {
 	if msg.Decision != nil {
 		return mutateCommitDecision(msg.Decision, seed, keysByAuthor, orderedAddrs)
 	} else if msg.Ack != nil {
 		return pickMutation([]mutation{
-			{"commit_swap_ack_with_nack", func() {
+			{"commit_swap_ack_with_nack", as, func() {
 				msg.Ack = nil
 				msg.Nack = &aptos.BcsUnit{}
 			}},
 		}, seed)
 	} else if msg.Nack != nil {
 		return pickMutation([]mutation{
-			{"commit_swap_nack_with_ack", func() {
+			{"commit_swap_nack_with_ack", as, func() {
 				msg.Nack = nil
 				msg.Ack = &aptos.BcsUnit{}
 			}},
@@ -1178,7 +1186,7 @@ func mutateCommitMessage(msg *aptos.CommitMessage, seed int64, keysByAuthor map[
 	} else if msg.Vote != nil {
 		rng := rand.New(rand.NewSource(uint64(seed)))
 		mutations := []mutation{
-			{"commit_vote_to_decision_with_full_quorum", func() {
+			{"commit_vote_to_decision_with_full_quorum", as, func() {
 				lis, err := aptos.BuildFullQuorumLedgerInfoWithSignatures(
 					msg.Vote.LedgerInfo, keysByAuthor, orderedAddrs)
 				if err != nil {
@@ -1191,10 +1199,10 @@ func mutateCommitMessage(msg *aptos.CommitMessage, seed int64, keysByAuthor map[
 		mutations = append(mutations, commitVoteMutations(msg.Vote, rng, keysByAuthor)...)
 		return pickMutation(mutations, seed)
 	}
-	return ""
+	return mutation{}
 }
 
-func mutateCommitVote(msg *aptos.CommitVote, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK) string {
+func mutateCommitVote(msg *aptos.CommitVote, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK) mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	return pickMutation(commitVoteMutations(msg, rng, keysByAuthor), seed)
 }
@@ -1215,11 +1223,11 @@ func commitVoteMutations(msg *aptos.CommitVote, rng *rand.Rand, keysByAuthor map
 	}
 	return []mutation{
 		// Small-scope mutations
-		{"commit_vote_alter_commit_info_version_increment", func() {
+		{"commit_vote_alter_commit_info_version_increment", ss, func() {
 			msg.LedgerInfo.CommitInfo.Version++
 			resign()
 		}},
-		{"commit_vote_alter_commit_info_version_decrement", func() {
+		{"commit_vote_alter_commit_info_version_decrement", ss, func() {
 			if msg.LedgerInfo.CommitInfo.Version == 0 {
 				return
 			}
@@ -1227,19 +1235,19 @@ func commitVoteMutations(msg *aptos.CommitVote, rng *rand.Rand, keysByAuthor map
 			resign()
 		}},
 		// Structure-aware mutations
-		{"commit_vote_alter_commit_info_id", func() {
+		{"commit_vote_alter_commit_info_id", as, func() {
 			msg.LedgerInfo.CommitInfo.ID = randomHash(rng)
 			resign()
 		}},
-		{"commit_vote_alter_consensus_data_hash", func() {
+		{"commit_vote_alter_consensus_data_hash", as, func() {
 			msg.LedgerInfo.ConsensusDataHash = randomHash(rng)
 			resign()
 		}},
-		{"commit_vote_alter_commit_info_executed_state_id", func() {
+		{"commit_vote_alter_commit_info_executed_state_id", as, func() {
 			msg.LedgerInfo.CommitInfo.ExecutedStateID = randomHash(rng)
 			resign()
 		}},
-		{"commit_vote_alter_commit_info_inject_next_epoch_state", func() {
+		{"commit_vote_alter_commit_info_inject_next_epoch_state", as, func() {
 			ci := &msg.LedgerInfo.CommitInfo
 			ci.NextEpochState = &aptos.OptionEpochState{
 				Some: &aptos.EpochState{
@@ -1249,7 +1257,7 @@ func commitVoteMutations(msg *aptos.CommitVote, rng *rand.Rand, keysByAuthor map
 			}
 			resign()
 		}},
-		{"commit_vote_alter_commit_info_clear_next_epoch_state", func() {
+		{"commit_vote_alter_commit_info_clear_next_epoch_state", as, func() {
 			ci := &msg.LedgerInfo.CommitInfo
 			if ci.NextEpochState == nil || ci.NextEpochState.Some == nil {
 				return
@@ -1260,7 +1268,7 @@ func commitVoteMutations(msg *aptos.CommitVote, rng *rand.Rand, keysByAuthor map
 	}
 }
 
-func mutateCommitDecision(msg *aptos.CommitDecision, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) string {
+func mutateCommitDecision(msg *aptos.CommitDecision, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	return pickMutation(commitDecisionMutations(msg, rng, keysByAuthor, orderedAddrs), seed)
 }
@@ -1277,14 +1285,14 @@ func commitDecisionMutations(msg *aptos.CommitDecision, rng *rand.Rand, keysByAu
 	}
 	return []mutation{
 		// Small-scope mutations
-		{"commit_decision_alter_commit_info_version_increment", func() {
+		{"commit_decision_alter_commit_info_version_increment", ss, func() {
 			if msg.LedgerInfo.V0 == nil {
 				return
 			}
 			msg.LedgerInfo.V0.LedgerInfo.CommitInfo.Version++
 			resign()
 		}},
-		{"commit_decision_alter_commit_info_version_decrement", func() {
+		{"commit_decision_alter_commit_info_version_decrement", ss, func() {
 			if msg.LedgerInfo.V0 == nil {
 				return
 			}
@@ -1295,28 +1303,28 @@ func commitDecisionMutations(msg *aptos.CommitDecision, rng *rand.Rand, keysByAu
 			resign()
 		}},
 		// Structure-aware mutations
-		{"commit_decision_alter_consensus_data_hash", func() {
+		{"commit_decision_alter_consensus_data_hash", as, func() {
 			if msg.LedgerInfo.V0 == nil {
 				return
 			}
 			msg.LedgerInfo.V0.LedgerInfo.ConsensusDataHash = randomHash(rng)
 			resign()
 		}},
-		{"commit_decision_alter_commit_info_id", func() {
+		{"commit_decision_alter_commit_info_id", as, func() {
 			if msg.LedgerInfo.V0 == nil {
 				return
 			}
 			msg.LedgerInfo.V0.LedgerInfo.CommitInfo.ID = randomHash(rng)
 			resign()
 		}},
-		{"commit_decision_alter_commit_info_executed_state_id", func() {
+		{"commit_decision_alter_commit_info_executed_state_id", as, func() {
 			if msg.LedgerInfo.V0 == nil {
 				return
 			}
 			msg.LedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID = randomHash(rng)
 			resign()
 		}},
-		{"commit_decision_alter_commit_info_inject_next_epoch_state", func() {
+		{"commit_decision_alter_commit_info_inject_next_epoch_state", as, func() {
 			if msg.LedgerInfo.V0 == nil {
 				return
 			}
@@ -1329,7 +1337,7 @@ func commitDecisionMutations(msg *aptos.CommitDecision, rng *rand.Rand, keysByAu
 			}
 			resign()
 		}},
-		{"commit_decision_alter_commit_info_clear_next_epoch_state", func() {
+		{"commit_decision_alter_commit_info_clear_next_epoch_state", as, func() {
 			if msg.LedgerInfo.V0 == nil {
 				return
 			}
@@ -1340,7 +1348,7 @@ func commitDecisionMutations(msg *aptos.CommitDecision, rng *rand.Rand, keysByAu
 			ci.NextEpochState = &aptos.OptionEpochState{None: &aptos.BcsUnit{}}
 			resign()
 		}},
-		{"commit_decision_drop_bitmask_one_bit", func() {
+		{"commit_decision_drop_bitmask_one_bit", as, func() {
 			if msg.LedgerInfo.V0 == nil {
 				return
 			}
@@ -1378,7 +1386,7 @@ are not immediately discarded by the receiver:
   - Timeout.QC.VoteData.Proposed.Round (= hqc_round) <= SyncInfo.HQC.VoteData.Proposed.Round
   - Same QC.VoteData invariants apply: Parent.Epoch == Proposed.Epoch; Parent.Round < Proposed.Round; Parent.Ts <= Proposed.Ts;
 */
-func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) string {
+func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	resign := func() {
 		sk := keysByAuthor[msg.RoundTimeout.Author]
@@ -1390,15 +1398,15 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 
 	mutations := []mutation{
 		// Small-scope mutations
-		{"roundtimeout_qc_proposed_timestamp_short_future", func() {
+		{"roundtimeout_qc_proposed_timestamp_short_future", ss, func() {
 			msg.RoundTimeout.Timeout.QuorumCert.VoteData.Proposed.TimestampUsecs += 500_000
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_proposed_timestamp_large_future", func() {
+		{"roundtimeout_qc_proposed_timestamp_large_future", ss, func() {
 			msg.RoundTimeout.Timeout.QuorumCert.VoteData.Proposed.TimestampUsecs += 5_000_000
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_proposed_timestamp_past", func() {
+		{"roundtimeout_qc_proposed_timestamp_past", ss, func() {
 			const delta = uint64(1_000_000)
 			vd := &msg.RoundTimeout.Timeout.QuorumCert.VoteData
 			if vd.Proposed.TimestampUsecs <= delta || vd.Parent.TimestampUsecs <= delta {
@@ -1409,7 +1417,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
 		// Structure-aware mutations
-		{"roundtimeout_change_author", func() {
+		{"roundtimeout_change_author", as, func() {
 			current := msg.RoundTimeout.Author
 			others := make([]aptos.AccountAddress, 0)
 			for k := range keysByAuthor {
@@ -1423,7 +1431,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 				resign()
 			}
 		}},
-		{"roundtimeout_change_reason", func() {
+		{"roundtimeout_change_reason", as, func() {
 			current := msg.RoundTimeout.Reason
 			numValidators := len(keysByAuthor)
 			numBytes := (numValidators + 7) / 8
@@ -1453,15 +1461,15 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 			// don't require resigning since reason is not part of the signed timeout payload
 			// and author stays the same
 		}},
-		{"roundtimeout_qc_proposed_id_swap", func() {
+		{"roundtimeout_qc_proposed_id_swap", as, func() {
 			msg.RoundTimeout.Timeout.QuorumCert.VoteData.Proposed.ID = randomHash(rng)
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_grandparent_id_swap", func() {
+		{"roundtimeout_qc_grandparent_id_swap", as, func() {
 			msg.RoundTimeout.Timeout.QuorumCert.VoteData.Parent.ID = randomHash(rng)
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_proposed_executed_state_swap_with_syncinfo_hcc_executed_state", func() {
+		{"roundtimeout_qc_proposed_executed_state_swap_with_syncinfo_hcc_executed_state", as, func() {
 			if msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -1469,7 +1477,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 				msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_proposed_executed_state_swap_with_syncinfo_hoc_executed_state", func() {
+		{"roundtimeout_qc_proposed_executed_state_swap_with_syncinfo_hoc_executed_state", as, func() {
 			if msg.SyncInfo.HighestOrderedCert.Some == nil ||
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0 == nil {
 				return
@@ -1478,7 +1486,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_proposed_executed_state_swap_with_syncinfo_hqc_executed_state", func() {
+		{"roundtimeout_qc_proposed_executed_state_swap_with_syncinfo_hqc_executed_state", as, func() {
 			if msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -1486,11 +1494,11 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 				msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_proposed_executed_state_random_value", func() {
+		{"roundtimeout_qc_proposed_executed_state_random_value", as, func() {
 			msg.RoundTimeout.Timeout.QuorumCert.VoteData.Proposed.ExecutedStateID = randomHash(rng)
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_proposed_inject_next_epoch_state", func() {
+		{"roundtimeout_qc_proposed_inject_next_epoch_state", as, func() {
 			proposed := &msg.RoundTimeout.Timeout.QuorumCert.VoteData.Proposed
 			proposed.NextEpochState = &aptos.OptionEpochState{
 				Some: &aptos.EpochState{
@@ -1500,7 +1508,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 			}
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_proposed_clear_next_epoch_state", func() {
+		{"roundtimeout_qc_proposed_clear_next_epoch_state", as, func() {
 			proposed := &msg.RoundTimeout.Timeout.QuorumCert.VoteData.Proposed
 			if proposed.NextEpochState == nil || proposed.NextEpochState.Some == nil {
 				return
@@ -1508,7 +1516,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 			proposed.NextEpochState = &aptos.OptionEpochState{None: &aptos.BcsUnit{}}
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_parent_executed_state_swap_with_syncinfo_hcc_executed_state", func() {
+		{"roundtimeout_qc_parent_executed_state_swap_with_syncinfo_hcc_executed_state", as, func() {
 			if msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -1516,7 +1524,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 				msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_parent_executed_state_swap_with_syncinfo_hoc_executed_state", func() {
+		{"roundtimeout_qc_parent_executed_state_swap_with_syncinfo_hoc_executed_state", as, func() {
 			if msg.SyncInfo.HighestOrderedCert.Some == nil ||
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0 == nil {
 				return
@@ -1525,7 +1533,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 				msg.SyncInfo.HighestOrderedCert.Some.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_parent_executed_state_swap_with_syncinfo_hqc_executed_state", func() {
+		{"roundtimeout_qc_parent_executed_state_swap_with_syncinfo_hqc_executed_state", as, func() {
 			if msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -1533,11 +1541,11 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 				msg.SyncInfo.HighestQuorumCert.SignedLedgerInfo.V0.LedgerInfo.CommitInfo.ExecutedStateID
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_parent_executed_state_random_value", func() {
+		{"roundtimeout_qc_parent_executed_state_random_value", as, func() {
 			msg.RoundTimeout.Timeout.QuorumCert.VoteData.Parent.ExecutedStateID = randomHash(rng)
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_parent_inject_next_epoch_state", func() {
+		{"roundtimeout_qc_parent_inject_next_epoch_state", as, func() {
 			parent := &msg.RoundTimeout.Timeout.QuorumCert.VoteData.Parent
 			parent.NextEpochState = &aptos.OptionEpochState{
 				Some: &aptos.EpochState{
@@ -1547,7 +1555,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 			}
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_parent_clear_next_epoch_state", func() {
+		{"roundtimeout_qc_parent_clear_next_epoch_state", as, func() {
 			parent := &msg.RoundTimeout.Timeout.QuorumCert.VoteData.Parent
 			if parent.NextEpochState == nil || parent.NextEpochState.Some == nil {
 				return
@@ -1555,7 +1563,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 			parent.NextEpochState = &aptos.OptionEpochState{None: &aptos.BcsUnit{}}
 			_ = aptos.ResignQC(&msg.RoundTimeout.Timeout.QuorumCert, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_drop_bitmask_one_bit", func() {
+		{"roundtimeout_qc_drop_bitmask_one_bit", as, func() {
 			qc := &msg.RoundTimeout.Timeout.QuorumCert
 			if qc.SignedLedgerInfo.V0 == nil {
 				return
@@ -1576,7 +1584,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 			bm[drop/8] &^= 1 << (7 - uint(drop%8))
 			_ = aptos.ResignQC(qc, keysByAuthor, orderedAddrs)
 		}},
-		{"roundtimeout_qc_swap_with_syncinfo_hcc", func() {
+		{"roundtimeout_qc_swap_with_syncinfo_hcc", as, func() {
 			if msg.SyncInfo.HighestCommitCert.SignedLedgerInfo.V0 == nil {
 				return
 			}
@@ -1587,7 +1595,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 			}
 			resign()
 		}},
-		{"roundtimeout_qc_swap_with_syncinfo_hoc", func() {
+		{"roundtimeout_qc_swap_with_syncinfo_hoc", as, func() {
 			if msg.SyncInfo.HighestOrderedCert.Some == nil {
 				return
 			}
@@ -1598,7 +1606,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 			}
 			resign()
 		}},
-		{"roundtimeout_qc_swap_with_syncinfo_hqc", func() {
+		{"roundtimeout_qc_swap_with_syncinfo_hqc", as, func() {
 			msg.RoundTimeout.Timeout.QuorumCert = msg.SyncInfo.HighestQuorumCert
 			resign()
 		}},

@@ -289,7 +289,7 @@ func (s *ByzzFuzzScheduler) NextIteration() {
 		s.mutationLog = csv.NewWriter(f)
 		s.mutationLog.Write([]string{
 			"sender_id", "receiver_id", "timestamp", "round",
-			"message", "mutated_message", "mutation_method", "message_id",
+			"message", "mutated_message", "mutation_name", "mutation_method", "message_id",
 		})
 	}
 }
@@ -365,12 +365,12 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 		} else {
 			ogMsg := c.String()
 
-			mname, err := s.Mutator.Mutate(c, seedProcFault) //msg is mutated in place
+			mutation, err := s.Mutator.Mutate(c, seedProcFault) //msg is mutated in place
 
-			s.Log.Printf("Mutating message from %d to %d in round %d with msg id %d\n and mutation %s", sender, receiver, round, chosenMsg.MessageId, mname)
+			s.Log.Printf("Mutating message from %d to %d in round %d with msg id %d\n and mutation %s", sender, receiver, round, chosenMsg.MessageId, mutation.Name)
 
 			if err != nil {
-				s.Log.Printf("Error in mutation %s: %v", mname, err)
+				s.Log.Printf("Error in mutation %s: %v", mutation.Name, err)
 				return SchedulerDecision{
 					DecisionType: NoOp,
 				}
@@ -383,7 +383,8 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 					fmt.Sprintf("%d", round),
 					ogMsg,
 					c.String(),
-					mname,
+					mutation.Name,
+					string(mutation.Method),
 					fmt.Sprintf("%d", chosenMsg.MessageId),
 				})
 				s.mutationLog.Flush()
