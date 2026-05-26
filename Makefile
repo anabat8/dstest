@@ -100,6 +100,9 @@ help:
 	@echo "  make all                   # build + genesis + node-configs + seeds + config + run"
 	@echo "  make filter-logs           # filter the consensus log output"
 	@echo "  make run-and-filter        # run dsTest with CONFIG and filter the logs"
+	@echo "  make plot                  # plot graphs for a run"
+	@echo "  make plot-latest           # plot graphs for the latest run under OUTPUT_BASE"
+	@echo "  make aggregate             # aggregate results across runs under OUTPUT_BASE"
 	@echo ""
 	@echo "Vars:"
 	@echo "  APTOS_CORE=$(APTOS_CORE)"
@@ -119,7 +122,7 @@ $(VENV_PY):
 .PHONY: setup
 setup: $(VENV_PY)
 	$(PIP) install --upgrade pip
-	$(PIP) install pyyaml cryptography
+	$(PIP) install pyyaml cryptography matplotlib pandas
 
 # -----------------------------
 # Builds
@@ -260,6 +263,7 @@ config:
 	  echo "    - \"$$i $(BASE_DIR)\""; \
 	done; \
 	} > $(CONFIG)
+	@cp $(CONFIG) $(OUTPUT_DIR)/aptos.yml
 
 # -----------------------------
 # Clean + run
@@ -312,25 +316,29 @@ run-and-filter:
 # -----------------------------
 # Plot graphs
 # -----------------------------
-.PHONY: build-aptos-plot
-build-aptos-plot:
-	cd $(DSTEST_ROOT)/cmd/aptos_plot && go build -o main .
 
 .PHONY: plot
-plot: build-aptos-plot
-	$(DSTEST_ROOT)/cmd/aptos_plot/main \
+plot:
+	"$(VENV_PY)" $(APTOS_DIR)/aptos_plot.py \
 	  --run $(OUTPUT_DIR) \
-	  --config $(CONFIG) \
+	  --config $(OUTPUT_DIR)/aptos.yml \
 	  --out $(OUTPUT_DIR)/plots
 
 .PHONY: plot-latest
-plot-latest: build-aptos-plot
+plot-latest:
 	@RUN_ID=$$(for r in $$(ls -t $(OUTPUT_BASE)); do \
 	  if ls "$(OUTPUT_BASE)/$$r" 2>/dev/null | grep -q "^aptos-localnet_"; then echo "$$r"; break; fi; \
 	done); \
 	if [ -z "$$RUN_ID" ]; then echo "[plot-latest] no populated run under $(OUTPUT_BASE)"; exit 1; fi; \
 	echo "[plot-latest] $(OUTPUT_BASE)/$$RUN_ID"; \
-	$(DSTEST_ROOT)/cmd/aptos_plot/main \
+	"$(VENV_PY)" $(APTOS_DIR)/aptos_plot.py \
 	  --run $(OUTPUT_BASE)/$$RUN_ID \
-	  --config $(CONFIG) \
+	  --config $(OUTPUT_BASE)/$$RUN_ID/aptos.yml \
 	  --out $(OUTPUT_BASE)/$$RUN_ID/plots
+
+# -----------------------------
+# Aggregate results across runs
+# -----------------------------
+.PHONY: aggregate
+aggregate:
+	"$(VENV_PY)" $(APTOS_DIR)/aptos_aggregate.py
