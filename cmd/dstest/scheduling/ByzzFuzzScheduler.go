@@ -155,7 +155,6 @@ func (store *DelayMessagesStore) SetDelayed(messageId uint64, delayTime time.Dur
 	store.isDelayed[messageId] = true
 	go func() {
 		time.Sleep(delayTime)
-		//sendFunc(messageId)
 		sendFunc()
 		store.mu.Lock()
 		defer store.mu.Unlock()
@@ -196,9 +195,6 @@ func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 	s.Mutator = network.NewAptosMutator(aptos.CollectValidatorKeysByAuthor())
 
 	seed := int64(config.SchedulerConfig.Seed)
-	if seed == 0 {
-		seed = time.Now().UnixNano()
-	}
 	s.rng = rand.New(rand.NewSource(seed))
 
 	s.params = ByzzFuzzParams{
@@ -224,9 +220,6 @@ func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 
 func (s *ByzzFuzzScheduler) Reset() {
 	seed := int64(s.Config.SchedulerConfig.Seed)
-	if seed == 0 {
-		seed = time.Now().UnixNano()
-	}
 	s.rng = rand.New(rand.NewSource(seed))
 }
 
@@ -262,11 +255,12 @@ func (s *ByzzFuzzScheduler) NextIteration() {
 	for i := 0; i < s.params.C; i++ {
 		round := aptos.Round(s.rng.Intn(s.params.R))
 		procs := randomSubsetOf(s.NetworkManager.ReplicaIds, s.rng)
-		procsSeed := time.Now().UnixNano()
+		byzzfuzzSeed := s.rng.Int63()
+
 		s.procFaults[i] = ProcFaultSpec{
 			Round:     round,
 			Receivers: procs,
-			Seed:      procsSeed,
+			Seed:      byzzfuzzSeed,
 		}
 	}
 
