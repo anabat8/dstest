@@ -102,7 +102,6 @@ help:
 	@echo "  make run-and-filter        # run dsTest with CONFIG and filter the logs"
 	@echo "  make plot                  # plot graphs for a run"
 	@echo "  make plot-latest           # plot graphs for the latest run under OUTPUT_BASE"
-	@echo "  make aggregate             # aggregate results across runs under OUTPUT_BASE"
 	@echo ""
 	@echo "Vars:"
 	@echo "  APTOS_CORE=$(APTOS_CORE)"
@@ -335,10 +334,3 @@ plot-latest:
 	  --run $(OUTPUT_BASE)/$$RUN_ID \
 	  --config $(OUTPUT_BASE)/$$RUN_ID/aptos.yml \
 	  --out $(OUTPUT_BASE)/$$RUN_ID/plots
-
-# -----------------------------
-# Aggregate results across runs
-# -----------------------------
-.PHONY: aggregate
-aggregate:
-	"$(VENV_PY)" $(APTOS_DIR)/aptos_aggregate.py

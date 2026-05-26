@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 """
-Walks a dstest run directory and emits 2 plots:
+Walks a dstest run directory and emits 3 plots:
 
     1_violations_over_time.png   cumulative agreement / liveness violations over
                                   experiment time (X labelled mm:ss).
     2_per_iter_overview.png      per-iter overview: client-tx commits, agreement
                                   & liveness violations and the
                                   iter's max block height.
-
-Both plots carry the ByzzFuzz parameters (c, d, r, seed) and run-shape vars
-(scheduler steps, iter count) in the title.
+    3_aggregate_table.png        aggregate table of per-iter stats.
 
 Usage:
     aptos_plot.py --run output/aptos/<RUN_ID>
@@ -46,6 +44,8 @@ class IterStats:
     max_height: float = 0  # peak block height observed in the iter
     start_sec: float = 0   # first block log_time
     end_sec: float = 0     # last block log_time
+    ss_muts: int = 0       # nr of small_scope mutations in mutations.csv (0 for baseline)
+    as_muts: int = 0       # nr of structure_aware mutations in mutations.csv (0 for baseline)
 
 
 @dataclass
@@ -75,6 +75,7 @@ def load_iters(run_dir: Path) -> list[IterStats]:
         s.commits = count_matches_glob(child / "client_stdout_*.log", "committed tx=")
         s.ag_viols, s.lv_viols = count_agreement_violations(child / "agreement.log")
         s.max_height, s.start_sec, s.end_sec = load_block_summary(child / "blockCommits.csv")
+        s.ss_muts, s.as_muts = count_mutation_scopes(child / "mutations.csv")
         # Skip empty iter dirs with no collectable data
         if s.start_sec == 0:
             continue
@@ -112,6 +113,18 @@ def count_agreement_violations(path: Path) -> tuple[int, int]:
     except FileNotFoundError:
         return 0, 0
     return text.count("Disagreement detected"), text.count("Liveness failure")
+
+
+def count_mutation_scopes(path: Path) -> tuple[int, int]:
+    """Return (ss_count, as_count) from mutations.csv."""
+    try:
+        df = pd.read_csv(path)
+    except (FileNotFoundError, pd.errors.EmptyDataError):
+        return 0, 0
+    if "mutation_method" not in df.columns:
+        return 0, 0
+    methods = df["mutation_method"].astype(str)
+    return int((methods == "small_scope").sum()), int((methods == "structure_aware").sum())
 
 
 def count_matches_glob(pattern: Path, needle: str) -> int:
@@ -242,6 +255,119 @@ def plot_per_iter_overview(iters: list[IterStats], cfg: RunConfig, out_path: Pat
     plt.close(fig)
 
 
+# ---------------------------------------------------------------------
+# Plot 3: ByzzFuzz Table
+# ---------------------------------------------------------------------
+
+def aggregate_by_config(scan_dirs: list[Path]) -> dict[tuple[int, int], dict[str, int]]:
+    by_cd: dict[tuple[int, int], dict[str, int]] = {}
+    for scan in scan_dirs:
+        if not scan.is_dir():
+            continue
+        for run_dir in sorted(scan.iterdir()):
+            if not run_dir.is_dir():
+                continue
+            cfg_path = run_dir / "aptos.yml"
+            if not cfg_path.exists():
+                continue
+            try:
+                cfg = load_config(cfg_path)
+            except Exception as e:
+                print(f"skip {run_dir}: bad aptos.yml ({e})")
+                continue
+            iters = load_iters(run_dir)
+            agg = by_cd.setdefault((cfg.c, cfg.d), {
+                "ag": 0, "lv": 0, "any": 0, "total": 0,
+                "lv_ss": 0, "lv_as": 0,
+                "ag_ss": 0, "ag_as": 0,
+            })
+            for it in iters:
+                agg["total"] += 1
+                if it.ag_viols > 0:
+                    agg["ag"] += 1
+                    agg["ag_ss"] += it.ss_muts
+                    agg["ag_as"] += it.as_muts
+                if it.lv_viols > 0:
+                    agg["lv"] += 1
+                    agg["lv_ss"] += it.ss_muts
+                    agg["lv_as"] += it.as_muts
+                if it.ag_viols > 0 or it.lv_viols > 0:
+                    agg["any"] += 1
+    return by_cd
+
+
+def plot_aggregate_table(scan_dirs: list[Path], out_path: Path) -> None:
+    by_cd = aggregate_by_config(scan_dirs)
+    if not by_cd:
+        print(f"aggregate: no runs with aptos.yml under {scan_dirs}; skipping")
+        return
+
+    items = sorted(by_cd.items(), key=lambda kv: (kv[0][0], kv[0][1]))
+    baseline_rows = [(cd, v) for cd, v in items if cd[0] == 0]
+    fuzz_rows = [(cd, v) for cd, v in items if cd[0] > 0]
+
+    # Top section (c=0): faults | L | A | Total
+    top_cols = ["faults", "L", "A", "Total"]
+    top_data: list[list[str]] = []
+    for (c, d), v in baseline_rows:
+        label = "baseline" if d == 0 else f"c={c}, d={d}"
+        top_data.append([label, str(v["lv"]), str(v["ag"]), str(v["any"])])
+
+    # Bottom section (c>0): faults | L(ss) | L(as) | A(ss) | A(as) | Total(ss) | Total(as)
+    # ss/as cells = sum of small_scope / structure_aware mutations recorded
+    # across iters of this config that triggered the column's violation
+    # (L = liveness, A = agreement). The Total columns are the per-scope sum
+    # of the L and A columns.
+    bot_cols = ["faults", "L (ss)", "L (as)", "A (ss)", "A (as)", "Total (ss)", "Total (as)"]
+    bot_data: list[list[str]] = []
+    for (c, d), v in fuzz_rows:
+        tot_ss = v["lv_ss"] + v["ag_ss"]
+        tot_as = v["lv_as"] + v["ag_as"]
+        bot_data.append([
+            f"c={c}, d={d}",
+            str(v["lv_ss"]), str(v["lv_as"]),
+            str(v["ag_ss"]), str(v["ag_as"]),
+            str(tot_ss), str(tot_as),
+        ])
+
+    n_top = max(1, len(top_data)) + 1
+    n_bot = max(1, len(bot_data)) + 1
+    row_h = 0.45
+    height = (n_top + n_bot) * row_h + 1.0
+
+    fig, (ax_top, ax_bot) = plt.subplots(
+        2, 1,
+        figsize=(11, height),
+        gridspec_kw={"height_ratios": [n_top, n_bot]},
+    )
+
+    fig.suptitle("Testing Aptos using small-scope (ss) and any-scope (as) mutations with varying d rounds with network partitions and c rounds with process faults", y=0.98)
+
+    for ax in (ax_top, ax_bot):
+        ax.axis("off")
+
+    if top_data:
+        t1 = ax_top.table(cellText=top_data, colLabels=top_cols,
+                          cellLoc="center", loc="center")
+        t1.auto_set_font_size(False)
+        t1.set_fontsize(10)
+        t1.scale(1, 1.6)
+    else:
+        ax_top.text(0.5, 0.5, "no baseline (c=0) runs", ha="center", va="center")
+
+    if bot_data:
+        t2 = ax_bot.table(cellText=bot_data, colLabels=bot_cols,
+                          cellLoc="center", loc="center")
+        t2.auto_set_font_size(False)
+        t2.set_fontsize(10)
+        t2.scale(1, 1.6)
+    else:
+        ax_bot.text(0.5, 0.5, "no fuzz (c>0) runs", ha="center", va="center")
+
+    fig.savefig(out_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description=__doc__,
@@ -276,6 +402,10 @@ def main() -> None:
     p2 = out_dir / "2_per_iter_overview.png"
     plot_per_iter_overview(iters, cfg, p2)
     print(f"wrote {p2}")
+
+    p3 = out_dir / "3_aggregate_table.png"
+    plot_aggregate_table([args.run.parent], p3)
+    print(f"wrote {p3}")
 
 
 if __name__ == "__main__":
