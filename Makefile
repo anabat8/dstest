@@ -71,13 +71,15 @@ RUST_LOG ?= byzzfuzz.noise=info,info
 LOG_LEVEL ?=
 
 # for checking liveness property, we set a timeout bound (in seconds)
-LIVENESS_TIMEOUT ?= 30
+LIVENESS_TIMEOUT ?= 60
 
 # aptos.yml template vars
+STEPS 			     ?= 2500
 SEED                 ?= 42
-PARAM_C              ?= 10
-PARAM_D              ?= 0
-PARAM_R              ?= 10
+PARAM_C              ?= 1
+PARAM_D              ?= 1
+PARAM_R              ?= 6
+RECOVERYSECONDS      ?= 30
 # Note: CLIENT_REQUESTS is not currently read by ByzzFuzz Scheduler.
 CLIENT_REQUESTS      ?= 0
 
@@ -231,10 +233,10 @@ config:
 	echo ""; \
 	echo "SchedulerConfig:"; \
 	echo "  Type: \"$(SCHED_TYPE)\""; \
-	echo "  Steps: 1000"; \
+	echo "  Steps: $(STEPS)"; \
 	echo "  Seed: $(SEED)"; \
 	echo "  ClientRequests: $(CLIENT_REQUESTS)"; \
-	echo "  Params: {\"c\": $(PARAM_C), \"d\": $(PARAM_D), \"r\": $(PARAM_R)}"; \
+	echo "  Params: {\"c\": $(PARAM_C), \"d\": $(PARAM_D), \"r\": $(PARAM_R), \"recovery_seconds\": $(RECOVERYSECONDS)}"; \
 	echo ""; \
 	echo "NetworkConfig:"; \
 	echo "  BaseReplicaPort: $(BASE_PORT)"; \
@@ -247,15 +249,16 @@ config:
 	echo ""; \
 	echo "ProcessConfig:"; \
 	echo "  NumReplicas: $(NUM_REPLICAS)"; \
-	echo "  Timeout: 100"; \
+	echo "  Timeout: 150"; \
 	echo "  OutputDir:  $(OUTPUT_DIR)"; \
 	echo "  ReplicaScript: aptos/aptos_server.sh"; \
 	echo "  # NOTE: each ClientScripts entry must have a different clientId"; \
+	echo "  # NOTE: the scripts are executed in the given order."; \
 	echo "  ClientScripts:"; \
-	echo "    - aptos/aptos_client.sh 0 0 5 5"; \
-	echo "    - aptos/aptos_client.sh 1 3 2 6"; \
-	echo "    - aptos/aptos_client.sh 2 1 5 7"; \
-	echo "    - aptos/aptos_client.sh 3 2 3 8"; \
+	echo "    - aptos/aptos_client.sh 0 0 5 4"; \
+	echo "    - aptos/aptos_client.sh 1 3 2 5"; \
+	echo "    - aptos/aptos_client.sh 2 1 5 6"; \
+	echo "    - aptos/aptos_client.sh 3 2 3 7"; \
 	echo "  CleanScript: aptos/aptos_clean.sh"; \
 	echo "  ReplicaParams:"; \
 	for i in $$(seq 0 $$(( $(NUM_REPLICAS) - 1 ))); do \

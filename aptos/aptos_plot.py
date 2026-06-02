@@ -245,7 +245,7 @@ def plot_per_iter_overview(iters: list[IterStats], cfg: RunConfig, out_path: Pat
     ax.set_xticks(xs)
     ax.set_xticklabels(labels)
     ax.set_xlabel("Iteration")
-    ax.set_ylabel("Block height")
+    ax.set_ylabel("Count / Block height")
     ax.set_title("Per-iter overview\n" + params_subtitle(cfg))
     ax.set_ylim(0, y_max * 1.4 if y_max > 0 else 1)
     ax.legend(loc="upper left")

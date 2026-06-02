@@ -61,10 +61,10 @@ test -f "${GENESIS_DIR}/waypoint.txt"  || {
 
 # Port plan per node i:
 # - REST API:          BASE_PORT + i*10 + 0
-# - WARP PORT:         BASE_PORT + i*10 + 6
-# - ADMIN PORT:        BASE_PORT + i*10 + 7
-# - BACKUP PORT:       BASE_PORT + i*10 + 8
 # - VAL_LISTEN_PORT    BASE_PORT + i + 1
+# - WARP PORT:         BASE_PORT + 100 + i*10 + 6
+# - ADMIN PORT:        BASE_PORT + 100 + i*10 + 7
+# - BACKUP PORT:       BASE_PORT + 100 + i*10 + 8
 
 mkdir -p "${NODES_DIR}"
 
@@ -92,9 +92,9 @@ for i in $(seq 0 $((NUM_NODES - 1))); do
   fi
 
   API_PORT=$((BASE_PORT + i*10 + 0))
-  WARP_PORT=$((BASE_PORT + i*10 + 6))      # inspection_service (warp) replaces default 6186
-  ADMIN_PORT=$((BASE_PORT + i*10 + 7))     # admin_service replaces default port(s)
-  BACKUP_PORT=$((BASE_PORT + i*10 + 8))
+  WARP_PORT=$((BASE_PORT + 100 + i*10 + 6))    # inspection_service (warp) replaces default 6186
+  ADMIN_PORT=$((BASE_PORT + 100 + i*10 + 7))   # admin_service replaces default port(s)
+  BACKUP_PORT=$((BASE_PORT + 100 + i*10 + 8))
   VAL_LISTEN_PORT=$((BASE_PORT + i + 1))
 
   # Start from template and patch paths/ports.

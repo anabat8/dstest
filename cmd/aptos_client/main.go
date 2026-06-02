@@ -183,7 +183,7 @@ func sendBatch(s *submitter, numTransactions uint64) error {
 	err := s.client.PollForTransactions(
 		hashes,
 		aptos.PollPeriod(500*time.Millisecond),
-		aptos.PollTimeout(30*time.Second),
+		aptos.PollTimeout(60*time.Second),
 	)
 	if err != nil {
 		return fmt.Errorf("wait for commit: %w", err)

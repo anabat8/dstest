@@ -75,6 +75,18 @@ type NetworkFaultSpec struct {
 	Partition Partition
 }
 
+type NetworkFaults struct {
+	Faults        []NetworkFaultSpec
+	mu            *sync.Mutex
+	recoveryTimer *time.Timer
+}
+
+func (f *NetworkFaults) Reset() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.Faults = make([]NetworkFaultSpec, 0)
+}
+
 /*
 Set of (round, a subset of P, and a seed)
 */
@@ -85,9 +97,10 @@ type ProcFaultSpec struct {
 }
 
 type ByzzFuzzParams struct {
-	C int // no of rounds with process faults
-	D int // no of rounds with network faults
-	R int // bound on rounds with faults
+	C             int // no of rounds with process faults
+	D             int // no of rounds with network faults
+	R             int // bound on rounds with faults
+	Recovery_Time int // time until network heals and dropped messages are sent, in seconds
 }
 
 /*
@@ -114,8 +127,10 @@ func randomSubsetOf(s []int, rng *rand.Rand) map[ReplicaID]struct{} {
 	return out
 }
 
-func isNetworkFault(round aptos.Round, sender ReplicaID, receiver ReplicaID, faults []NetworkFaultSpec) bool {
-	for _, f := range faults {
+func isNetworkFault(round aptos.Round, sender ReplicaID, receiver ReplicaID, faults *NetworkFaults) bool {
+	faults.mu.Lock()
+	defer faults.mu.Unlock()
+	for _, f := range faults.Faults {
 		if f.Round == round && f.Partition.Isolates(sender, receiver) {
 			return true
 		}
@@ -134,6 +149,10 @@ func isProcFault(round aptos.Round, receiver ReplicaID, faults []ProcFaultSpec) 
 	return 0, false
 }
 
+/*
+Stores the dropped messages due to network partitions.
+When the network heals, these messages will be sent.
+*/
 type DelayMessagesStore struct {
 	// if message with MessageId is delayed
 	isDelayed map[uint64]bool
@@ -177,7 +196,7 @@ type ByzzFuzzScheduler struct {
 
 	// sampled once per iteration
 	pByz          ReplicaID // sender == pByz
-	networkFaults []NetworkFaultSpec
+	networkFaults NetworkFaults
 	procFaults    []ProcFaultSpec
 
 	delayStore *DelayMessagesStore
@@ -198,9 +217,10 @@ func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 	s.rng = rand.New(rand.NewSource(seed))
 
 	s.params = ByzzFuzzParams{
-		C: config.SchedulerConfig.Params["c"].(int),
-		D: config.SchedulerConfig.Params["d"].(int),
-		R: config.SchedulerConfig.Params["r"].(int),
+		C:             config.SchedulerConfig.Params["c"].(int),
+		D:             config.SchedulerConfig.Params["d"].(int),
+		R:             config.SchedulerConfig.Params["r"].(int),
+		Recovery_Time: config.SchedulerConfig.Params["recovery_seconds"].(int),
 	}
 	s.delayStore = NewDelayMessagesStore()
 
@@ -216,6 +236,7 @@ func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 	s.Log = log.New(os.Stdout, "[ByzzFuzz Scheduler] ", log.LstdFlags)
 
 	s.iteration = 0
+	s.networkFaults = NetworkFaults{make([]NetworkFaultSpec, 0), &sync.Mutex{}, time.NewTimer(0)}
 }
 
 func (s *ByzzFuzzScheduler) Reset() {
@@ -233,18 +254,27 @@ func (s *ByzzFuzzScheduler) NextIteration() {
 	}
 	s.ClientDone <- struct{}{}
 
+	s.delayStore = NewDelayMessagesStore()
+
 	// sample network faults for the iteration
-	s.networkFaults = make([]NetworkFaultSpec, s.params.D)
+	s.networkFaults.recoveryTimer.Stop()
+	s.networkFaults.mu.Lock()
+
+	s.networkFaults.Faults = make([]NetworkFaultSpec, s.params.D)
 	for i := 0; i < s.params.D; i++ {
 		round := aptos.Round(s.rng.Intn(s.params.R))
 		partition := NewPartition(ReplicaIDs(s.NetworkManager.ReplicaIds), s.rng)
-		s.networkFaults[i] = NetworkFaultSpec{
+		s.networkFaults.Faults[i] = NetworkFaultSpec{
 			Round:     round,
 			Partition: partition,
 		}
 	}
+	s.networkFaults.mu.Unlock()
 
-	s.Log.Printf("Sampled network faults for iteration: %v\n", s.networkFaults)
+	// Schedule network recovery after some time (e.g.: 60 seconds)
+	s.networkFaults.recoveryTimer = time.AfterFunc(time.Duration(s.params.Recovery_Time)*time.Second, s.OnRecoveryStart)
+
+	s.Log.Printf("Sampled network faults for iteration: %v\n", s.networkFaults.Faults)
 
 	s.pByz = ReplicaID(s.NetworkManager.ReplicaIds[s.rng.Intn(len(s.NetworkManager.ReplicaIds))])
 
@@ -301,6 +331,7 @@ func (s *ByzzFuzzScheduler) Shutdown() {
 	if s.mutationFile != nil {
 		s.mutationFile.Close()
 	}
+	s.networkFaults.recoveryTimer.Stop()
 }
 
 /*
@@ -331,9 +362,15 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 	sender := ReplicaID(chosenMsg.Sender)
 	receiver := ReplicaID(chosenMsg.Receiver)
 
-	if isNetworkFault(round, sender, receiver, s.networkFaults) {
-		// do nothing, drop the message (remove from queue)
+	if isNetworkFault(round, sender, receiver, &s.networkFaults) {
+		// temporary drop the message (remove from queue)
+		// msg will be resent with delay (after network recovers)
 		s.Log.Printf("Dropping message from %d to %d in round %d with msg id %d due to network fault\n", sender, receiver, round, chosenMsg.MessageId)
+		s.delayStore.SetDelayed(
+			chosenMsg.MessageId,
+			time.Duration(30*time.Second),
+			chosenMsg.SendMessage,
+		)
 		return SchedulerDecision{
 			DecisionType: DropMessage,
 			Index:        index,
@@ -348,52 +385,48 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 				Index:        index,
 			}
 		}
-		// mutate the message by adding a random delay, or by changing the payload
-		shouldDelay := (s.rng.Intn(2) == 0)
-		if shouldDelay {
-			s.Log.Printf("Delaying message from %d to %d in round %d with msg id %d\n", sender, receiver, round, chosenMsg.MessageId)
-			// add random delay
-			s.delayStore.SetDelayed(
-				chosenMsg.MessageId,
-				time.Duration(5*time.Second),
-				chosenMsg.SendMessage,
-			)
+		// mutate the message by changing the payload
+		ogMsg := c.String()
+
+		mutation, err := s.Mutator.Mutate(c, seedProcFault) //msg is mutated in place
+
+		s.Log.Printf(
+			"Mutating message from %d to %d in round %d with msg id %d\n and mutation %s",
+			sender, receiver, round, chosenMsg.MessageId, mutation.Name,
+		)
+
+		if err != nil {
+			s.Log.Printf("Error in mutation %s: %v", mutation.Name, err)
+			return SchedulerDecision{
+				DecisionType: NoOp,
+			}
+		}
+		if s.mutationLog != nil {
+			s.mutationLog.Write([]string{
+				fmt.Sprintf("%d", sender),
+				fmt.Sprintf("%d", receiver),
+				fmt.Sprintf("%d", timestamp),
+				fmt.Sprintf("%d", round),
+				ogMsg,
+				c.String(),
+				mutation.Name,
+				string(mutation.Method),
+				fmt.Sprintf("%d", chosenMsg.MessageId),
+			})
+			s.mutationLog.Flush()
+		}
+
+		if mutation.ShouldOmitSending() {
 			return SchedulerDecision{
 				DecisionType: DropMessage,
 				Index:        index,
 			}
-		} else {
-			ogMsg := c.String()
+		}
 
-			mutation, err := s.Mutator.Mutate(c, seedProcFault) //msg is mutated in place
-
-			s.Log.Printf("Mutating message from %d to %d in round %d with msg id %d\n and mutation %s", sender, receiver, round, chosenMsg.MessageId, mutation.Name)
-
-			if err != nil {
-				s.Log.Printf("Error in mutation %s: %v", mutation.Name, err)
-				return SchedulerDecision{
-					DecisionType: NoOp,
-				}
-			}
-			if s.mutationLog != nil {
-				s.mutationLog.Write([]string{
-					fmt.Sprintf("%d", sender),
-					fmt.Sprintf("%d", receiver),
-					fmt.Sprintf("%d", timestamp),
-					fmt.Sprintf("%d", round),
-					ogMsg,
-					c.String(),
-					mutation.Name,
-					string(mutation.Method),
-					fmt.Sprintf("%d", chosenMsg.MessageId),
-				})
-				s.mutationLog.Flush()
-			}
-			return SchedulerDecision{
-				DecisionType:   DeliverMutatedMessage,
-				Index:          index,
-				MutatedMessage: chosenMsg,
-			}
+		return SchedulerDecision{
+			DecisionType:   DeliverMutatedMessage,
+			Index:          index,
+			MutatedMessage: chosenMsg,
 		}
 	} else {
 		// send original message (without mutation)
@@ -455,6 +488,18 @@ func (s *ByzzFuzzScheduler) ClientRequestDone(client, exitCode int) {
 		s.AvailableClients = append([]int{client}, s.AvailableClients...)
 	}
 	s.ClientDone <- struct{}{}
+}
+
+/*
+When we have network partitions, some messages are dropped (not sent currently).
+When the network heals, these messages should be sent.
+We need to clear network faults immediately when recovery starts, so that new messages aren't dropped.
+Mutations can still happen after recovery starts.
+Network recovery happens after Recovery_Time param seconds (e.g.: 60 or 30 seconds) since the iteration starts.
+*/
+func (s *ByzzFuzzScheduler) OnRecoveryStart() {
+	s.Log.Println("Network heal started, releasing held (dropped) messages")
+	s.networkFaults.Reset()
 }
 
 func (s *ByzzFuzzScheduler) SetNetworkManager(networkManager *network.Manager) {

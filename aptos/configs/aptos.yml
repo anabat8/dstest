@@ -7,10 +7,10 @@ TestConfig:
 
 SchedulerConfig:
   Type: "byzzfuzz"
-  Steps: 1000
+  Steps: 2500
   Seed: 42
   ClientRequests: 0
-  Params: {"c": 10, "d": 0, "r": 10}
+  Params: {"c": 1, "d": 1, "r": 6, "recovery_seconds": 30}
 
 NetworkConfig:
   BaseReplicaPort: 8000
@@ -23,15 +23,16 @@ FaultConfig:
 
 ProcessConfig:
   NumReplicas: 4
-  Timeout: 100
-  OutputDir:  output/aptos/20260525_162512
+  Timeout: 150
+  OutputDir:  output/aptos/20260602_152540
   ReplicaScript: aptos/aptos_server.sh
   # NOTE: each ClientScripts entry must have a different clientId
+  # NOTE: the scripts are executed in the given order.
   ClientScripts:
-    - aptos/aptos_client.sh 0 0 5 5
-    - aptos/aptos_client.sh 1 3 2 6
-    - aptos/aptos_client.sh 2 1 5 7
-    - aptos/aptos_client.sh 3 2 3 8
+    - aptos/aptos_client.sh 0 0 5 4
+    - aptos/aptos_client.sh 1 3 2 5
+    - aptos/aptos_client.sh 2 1 5 6
+    - aptos/aptos_client.sh 3 2 3 7
   CleanScript: aptos/aptos_clean.sh
   ReplicaParams:
     - "0 /tmp/aptos-dstest"

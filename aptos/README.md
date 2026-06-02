@@ -67,12 +67,12 @@ For any node wih index i in the local network consisting of `NUM_REPLICAS` repli
 |---------|-------------|
 | Base validator port `BASE_PORT` | 8000
 | Interceptor port `BaseInterceptorPort` | 10000
-| Validator network `VAL_LISTEN_PORT` | BaseReplicaPort + i + 1 (e.g. 8001, 8002, 8003, 8004) |
+| Validator network `VAL_LISTEN_PORT` | `BASE_PORT + i + 1` (e.g. 8001, 8002, 8003, ...) |
 | TCP interceptors | `10000 + sender_node_index * NUM_REPLICAS + receiver_node_index` |
 | API port | `BASE_PORT + i * 10` |
-| Inspection service (warp port) | `BASE_PORT + i * 10 + 6` |
-| Admin service | `BASE_PORT + i * 10 + 7` |
-| Backup service | `BASE_PORT + i * 10 + 8` |
+| Inspection service (warp port) | `BASE_PORT + 100 + i * 10 + 6` |
+| Admin service | `BASE_PORT + 100 + i * 10 + 7` |
+| Backup service | `BASE_PORT + 100 + i * 10 + 8` |
 
 **Validator listen address**: `/ip4/0.0.0.0/tcp/VAL_LISTEN_PORT` e.g. `/ip4/0.0.0.0/tcp/8001`
 

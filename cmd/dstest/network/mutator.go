@@ -59,11 +59,17 @@ func (m *AptosMutator) Mutate(cMsg aptos.IConsensusMessage, seed int64) (mutatio
 	return mut, nil
 }
 
+func (m mutation) ShouldOmitSending() bool {
+	return m.Name == OmitMutation.Name && m.Method == OmitMutation.Method
+}
+
 type mutation struct {
 	Name   string
 	Method mutationMethod
 	fn     func()
 }
+
+var OmitMutation mutation = mutation{Name: "omit_mutation", Method: as, fn: func() {}}
 
 type mutationMethod string
 
@@ -74,6 +80,7 @@ const (
 
 func pickMutation(mutations []mutation, seed int64) mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
+	mutations = append(mutations, OmitMutation)
 	chosen := mutations[rng.Intn(len(mutations))]
 	chosen.fn()
 	return chosen
