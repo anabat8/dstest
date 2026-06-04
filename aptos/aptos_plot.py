@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -171,6 +172,37 @@ def params_subtitle(cfg: RunConfig) -> str:
     return "  |  ".join(parts)
 
 
+def plot_title(title: str, cfg: RunConfig) -> str:
+    subtitle = params_subtitle(cfg)
+    return f"{title}\n{subtitle}" if subtitle else title
+
+
+def sparse_iteration_ticks(
+    labels: list[str],
+    important_positions: set[int],
+    max_ticks: int = 25,
+) -> tuple[list[int], list[str]]:
+    n = len(labels)
+    if n <= max_ticks:
+        return list(range(n)), labels
+
+    step = max(1, math.ceil(n / max_ticks))
+    positions = set(range(0, n, step))
+    positions.add(0)
+    positions.add(n - 1)
+    positions.update(important_positions)
+    protected = {0, n - 1, *important_positions}
+    neighbor_gap = max(2, step // 2)
+    for important in important_positions:
+        for pos in list(positions):
+            if pos in protected:
+                continue
+            if abs(pos - important) < neighbor_gap:
+                positions.remove(pos)
+    ticks = sorted(pos for pos in positions if 0 <= pos < n)
+    return ticks, [labels[pos] for pos in ticks]
+
+
 def mmss(seconds: float) -> str:
     m, s = divmod(int(seconds), 60)
     return f"{m}m {s:02d}s"
@@ -204,7 +236,7 @@ def plot_violations_over_time(iters: list[IterStats], cfg: RunConfig, out_path: 
             color=COL_LV_VIOLS, lw=2, label="liveness violations")
     ax.set_xlabel("Experiment time (mm:ss)")
     ax.set_ylabel("Cumulative count")
-    ax.set_title("Cumulative agreement / liveness violations\n" + params_subtitle(cfg))
+    ax.set_title(plot_title("Cumulative agreement / liveness violations", cfg))
     ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: mmss(v)))
     ax.legend(loc="upper left")
     ax.grid(True, alpha=0.3)
@@ -225,32 +257,78 @@ def plot_per_iter_overview(iters: list[IterStats], cfg: RunConfig, out_path: Pat
     ag = [it.ag_viols for it in iters]
     lv = [it.lv_viols for it in iters]
     heights = [it.max_height for it in iters]
-    y_max = max([*commits, *ag, *lv, *heights], default=0)
 
-    fig, ax = plt.subplots(figsize=(12, 5))
-    bar_w = 0.8 / 3
-    offsets = [-bar_w, 0.0, bar_w]
-    ax.bar([x + offsets[0] for x in xs], commits, bar_w,
-           color=COL_COMMITS, edgecolor=COL_COMMITS, linewidth=1,
-           label="client tx commits")
-    ax.bar([x + offsets[1] for x in xs], ag, bar_w,
-           color=COL_AG_VIOLS, edgecolor=COL_AG_VIOLS, linewidth=1,
-           label="agreement violations")
-    ax.bar([x + offsets[2] for x in xs], lv, bar_w,
-           color=COL_LV_VIOLS, edgecolor=COL_LV_VIOLS, linewidth=1,
-           label="liveness violations")
-    ax.plot(xs, heights, marker="o", color=COL_HEIGHT, lw=2, ms=5,
-            label="max block height")
+    important_positions = {
+        pos for pos, it in enumerate(iters) if it.ag_viols > 0 or it.lv_viols > 0
+    }
+    tick_positions, tick_labels = sparse_iteration_ticks(labels, important_positions)
+    fig_w = max(12, min(18, 8 + n * 0.08))
 
-    ax.set_xticks(xs)
-    ax.set_xticklabels(labels)
-    ax.set_xlabel("Iteration")
-    ax.set_ylabel("Count / Block height")
-    ax.set_title("Per-iter overview\n" + params_subtitle(cfg))
-    ax.set_ylim(0, y_max * 1.4 if y_max > 0 else 1)
-    ax.legend(loc="upper left")
-    ax.grid(True, axis="y", alpha=0.3)
-    fig.tight_layout()
+    fig, (ax_height, ax_commits, ax_viols) = plt.subplots(
+        3, 1,
+        figsize=(fig_w, 8),
+        sharex=True,
+        gridspec_kw={"height_ratios": [2.0, 1.2, 1.2], "hspace": 0.08},
+    )
+
+    ax_height.plot(xs, heights, marker="o", color=COL_HEIGHT, lw=2, ms=4)
+    ax_height.set_ylabel("Max block\nheight")
+    ax_height.grid(True, axis="y", alpha=0.3)
+
+    ax_commits.bar(xs, commits, width=0.7,
+                   color=COL_COMMITS, edgecolor=COL_COMMITS, linewidth=1)
+    ax_commits.set_ylabel("Client tx\ncommits")
+    ax_commits.grid(True, axis="y", alpha=0.3)
+
+    bar_w = 0.35
+    ax_viols.bar([x - bar_w / 2 for x in xs], ag, bar_w,
+                 color=COL_AG_VIOLS, edgecolor=COL_AG_VIOLS, linewidth=1,
+                 label="agreement")
+    ax_viols.bar([x + bar_w / 2 for x in xs], lv, bar_w,
+                 color=COL_LV_VIOLS, edgecolor=COL_LV_VIOLS, linewidth=1,
+                 label="liveness")
+    for x, it in zip(xs, iters):
+        if it.ag_viols > 0:
+            ax_viols.annotate(
+                f"A={it.ag_viols}",
+                (x - bar_w / 2, it.ag_viols),
+                xytext=(0, 4),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+                color=COL_AG_VIOLS,
+            )
+        if it.lv_viols > 0:
+            ax_viols.annotate(
+                f"L={it.lv_viols}",
+                (x + bar_w / 2, it.lv_viols),
+                xytext=(0, 4),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+                color=COL_LV_VIOLS,
+            )
+    viol_max = max([*ag, *lv], default=0)
+    ax_viols.set_ylim(0, max(1, viol_max) * 1.8)
+    ax_viols.yaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+    ax_viols.set_ylabel("Violations")
+    ax_viols.set_xlabel("Iteration")
+    ax_viols.set_xticks(tick_positions)
+    ax_viols.set_xticklabels(tick_labels)
+    ax_viols.legend(loc="upper left", ncol=2)
+    ax_viols.grid(True, axis="y", alpha=0.3)
+
+    for ax in (ax_height, ax_commits):
+        ax.tick_params(labelbottom=False)
+    for pos in important_positions:
+        for ax in (ax_height, ax_commits, ax_viols):
+            ax.axvline(pos, color=COL_LV_VIOLS, alpha=0.15, lw=1)
+
+    fig.suptitle(plot_title("Per-iter overview", cfg), y=0.98)
+    fig.align_ylabels([ax_height, ax_commits, ax_viols])
+    fig.subplots_adjust(left=0.08, right=0.99, top=0.86, bottom=0.10, hspace=0.08)
     fig.savefig(out_path, dpi=120)
     plt.close(fig)
 
@@ -306,25 +384,30 @@ def plot_aggregate_table(scan_dirs: list[Path], out_path: Path) -> None:
     baseline_rows = [(cd, v) for cd, v in items if cd[0] == 0]
     fuzz_rows = [(cd, v) for cd, v in items if cd[0] > 0]
 
-    # Top section (c=0): faults | L | A | Total
-    top_cols = ["faults", "L", "A", "Total"]
+    # Top section (c=0): violation iteration counts.
+    top_cols = ["faults", "L iters", "A iters", "Any iters"]
     top_data: list[list[str]] = []
     for (c, d), v in baseline_rows:
         label = "baseline" if d == 0 else f"c={c}, d={d}"
         top_data.append([label, str(v["lv"]), str(v["ag"]), str(v["any"])])
 
-    # Bottom section (c>0): faults | L(ss) | L(as) | A(ss) | A(as) | Total(ss) | Total(as)
-    # ss/as cells = sum of small_scope / structure_aware mutations recorded
-    # across iters of this config that triggered the column's violation
-    # (L = liveness, A = agreement). The Total columns are the per-scope sum
-    # of the L and A columns.
-    bot_cols = ["faults", "L (ss)", "L (as)", "A (ss)", "A (as)", "Total (ss)", "Total (as)"]
+    # Bottom section (c>0): separate violation iteration counts from
+    # mutation-row totals. Mutation columns count small_scope / structure_aware
+    # rows recorded across iterations that triggered the corresponding violation.
+    bot_cols = [
+        "faults",
+        "L iters", "A iters", "Any iters",
+        "L ss muts", "L as muts",
+        "A ss muts", "A as muts",
+        "Total ss muts", "Total as muts",
+    ]
     bot_data: list[list[str]] = []
     for (c, d), v in fuzz_rows:
         tot_ss = v["lv_ss"] + v["ag_ss"]
         tot_as = v["lv_as"] + v["ag_as"]
         bot_data.append([
             f"c={c}, d={d}",
+            str(v["lv"]), str(v["ag"]), str(v["any"]),
             str(v["lv_ss"]), str(v["lv_as"]),
             str(v["ag_ss"]), str(v["ag_as"]),
             str(tot_ss), str(tot_as),
@@ -337,7 +420,7 @@ def plot_aggregate_table(scan_dirs: list[Path], out_path: Path) -> None:
 
     fig, (ax_top, ax_bot) = plt.subplots(
         2, 1,
-        figsize=(11, height),
+        figsize=(14, height),
         gridspec_kw={"height_ratios": [n_top, n_bot]},
     )
 
@@ -359,7 +442,7 @@ def plot_aggregate_table(scan_dirs: list[Path], out_path: Path) -> None:
         t2 = ax_bot.table(cellText=bot_data, colLabels=bot_cols,
                           cellLoc="center", loc="center")
         t2.auto_set_font_size(False)
-        t2.set_fontsize(10)
+        t2.set_fontsize(8)
         t2.scale(1, 1.6)
     else:
         ax_bot.text(0.5, 0.5, "no fuzz (c>0) runs", ha="center", va="center")

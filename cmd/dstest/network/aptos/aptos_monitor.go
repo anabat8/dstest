@@ -75,7 +75,7 @@ func (m *AgreementMonitor) PollForNode(node_id, port int) {
 		return
 	}
 
-	for {
+	for ; ; time.Sleep(time.Millisecond * 1000) {
 		select {
 		case <-m.finishSignal:
 			return
@@ -124,10 +124,14 @@ func (m *AgreementMonitor) PollForNode(node_id, port int) {
 			firstTx, err := client.TransactionByVersion(block.FirstVersion)
 			if err != nil {
 				fmt.Printf("[Port: %d] Error fetching round info: %s\n", port, err)
+				continue
+			}
+
+			if bmt, ok := firstTx.Inner.(*api.BlockMetadataTransaction); ok {
+				round = bmt.Round
 			} else {
-				if bmt, ok := firstTx.Inner.(*api.BlockMetadataTransaction); ok {
-					round = bmt.Round
-				}
+				fmt.Printf("[Port: %d] Could not decode round info from first transaction at version %s\n", port, block.FirstVersion)
+				continue
 			}
 
 			m.Put(Content{
@@ -138,8 +142,6 @@ func (m *AgreementMonitor) PollForNode(node_id, port int) {
 				AccHash: accHash,
 				LedgerV: ledgerV,
 			})
-
-			time.Sleep(time.Millisecond * 1000)
 		}
 	}
 }
