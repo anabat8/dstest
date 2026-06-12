@@ -71,7 +71,10 @@ RUST_LOG ?= byzzfuzz.noise=info,info
 LOG_LEVEL ?=
 
 # for checking liveness property, we set a timeout bound (in seconds)
-LIVENESS_TIMEOUT ?= 60
+LIVENESSTIMEOUT ?= 60
+
+# for a DSTest iteration we set a terminating block height
+BLOCKBUDGET ?= 10
 
 # aptos.yml template vars
 STEPS 			     ?= 2300
@@ -85,11 +88,11 @@ CLIENT_REQUESTS      ?= 0
 
 # Seeded bugs to add to aptos-build
 # BUG1 causes QC to require n votes instead of 2f+1.
-BUG1 ?= true
+BUG1 ?= false
 # BUG2 causes QC to require only f+1 votes instead of 2f+1.
 BUG2 ?= false
 # BUG3 causes echo timeout to require strictly more than f+1 timeout voting power.
-BUG3 ?= false
+BUG3 ?= true
 
 APTOS_FEATURES := byzzfuzz
 ifneq ($(word 2,$(filter true,$(BUG1) $(BUG2) $(BUG3))),)
@@ -262,7 +265,7 @@ config:
 	echo "  Steps: $(STEPS)"; \
 	echo "  Seed: $(SEED)"; \
 	echo "  ClientRequests: $(CLIENT_REQUESTS)"; \
-	echo "  Params: {\"c\": $(PARAM_C), \"d\": $(PARAM_D), \"r\": $(PARAM_R), \"recovery_seconds\": $(RECOVERYSECONDS)}"; \
+	echo "  Params: {\"c\": $(PARAM_C), \"d\": $(PARAM_D), \"r\": $(PARAM_R), \"recovery_seconds\": $(RECOVERYSECONDS), \"liveness_timeout\": $(LIVENESSTIMEOUT), \"block_budget\": $(BLOCKBUDGET)}"; \
 	echo ""; \
 	echo "NetworkConfig:"; \
 	echo "  BaseReplicaPort: $(BASE_PORT)"; \
@@ -316,7 +319,6 @@ run:
 	cd $(DSTEST_ROOT)/cmd/dstest && \
 	  RUST_LOG="$(RUST_LOG)" LOG_LEVEL="$(LOG_LEVEL)" BASE_DIR="$(BASE_DIR)" \
 	  BASE_PORT="$(BASE_PORT)" \
-	  LIVENESS_TIMEOUT="$(LIVENESS_TIMEOUT)" \
 	  ./main run -c "$(CONFIG)"
 
 .PHONY: all
