@@ -40,8 +40,8 @@ COL_HEIGHT = "#2166ac"   # blue
 class IterStats:
     index: int
     commits: int = 0       # count of "committed tx=" across client_stdout_*.log
-    ag_viols: int = 0      # "Disagreement detected ..." lines in agreement.log
-    lv_viols: int = 0      # "Liveness failure: ..."     lines in agreement.log
+    ag_viols: int = 0      # unique agreement-violation heights in agreement.log
+    lv_viols: int = 0      # 1 if agreement.log contains a real liveness failure, else 0
     max_height: float = 0  # peak block height observed in the iter
     start_sec: float = 0   # first block log_time
     end_sec: float = 0     # last block log_time
@@ -105,15 +105,25 @@ def load_block_summary(path: Path) -> tuple[float, float, float]:
 def count_agreement_violations(path: Path) -> tuple[int, int]:
     """
     Split agreement.log into the two violation kinds the aptos agreement monitor
-    writes (one line per event):
+    writes:
       - "Disagreement detected at height X between node A and node B"
       - "Liveness failure: no new blocks committed in N seconds"
+
+    Agreement logs can contain many repeated node-pair lines for the same
+    divergent height. Count one agreement violation per height per iteration.
+    Liveness failures are per-iteration outcomes, so count at most one real
+    liveness violation per iteration even if the log contains repeated lines.
     """
     try:
         text = path.read_text()
     except FileNotFoundError:
         return 0, 0
-    return text.count("Disagreement detected"), text.count("Liveness failure")
+    agreement_heights = {
+        int(m.group(1))
+        for m in re.finditer(r"Disagreement detected at height (\d+)", text)
+    }
+    has_liveness_failure = bool(re.search(r"Liveness (failure|violation)", text))
+    return len(agreement_heights), int(has_liveness_failure)
 
 
 def count_mutation_scopes(path: Path) -> tuple[int, int]:

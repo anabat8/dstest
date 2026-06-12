@@ -1,5 +1,5 @@
 TestConfig:
-  Name: aptos-b-c0d1
+  Name: aptos-b1-c1d1
   Experiments: 1
   Iterations: 100
   WaitDuration: 50
@@ -7,14 +7,14 @@ TestConfig:
 
 SchedulerConfig:
   Type: "byzzfuzz"
-  Steps: 2500
+  Steps: 2100
   Seed: 42
   ClientRequests: 0
-  Params: {"c": 0, "d": 1, "r": 6, "recovery_seconds": 30}
+  Params: {"c": 1, "d": 1, "r": 6, "recovery_seconds": 30}
 
 NetworkConfig:
-  BaseReplicaPort: 8000
-  BaseInterceptorPort: 10000
+  BaseReplicaPort: 9000
+  BaseInterceptorPort: 11000
   Protocol: "aptostcp"
   MessageType: Aptos
 
@@ -22,20 +22,20 @@ FaultConfig:
   Faults: []
 
 ProcessConfig:
-  NumReplicas: 4
+  NumReplicas: 6
   Timeout: 150
-  OutputDir:  output/aptos-b-c0d1/20260604_081545
+  OutputDir:  output/aptos-b1-c1d1/20260610_185906
   ReplicaScript: aptos/aptos_server.sh
   # NOTE: each ClientScripts entry must have a different clientId
   # NOTE: the scripts are executed in the given order.
   ClientScripts:
-    - aptos/aptos_client.sh 0 0 5 4
-    - aptos/aptos_client.sh 1 3 2 5
-    - aptos/aptos_client.sh 2 1 5 6
-    - aptos/aptos_client.sh 3 2 3 7
+    - aptos/aptos_client.sh 0 0 2 2
+    - aptos/aptos_client.sh 1 3 2 3
   CleanScript: aptos/aptos_clean.sh
   ReplicaParams:
-    - "0 /tmp/aptos-dstest"
-    - "1 /tmp/aptos-dstest"
-    - "2 /tmp/aptos-dstest"
-    - "3 /tmp/aptos-dstest"
+    - "0 /tmp/aptos-dstest-c1d1"
+    - "1 /tmp/aptos-dstest-c1d1"
+    - "2 /tmp/aptos-dstest-c1d1"
+    - "3 /tmp/aptos-dstest-c1d1"
+    - "4 /tmp/aptos-dstest-c1d1"
+    - "5 /tmp/aptos-dstest-c1d1"

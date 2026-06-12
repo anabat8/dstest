@@ -30,7 +30,7 @@ DSTEST_LOG ?= /tmp/dstest$(RUN_TAG).log
 CONFIG ?= $(DSTEST_ROOT)/aptos/configs/aptos$(RUN_TAG).yml
 
 # localnet config
-NUM_REPLICAS ?= 4
+NUM_REPLICAS ?= 6
 CHAIN_ID ?= 42
 EPOCH_DURATION_SECS ?= 7200
 
@@ -49,7 +49,7 @@ VAL_NET_BASE ?= $(shell expr 6100 + $(RUN_OFFSET))
 FN_NET_BASE  ?= $(shell expr 6200 + $(RUN_OFFSET))
 
 # number of client accounts to generate and pre-fund (reusable)
-NUM_CLIENT_ACCOUNTS ?= 4
+NUM_CLIENT_ACCOUNTS ?= 2
 
 # logs output directory
 RUN_ID ?= $(shell date +"%Y%m%d_%H%M%S")
@@ -74,7 +74,7 @@ LOG_LEVEL ?=
 LIVENESS_TIMEOUT ?= 60
 
 # aptos.yml template vars
-STEPS 			     ?= 2500
+STEPS 			     ?= 2300
 SEED                 ?= 42
 PARAM_C              ?= 1
 PARAM_D              ?= 1
@@ -82,6 +82,28 @@ PARAM_R              ?= 6
 RECOVERYSECONDS      ?= 30
 # Note: CLIENT_REQUESTS is not currently read by ByzzFuzz Scheduler.
 CLIENT_REQUESTS      ?= 0
+
+# Seeded bugs to add to aptos-build
+# BUG1 causes QC to require n votes instead of 2f+1.
+BUG1 ?= true
+# BUG2 causes QC to require only f+1 votes instead of 2f+1.
+BUG2 ?= false
+# BUG3 causes echo timeout to require strictly more than f+1 timeout voting power.
+BUG3 ?= false
+
+APTOS_FEATURES := byzzfuzz
+ifneq ($(word 2,$(filter true,$(BUG1) $(BUG2) $(BUG3))),)
+$(error BUG1, BUG2 and BUG3 are mutually exclusive; run one seeded bug at a time)
+endif
+ifeq ($(BUG1),true)
+APTOS_FEATURES += seeded-bug1-qc-high
+endif
+ifeq ($(BUG2),true)
+APTOS_FEATURES += seeded-bug2-qc-low
+endif
+ifeq ($(BUG3),true)
+APTOS_FEATURES += seeded-bug3-echo-timeout-strict
+endif
 
 # -----------------------------
 # Helpers
@@ -113,6 +135,10 @@ help:
 	@echo "  CONFIG=$(CONFIG)"
 	@echo "  RUST_LOG=$(RUST_LOG)"
 	@echo "  LOG_LEVEL=$(LOG_LEVEL)"
+	@echo "  BUG1=$(BUG1)"
+	@echo "  BUG2=$(BUG2)"
+	@echo "  BUG3=$(BUG3)"
+	@echo "  APTOS_FEATURES=$(APTOS_FEATURES)"
 
 # -----------------------------
 # Python venv + deps
@@ -130,7 +156,7 @@ setup: $(VENV_PY)
 # -----------------------------
 .PHONY: build-aptos
 build-aptos:
-	cd $(APTOS_CORE) && cargo build --release -p aptos-node --features byzzfuzz
+	cd $(APTOS_CORE) && cargo build --release -p aptos-node --features "$(APTOS_FEATURES)"
 	cd $(APTOS_CORE) && cargo build -p aptos --profile cli
 
 .PHONY: build-dstest
@@ -227,7 +253,7 @@ config:
 	echo "TestConfig:"; \
 	echo "  Name: $(TEST_NAME)"; \
 	echo "  Experiments: 1"; \
-	echo "  Iterations: 10"; \
+	echo "  Iterations: 100"; \
 	echo "  WaitDuration: 50"; \
 	echo "  StartupDuration: 10"; \
 	echo ""; \
@@ -255,10 +281,8 @@ config:
 	echo "  # NOTE: each ClientScripts entry must have a different clientId"; \
 	echo "  # NOTE: the scripts are executed in the given order."; \
 	echo "  ClientScripts:"; \
-	echo "    - aptos/aptos_client.sh 0 0 5 4"; \
-	echo "    - aptos/aptos_client.sh 1 3 2 5"; \
-	echo "    - aptos/aptos_client.sh 2 1 5 6"; \
-	echo "    - aptos/aptos_client.sh 3 2 3 7"; \
+	echo "    - aptos/aptos_client.sh 0 0 2 2"; \
+	echo "    - aptos/aptos_client.sh 1 3 2 3"; \
 	echo "  CleanScript: aptos/aptos_clean.sh"; \
 	echo "  ReplicaParams:"; \
 	for i in $$(seq 0 $$(( $(NUM_REPLICAS) - 1 ))); do \

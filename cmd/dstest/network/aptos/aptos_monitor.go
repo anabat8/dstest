@@ -5,8 +5,10 @@ import (
 	"encoding/csv"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/aptos-labs/aptos-go-sdk"
@@ -18,12 +20,35 @@ type AgreementMonitor struct {
 	finishSignal chan struct{}
 	contentChan  chan Content
 
+	ChainHeightInfo
+
 	blockCommitsLog  *csv.Writer
 	blockCommitsFile *os.File
 	agreementFile    *os.File
 	log              bufio.Writer
 
 	livenessTimeout int
+}
+
+type ChainHeightInfo struct {
+	height map[uint64]uint64
+	mu     *sync.Mutex
+}
+
+func (c *ChainHeightInfo) Update(nodeId, height uint64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.height[nodeId] = height
+}
+
+func (c *ChainHeightInfo) MinHeight() uint64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	minH := uint64(math.MaxUint64)
+	for _, v := range c.height {
+		minH = min(minH, v)
+	}
+	return minH
 }
 
 type Content struct {
@@ -56,7 +81,15 @@ func StartAgreementMonitor(
 ) (*AgreementMonitor, error) {
 	quit := make(chan struct{})
 	contentChan := make(chan Content, 10)
-	monitor := &AgreementMonitor{finishSignal: quit, contentChan: contentChan, livenessTimeout: livenessTimeout}
+	chInfo := ChainHeightInfo{
+		height: make(map[uint64]uint64),
+		mu:     &sync.Mutex{},
+	}
+	for i := 0; i < numReplicas; i++ {
+		chInfo.height[uint64(i)] = 0
+	}
+
+	monitor := &AgreementMonitor{finishSignal: quit, contentChan: contentChan, ChainHeightInfo: chInfo, livenessTimeout: livenessTimeout}
 	monitor.Init(outputDir, testName, schedulerType, iteration)
 
 	go monitor.Monitor()
@@ -130,7 +163,7 @@ func (m *AgreementMonitor) PollForNode(node_id, port int) {
 			if bmt, ok := firstTx.Inner.(*api.BlockMetadataTransaction); ok {
 				round = bmt.Round
 			} else {
-				fmt.Printf("[Port: %d] Could not decode round info from first transaction at version %s\n", port, block.FirstVersion)
+				fmt.Printf("[Port: %d] Could not decode round info from first transaction at version %d\n", port, block.FirstVersion)
 				continue
 			}
 
@@ -158,17 +191,27 @@ func (m *AgreementMonitor) Monitor() {
 	byHeight := make(map[uint64][]Content)
 	livenessDuration := time.Second * time.Duration(m.livenessTimeout)
 	timer := time.NewTimer(livenessDuration)
+	lastMaxHeightProgressAt := time.Now()
 	maxHeight := uint64(0)
 
 	for {
 		select {
 		case <-m.finishSignal:
+			if maxHeight > 0 && time.Since(lastMaxHeightProgressAt) >= livenessDuration {
+				m.log.WriteString(fmt.Sprintf(
+					"Liveness failure: no new blocks committed in %d seconds at iteration end\n",
+					m.livenessTimeout))
+				m.log.Flush()
+			}
 			return
 		case content := <-m.contentChan:
 			if content.Block.BlockHeight > maxHeight {
 				maxHeight = content.Block.BlockHeight
+				lastMaxHeightProgressAt = time.Now()
 				timer.Reset(livenessDuration)
 			}
+
+			m.ChainHeightInfo.Update(uint64(content.NodeId), content.Block.BlockHeight)
 
 			m.blockCommitsLog.Write([]string{
 				fmt.Sprintf("%d", content.NodeId),
@@ -197,7 +240,7 @@ func (m *AgreementMonitor) Monitor() {
 			byHeight[content.Block.BlockHeight] = append(byHeight[content.Block.BlockHeight], content)
 		case <-timer.C:
 			m.log.WriteString(fmt.Sprintf(
-				"Liveness failure: no new blocks committed in %d seconds\n",
+				"Potential liveness timeout: no new blocks committed in %d seconds\n",
 				m.livenessTimeout))
 			m.log.Flush()
 		}

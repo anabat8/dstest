@@ -271,7 +271,7 @@ func (s *ByzzFuzzScheduler) NextIteration() {
 	}
 	s.networkFaults.mu.Unlock()
 
-	// Schedule network recovery after some time (e.g.: 60 seconds)
+	// Schedule network recovery after some time (e.g.: 30 or 60 seconds)
 	s.networkFaults.recoveryTimer = time.AfterFunc(time.Duration(s.params.Recovery_Time)*time.Second, s.OnRecoveryStart)
 
 	s.Log.Printf("Sampled network faults for iteration: %v\n", s.networkFaults.Faults)
@@ -368,7 +368,7 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 		s.Log.Printf("Dropping message from %d to %d in round %d with msg id %d due to network fault\n", sender, receiver, round, chosenMsg.MessageId)
 		s.delayStore.SetDelayed(
 			chosenMsg.MessageId,
-			time.Duration(30*time.Second),
+			time.Duration(s.params.Recovery_Time)*time.Second,
 			chosenMsg.SendMessage,
 		)
 		return SchedulerDecision{
