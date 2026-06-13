@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -131,6 +130,9 @@ func (te *TestEngine) Run() error {
 
 			schedule := make([]Action, 0)
 			for s := 0; s < te.Steps; {
+				if te.CheckAptosBlockBudget() {
+					break
+				}
 				if te.ProcessManager.BugCandidate {
 					break
 				}
@@ -142,10 +144,10 @@ func (te *TestEngine) Run() error {
 						done := te.ProcessManager.RunClient(sc)
 
 						// add sc back to available scripts
-						if s, ok := te.Scheduler.(interface{ ClientRequestDone(id int) }); ok {
+						if s, ok := te.Scheduler.(interface{ ClientRequestDone(id, exitCode int) }); ok {
 							go func() {
-								<-done
-								s.ClientRequestDone(sc)
+								exitCode := <-done
+								s.ClientRequestDone(sc, exitCode)
 							}()
 						}
 
@@ -262,10 +264,7 @@ func (te *TestEngine) StartAptosAgreementMonitor(iter int) {
 	if te.Config.NetworkConfig.Protocol != "aptostcp" {
 		return
 	}
-	livenessTimeout, err := strconv.Atoi(os.Getenv("LIVENESS_TIMEOUT"))
-	if err != nil {
-		livenessTimeout = 30 //default value
-	}
+	livenessTimeout := te.Config.SchedulerConfig.Params["liveness_timeout"].(int)
 	m, err := aptos.StartAgreementMonitor(
 		te.Config.ProcessConfig.OutputDir,
 		te.Config.TestConfig.Name,
@@ -280,6 +279,19 @@ func (te *TestEngine) StartAptosAgreementMonitor(iter int) {
 	} else {
 		te.AptosMonitor = m
 	}
+}
+
+/*
+For Aptos iterations, we want to either stop an iteration when the block budget
+has been achieved (all nodes have progressed until a given height, e.g. 10), or
+continue until Steps, in case some nodes are lagging behind.
+*/
+func (te *TestEngine) CheckAptosBlockBudget() bool {
+	if te.AptosMonitor == nil {
+		return false
+	}
+	bb := te.Config.SchedulerConfig.Params["block_budget"].(int)
+	return te.AptosMonitor.MinHeight() >= uint64(bb)
 }
 
 type EngineFaultContext struct {

@@ -143,7 +143,7 @@ func fundClientAccounts(baseReplicaPort int, baseDir string, numValidators int) 
 		if err := nc.PollForTransactions(
 			hashes,
 			aptos.PollPeriod(500*time.Millisecond),
-			aptos.PollTimeout(30*time.Second),
+			aptos.PollTimeout(60*time.Second),
 		); err != nil {
 			return fmt.Errorf("wait for fund commits on node %d: %w", nodeIdx, err)
 		}

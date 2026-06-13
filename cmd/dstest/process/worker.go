@@ -21,19 +21,19 @@ type ProcessStatus int
 
 const (
 	Initialized ProcessStatus = 0
-	Running 	ProcessStatus = 1
-	Done 		ProcessStatus = 2
-	Crashed		ProcessStatus = 3
-	Timeout		ProcessStatus = 4
-	Exception	ProcessStatus = 5		
+	Running     ProcessStatus = 1
+	Done        ProcessStatus = 2
+	Crashed     ProcessStatus = 3
+	Timeout     ProcessStatus = 4
+	Exception   ProcessStatus = 5
 )
 
 func (s ProcessStatus) String() string {
-    switch s {
-    case Initialized:
-        return "Initialized"
-    case Running:
-        return "Running"
+	switch s {
+	case Initialized:
+		return "Initialized"
+	case Running:
+		return "Running"
 	case Done:
 		return "Done"
 	case Crashed:
@@ -42,29 +42,29 @@ func (s ProcessStatus) String() string {
 		return "Timeout"
 	case Exception:
 		return "Exception"
-    default:
-        return fmt.Sprintf("%d", int(s))
-    }
+	default:
+		return fmt.Sprintf("%d", int(s))
+	}
 }
 
-type Worker struct{
-	RunScript 	  string
+type Worker struct {
+	RunScript           string
 	NumReplicas         int
 	BaseInterceptorPort int
-	CleanScript	  string
-	WorkerId 	  int
-	Type 		  ProcessType
-	Params 		  string
-	
-	Timeout		  int
-	TimeoutDelta  int
-	TimeoutTimer  *time.Timer
-	Status		  ProcessStatus
-	Cmd    		  *exec.Cmd
+	CleanScript         string
+	WorkerId            int
+	Type                ProcessType
+	Params              string
 
-	Stdout		  *os.File
-	Stderr		  *os.File
-	Log 		  *log.Logger
+	Timeout      int
+	TimeoutDelta int
+	TimeoutTimer *time.Timer
+	Status       ProcessStatus
+	Cmd          *exec.Cmd
+
+	Stdout *os.File
+	Stderr *os.File
+	Log    *log.Logger
 }
 
 func (worker *Worker) Init(config map[string]any) {
@@ -97,7 +97,7 @@ func (worker *Worker) RunWorker() {
 
 	worker.Log.Println("Running worker with: " + worker.RunScript + " " + worker.Params)
 
-	worker.Cmd = exec.Command("/bin/sh", strings.Fields(worker.RunScript + " " + worker.Params)...)
+	worker.Cmd = exec.Command("/bin/sh", strings.Fields(worker.RunScript+" "+worker.Params)...)
 	worker.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	worker.Cmd.Stdout = worker.Stdout
@@ -117,25 +117,48 @@ func (worker *Worker) RunWorker() {
 
 	go func() {
 		errch <- worker.Cmd.Wait()
-	} ()
-	
+	}()
 
 	select {
-	case <- worker.TimeoutTimer.C:
+	case <-worker.TimeoutTimer.C:
 		worker.Log.Println("Timeout, killing process.")
 		worker.Status = Timeout
 		worker.KillWorker()
 		return
-	case err:= <- errch:
+	case err := <-errch:
 		if err != nil {
-			if worker.Status != Crashed && worker.Status != Done && worker.Type != Client{
+			if worker.Status != Crashed && worker.Status != Done && worker.Type != Client {
 				worker.Log.Printf("Error while waiting worker. \nError: %s\n", err)
 				worker.Status = Exception
+			}
+			if worker.Type == Client && worker.Cmd.ProcessState != nil && worker.Cmd.ProcessState.ExitCode() == 2 {
+				worker.cleanLogs()
+				worker.Status = Done
+				worker.KillWorker()
 			}
 			return
 		} else {
 			worker.Status = Done
 		}
+	}
+}
+
+// Closes and removes the worker's stdout/stderr log files.
+// This is wanted in the Aptos case when the client script is called, but it
+// exits with an error code 2, indicating that the client cannot submit txs
+// currently since the wanted blockchain height has not been reached yet.
+func (worker *Worker) cleanLogs() {
+	if f := worker.Stdout; f != nil {
+		name := f.Name()
+		_ = f.Close()
+		_ = os.Remove(name)
+		worker.Stdout = nil
+	}
+	if f := worker.Stderr; f != nil {
+		name := f.Name()
+		_ = f.Close()
+		_ = os.Remove(name)
+		worker.Stderr = nil
 	}
 }
 
