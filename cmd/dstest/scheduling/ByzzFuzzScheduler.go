@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +27,10 @@ func ReplicaIDs(nodes []int) []ReplicaID {
 	}
 	return out
 }
+
+/* ************************************************* */
+/* 					Network Faults					 */
+/* ************************************************* */
 
 type Partition struct {
 	blocks int
@@ -75,17 +80,126 @@ type NetworkFaultSpec struct {
 	Partition Partition
 }
 
-type NetworkFaults struct {
-	Faults        []NetworkFaultSpec
-	mu            *sync.Mutex
-	recoveryTimer *time.Timer
+func (n NetworkFaultSpec) String() string {
+	return fmt.Sprintf(
+		"network_fault{round=%d partition=%s}",
+		n.Round,
+		n.Partition,
+	)
 }
 
-func (f *NetworkFaults) Reset() {
+type NetworkFaults struct {
+	Sampler             NetworkFaultSampler
+	Faults              []NetworkFaultSpec
+	RecoveryTimeSeconds int
+	mu                  *sync.Mutex
+	recoveryTimer       *time.Timer
+}
+
+func (faults *NetworkFaults) IsNetworkFault(round aptos.Round, sender ReplicaID, receiver ReplicaID) bool {
+	faults.mu.Lock()
+	defer faults.mu.Unlock()
+	for _, f := range faults.Faults {
+		if f.Round == round && f.Partition.Isolates(sender, receiver) {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *NetworkFaults) Clear() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.Faults = make([]NetworkFaultSpec, 0)
 }
+
+func (f *NetworkFaults) NextIteration(cb func()) {
+	f.recoveryTimer.Stop()
+	f.mu.Lock()
+	f.Faults = f.Sampler.SampleNetworkFaults()
+	f.mu.Unlock()
+
+	// Schedule network recovery after some time (e.g.: 30 or 60 seconds)
+	f.recoveryTimer = time.AfterFunc(time.Duration(f.RecoveryTimeSeconds)*time.Second, cb)
+}
+
+/* ************************************************* */
+/* 						Sampler						 */
+/* ************************************************* */
+type NetworkFaultSampler interface {
+	SampleNetworkFaults() []NetworkFaultSpec
+}
+
+type PByzSampler interface {
+	SamplePByz() ReplicaID
+}
+
+type ProcessFaultSampler interface {
+	SampleProcessFaults() []ProcFaultSpec
+}
+
+type Sampler interface {
+	NetworkFaultSampler
+	PByzSampler
+	ProcessFaultSampler
+}
+
+/* ************************************************* */
+/* 					Random Sampler					 */
+/* ************************************************* */
+
+type RandomSampler struct {
+	C          int
+	D          int
+	R          int
+	Rng        *rand.Rand
+	ReplicaIds []int
+}
+
+func (s *RandomSampler) SampleNetworkFaults() []NetworkFaultSpec {
+	// no evolutionary fault plan, sample randomly
+	faults := make([]NetworkFaultSpec, s.D)
+	for i := 0; i < s.D; i++ {
+		round := aptos.Round(s.Rng.Intn(s.R))
+		partition := NewPartition(ReplicaIDs(s.ReplicaIds), s.Rng)
+		faults[i] = NetworkFaultSpec{
+			Round:     round,
+			Partition: partition,
+		}
+	}
+	return faults
+}
+
+func (s *RandomSampler) SamplePByz() ReplicaID {
+	return ReplicaID(s.ReplicaIds[s.Rng.Intn(len(s.ReplicaIds))])
+}
+
+func (s *RandomSampler) SampleProcessFaults() []ProcFaultSpec {
+	procFaults := make([]ProcFaultSpec, s.C)
+	for i := 0; i < s.C; i++ {
+		round := aptos.Round(s.Rng.Intn(s.R))
+		procs := randomSubsetOf(s.ReplicaIds, s.Rng)
+		byzzfuzzSeed := s.Rng.Int63()
+
+		procFaults[i] = ProcFaultSpec{
+			Round:     round,
+			Receivers: procs,
+			Seed:      byzzfuzzSeed,
+		}
+	}
+	return procFaults
+}
+
+/* ************************************************* */
+/* 				Evolutionary Sampler				 */
+/* ************************************************* */
+
+type EvoNetworkSampler struct {
+}
+
+/* ************************************************* */
+/* 				   Process Faults				     */
+/* ************************************************* */
 
 /*
 Set of (round, a subset of P, and a seed)
@@ -96,11 +210,19 @@ type ProcFaultSpec struct {
 	Seed      int64                  // random seed to determine how to mutate the message
 }
 
-type ByzzFuzzParams struct {
-	C             int // no of rounds with process faults
-	D             int // no of rounds with network faults
-	R             int // bound on rounds with faults
-	Recovery_Time int // time until network heals and dropped messages are sent, in seconds
+func (p ProcFaultSpec) String() string {
+	receivers := make([]int, 0, len(p.Receivers))
+	for receiver := range p.Receivers {
+		receivers = append(receivers, int(receiver))
+	}
+	sort.Ints(receivers)
+
+	return fmt.Sprintf(
+		"process_fault{round=%d receivers=%v seed=%d}",
+		p.Round,
+		receivers,
+		p.Seed,
+	)
 }
 
 /*
@@ -127,17 +249,6 @@ func randomSubsetOf(s []int, rng *rand.Rand) map[ReplicaID]struct{} {
 	return out
 }
 
-func isNetworkFault(round aptos.Round, sender ReplicaID, receiver ReplicaID, faults *NetworkFaults) bool {
-	faults.mu.Lock()
-	defer faults.mu.Unlock()
-	for _, f := range faults.Faults {
-		if f.Round == round && f.Partition.Isolates(sender, receiver) {
-			return true
-		}
-	}
-	return false
-}
-
 func isProcFault(round aptos.Round, receiver ReplicaID, faults []ProcFaultSpec) (int64, bool) {
 	for _, f := range faults {
 		if f.Round == round {
@@ -148,6 +259,10 @@ func isProcFault(round aptos.Round, receiver ReplicaID, faults []ProcFaultSpec) 
 	}
 	return 0, false
 }
+
+/* ************************************************* */
+/* 				 Delay Message Store				 */
+/* ************************************************* */
 
 /*
 Stores the dropped messages due to network partitions.
@@ -181,15 +296,161 @@ func (store *DelayMessagesStore) SetDelayed(messageId uint64, delayTime time.Dur
 	}()
 }
 
-type ByzzFuzzScheduler struct {
-	Scheduler
-	Config           *config.Config
-	NetworkManager   *network.Manager
-	Mutator          network.Mutator
-	Log              *log.Logger
+/* ************************************************* */
+/* 				    Mutation Writer				     */
+/* ************************************************* */
+type MutationWriter struct {
+	*os.File
+	*csv.Writer
+}
+
+func (m *MutationWriter) Close() error {
+	if m.Writer != nil {
+		m.Writer.Flush()
+	}
+	if m.File != nil {
+		return m.File.Close()
+	}
+	return nil
+}
+
+func (m *MutationWriter) NextIteration(config *config.Config, iteration int) {
+	m.Close()
+	path := filepath.Join(config.ProcessConfig.OutputDir,
+		fmt.Sprintf("%s_%s_%d",
+			config.TestConfig.Name,
+			config.SchedulerConfig.Type,
+			iteration),
+		"mutations.csv")
+
+	os.MkdirAll(filepath.Dir(path), os.ModePerm)
+
+	f, err := os.Create(path)
+	if err != nil {
+		panic(fmt.Errorf("Failed to create mutations CSV: %v", err))
+	} else {
+		m.File = f
+		m.Writer = csv.NewWriter(f)
+		m.Writer.Write([]string{
+			"sender_id", "receiver_id", "timestamp", "round",
+			"message", "mutated_message", "mutation_name", "mutation_method", "message_id",
+		})
+	}
+}
+
+func (m *MutationWriter) WriteMutation(row []string) {
+	if m.Writer != nil {
+		m.Writer.Write(row)
+		m.Writer.Flush()
+	}
+}
+
+func NewMutationWriter() *MutationWriter {
+	return new(MutationWriter)
+}
+
+/* ************************************************* */
+/* 				        Clients			    		 */
+/* ************************************************* */
+type Clients struct {
 	NumClientTypes   int
 	AvailableClients []int
 	ClientDone       chan struct{}
+}
+
+func NewClients(n int) *Clients {
+	clients := new(Clients)
+	clients.NumClientTypes = n
+
+	clients.AvailableClients = make([]int, n)
+	for i := range n {
+		clients.AvailableClients[i] = i
+	}
+	clients.ClientDone = make(chan struct{}, 1)
+	clients.ClientDone <- struct{}{}
+	return clients
+}
+
+func (c *Clients) NextIteration() {
+	<-c.ClientDone
+	c.AvailableClients = make([]int, c.NumClientTypes)
+	for i := range c.NumClientTypes {
+		c.AvailableClients[i] = i
+	}
+	c.ClientDone <- struct{}{}
+}
+
+/*
+Returns the mutex token after a worker finishes. If the worker exited with code 2
+(height not reached), the client script index is re-prepended to AvailableClients for a later retry.
+On any other exit, the slot is dropped (each script fires at most once per iter).
+Called by TestEngine.Run from a goroutine waiting on the worker's done-channel.
+*/
+func (c *Clients) ClientRequestDone(client, exitCode int) {
+	if exitCode == 2 {
+		c.AvailableClients = append([]int{client}, c.AvailableClients...)
+	}
+	c.ClientDone <- struct{}{}
+}
+
+/*
+Pops the next client-script index off AvailableClients (FIFO), or returns -1
+if there's nothing to fire right now.
+
+AvailableClients is guarded by ClientDone, a 1-token
+buffered channel acting as a mutex. Only the goroutine holding the token may
+mutate the slice. This guarantees at most one client worker is in flight at
+a time. Without it, concurrent workers sharing the same client account
+race on its sequence number.
+
+Returns -1 when any of:
+  - no client scripts are configured;
+  - the mutex is held (another worker in flight);
+  - all scripts already fired successfully: in this
+    case we return the token immediately so NextIteration isn't starved.
+
+A popped script that exits with code 2 (target block height not yet reached)
+is re-prepended by ClientRequestDone for a later retry. A script that exits
+successfully is dropped; each script fires at most once per iter, in order.
+*/
+func (c *Clients) GetClientRequest() int {
+	if c.NumClientTypes == 0 {
+		return -1
+	}
+
+	select {
+	case <-c.ClientDone:
+		if len(c.AvailableClients) == 0 {
+			c.ClientDone <- struct{}{}
+			return -1
+		}
+		clientId := c.AvailableClients[0]
+		c.AvailableClients = c.AvailableClients[1:]
+		return clientId
+	default:
+		return -1
+	}
+}
+
+/* ************************************************* */
+/* 				   ByzzFuzz Scheduler				 */
+/* ************************************************* */
+
+type ByzzFuzzParams struct {
+	C             int // no of rounds with process faults
+	D             int // no of rounds with network faults
+	R             int // bound on rounds with faults
+	Recovery_Time int // time until network heals and dropped messages are sent, in seconds
+}
+
+type ByzzFuzzScheduler struct {
+	*config.Config
+	*MutationWriter
+	*Clients
+	Sampler
+
+	Mutator network.Mutator
+	Log     *log.Logger
 
 	rng    *rand.Rand
 	params ByzzFuzzParams
@@ -201,9 +462,7 @@ type ByzzFuzzScheduler struct {
 
 	delayStore *DelayMessagesStore
 
-	mutationLog  *csv.Writer
-	mutationFile *os.File
-	iteration    int
+	iteration int
 }
 
 // assert ByzzFuzz implements the Scheduler interface
@@ -222,116 +481,78 @@ func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 		R:             config.SchedulerConfig.Params["r"].(int),
 		Recovery_Time: config.SchedulerConfig.Params["recovery_seconds"].(int),
 	}
+
+	path := config.SchedulerConfig.Params["evo_fault_plan"].(string)
+
+	if path != "" {
+		// init evo sampler
+
+	} else {
+		replicaIds := make([]int, s.Config.ProcessConfig.NumReplicas)
+		for i := range replicaIds {
+			replicaIds[i] = i
+		}
+
+		s.Sampler = &RandomSampler{
+			C:          s.params.C,
+			D:          s.params.D,
+			R:          s.params.R,
+			Rng:        s.rng,
+			ReplicaIds: replicaIds,
+		}
+	}
+
+	s.MutationWriter = NewMutationWriter()
 	s.delayStore = NewDelayMessagesStore()
 
-	s.NumClientTypes = len(config.ProcessConfig.ClientScripts)
-
-	s.AvailableClients = make([]int, s.NumClientTypes)
-	for i := range s.NumClientTypes {
-		s.AvailableClients[i] = i
-	}
-	s.ClientDone = make(chan struct{}, 1)
-	s.ClientDone <- struct{}{}
+	s.Clients = NewClients(len(config.ProcessConfig.ClientScripts))
 
 	s.Log = log.New(os.Stdout, "[ByzzFuzz Scheduler] ", log.LstdFlags)
 
 	s.iteration = 0
-	s.networkFaults = NetworkFaults{make([]NetworkFaultSpec, 0), &sync.Mutex{}, time.NewTimer(0)}
+	s.networkFaults = NetworkFaults{
+		Sampler:             s.Sampler,
+		Faults:              make([]NetworkFaultSpec, 0),
+		mu:                  &sync.Mutex{},
+		recoveryTimer:       time.NewTimer(0),
+		RecoveryTimeSeconds: s.params.Recovery_Time,
+	}
+
+	s.networkFaults.NextIteration(s.OnRecoveryStart)
+	s.Log.Printf("Sampled network faults for iteration: %v\n", s.networkFaults.Faults)
+	s.pByz = s.SamplePByz()
+	s.Log.Printf("Chosen Byzantine sender for iteration: %d\n", s.pByz)
+	s.procFaults = s.SampleProcessFaults()
+	s.Log.Printf("Sampled process faults for iteration: %v\n", s.procFaults)
+	s.MutationWriter.NextIteration(s.Config, s.iteration)
+}
+
+func (s *ByzzFuzzScheduler) NextIteration() {
+	s.iteration++
+	s.Clients.NextIteration()
+	s.delayStore = NewDelayMessagesStore()
+
+	s.networkFaults.NextIteration(s.OnRecoveryStart)
+
+	s.Log.Printf("Sampled network faults for iteration: %v\n", s.networkFaults.Faults)
+	s.pByz = s.SamplePByz()
+	s.Log.Printf("Chosen Byzantine sender for iteration: %d\n", s.pByz)
+
+	s.procFaults = s.SampleProcessFaults()
+	s.Log.Printf("Sampled process faults for iteration: %v\n", s.procFaults)
+
+	// create a new mutation log csv for each iteration
+	s.MutationWriter.NextIteration(s.Config, s.iteration)
+}
+
+func (s *ByzzFuzzScheduler) Shutdown() {
+	s.MutationWriter.Close()
+	s.networkFaults.recoveryTimer.Stop()
 }
 
 func (s *ByzzFuzzScheduler) Reset() {
 	seed := int64(s.Config.SchedulerConfig.Seed)
 	s.rng = rand.New(rand.NewSource(seed))
-}
-
-func (s *ByzzFuzzScheduler) NextIteration() {
-	s.iteration++
-
-	<-s.ClientDone
-	s.AvailableClients = make([]int, s.NumClientTypes)
-	for i := range s.NumClientTypes {
-		s.AvailableClients[i] = i
-	}
-	s.ClientDone <- struct{}{}
-
-	s.delayStore = NewDelayMessagesStore()
-
-	// sample network faults for the iteration
-	s.networkFaults.recoveryTimer.Stop()
-	s.networkFaults.mu.Lock()
-
-	s.networkFaults.Faults = make([]NetworkFaultSpec, s.params.D)
-	for i := 0; i < s.params.D; i++ {
-		round := aptos.Round(s.rng.Intn(s.params.R))
-		partition := NewPartition(ReplicaIDs(s.NetworkManager.ReplicaIds), s.rng)
-		s.networkFaults.Faults[i] = NetworkFaultSpec{
-			Round:     round,
-			Partition: partition,
-		}
-	}
-	s.networkFaults.mu.Unlock()
-
-	// Schedule network recovery after some time (e.g.: 30 or 60 seconds)
-	s.networkFaults.recoveryTimer = time.AfterFunc(time.Duration(s.params.Recovery_Time)*time.Second, s.OnRecoveryStart)
-
-	s.Log.Printf("Sampled network faults for iteration: %v\n", s.networkFaults.Faults)
-
-	s.pByz = ReplicaID(s.NetworkManager.ReplicaIds[s.rng.Intn(len(s.NetworkManager.ReplicaIds))])
-
-	s.Log.Printf("Chosen Byzantine sender for iteration: %d\n", s.pByz)
-
-	// sample process faults for the iteration
-	s.procFaults = make([]ProcFaultSpec, s.params.C)
-	for i := 0; i < s.params.C; i++ {
-		round := aptos.Round(s.rng.Intn(s.params.R))
-		procs := randomSubsetOf(s.NetworkManager.ReplicaIds, s.rng)
-		byzzfuzzSeed := s.rng.Int63()
-
-		s.procFaults[i] = ProcFaultSpec{
-			Round:     round,
-			Receivers: procs,
-			Seed:      byzzfuzzSeed,
-		}
-	}
-
-	s.Log.Printf("Sampled process faults for iteration: %v\n", s.procFaults)
-
-	// create a new mutation log csv for each iteration
-	if s.mutationFile != nil {
-		s.mutationLog.Flush()
-		s.mutationFile.Close()
-	}
-
-	path := filepath.Join(s.Config.ProcessConfig.OutputDir,
-		fmt.Sprintf("%s_%s_%d",
-			s.Config.TestConfig.Name,
-			s.Config.SchedulerConfig.Type,
-			s.iteration),
-		"mutations.csv")
-
-	os.MkdirAll(filepath.Dir(path), os.ModePerm)
-
-	f, err := os.Create(path)
-	if err != nil {
-		s.Log.Printf("Failed to create mutations CSV: %v", err)
-	} else {
-		s.mutationFile = f
-		s.mutationLog = csv.NewWriter(f)
-		s.mutationLog.Write([]string{
-			"sender_id", "receiver_id", "timestamp", "round",
-			"message", "mutated_message", "mutation_name", "mutation_method", "message_id",
-		})
-	}
-}
-
-func (s *ByzzFuzzScheduler) Shutdown() {
-	if s.mutationLog != nil {
-		s.mutationLog.Flush()
-	}
-	if s.mutationFile != nil {
-		s.mutationFile.Close()
-	}
-	s.networkFaults.recoveryTimer.Stop()
 }
 
 /*
@@ -349,8 +570,8 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 	index := s.rng.Intn(len(messages))
 	chosenMsg := messages[index]
 
-	c, ok := chosenMsg.Payload.(aptos.IConsensusMessage)
-	if !ok {
+	c, isConsensus := chosenMsg.Payload.(aptos.IConsensusMessage)
+	if !isConsensus {
 		s.Log.Printf("Message payload is not an Aptos consensus message: %T, returning NoOp\n", chosenMsg.Payload)
 		return SchedulerDecision{
 			DecisionType: NoOp,
@@ -362,7 +583,7 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 	sender := ReplicaID(chosenMsg.Sender)
 	receiver := ReplicaID(chosenMsg.Receiver)
 
-	if isNetworkFault(round, sender, receiver, &s.networkFaults) {
+	if s.networkFaults.IsNetworkFault(round, sender, receiver) {
 		// temporary drop the message (remove from queue)
 		// msg will be resent with delay (after network recovers)
 		s.Log.Printf("Dropping message from %d to %d in round %d with msg id %d due to network fault\n", sender, receiver, round, chosenMsg.MessageId)
@@ -385,36 +606,31 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 				Index:        index,
 			}
 		}
-		// mutate the message by changing the payload
+
 		ogMsg := c.String()
-
 		mutation, err := s.Mutator.Mutate(c, seedProcFault) //msg is mutated in place
-
 		s.Log.Printf(
 			"Mutating message from %d to %d in round %d with msg id %d\n and mutation %s",
 			sender, receiver, round, chosenMsg.MessageId, mutation.Name,
 		)
-
 		if err != nil {
 			s.Log.Printf("Error in mutation %s: %v", mutation.Name, err)
 			return SchedulerDecision{
 				DecisionType: NoOp,
 			}
 		}
-		if s.mutationLog != nil {
-			s.mutationLog.Write([]string{
-				fmt.Sprintf("%d", sender),
-				fmt.Sprintf("%d", receiver),
-				fmt.Sprintf("%d", timestamp),
-				fmt.Sprintf("%d", round),
-				ogMsg,
-				c.String(),
-				mutation.Name,
-				string(mutation.Method),
-				fmt.Sprintf("%d", chosenMsg.MessageId),
-			})
-			s.mutationLog.Flush()
-		}
+
+		s.WriteMutation([]string{
+			fmt.Sprintf("%d", sender),
+			fmt.Sprintf("%d", receiver),
+			fmt.Sprintf("%d", timestamp),
+			fmt.Sprintf("%d", round),
+			ogMsg,
+			c.String(),
+			mutation.Name,
+			string(mutation.Method),
+			fmt.Sprintf("%d", chosenMsg.MessageId),
+		})
 
 		if mutation.ShouldOmitSending() {
 			return SchedulerDecision{
@@ -438,56 +654,8 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 	}
 }
 
-/*
-Pops the next client-script index off AvailableClients (FIFO), or returns -1
-if there's nothing to fire right now.
-
-AvailableClients is guarded by ClientDone, a 1-token
-buffered channel acting as a mutex. Only the goroutine holding the token may
-mutate the slice. This guarantees at most one client worker is in flight at
-a time. Without it, concurrent workers sharing the same client account
-race on its sequence number.
-
-Returns -1 when any of:
-  - no client scripts are configured;
-  - the mutex is held (another worker in flight);
-  - all scripts already fired successfully: in this
-    case we return the token immediately so NextIteration isn't starved.
-
-A popped script that exits with code 2 (target block height not yet reached)
-is re-prepended by ClientRequestDone for a later retry. A script that exits
-successfully is dropped; each script fires at most once per iter, in order.
-*/
-func (s *ByzzFuzzScheduler) GetClientRequest() int {
-	if s.NumClientTypes == 0 {
-		return -1
-	}
-
-	select {
-	case <-s.ClientDone:
-		if len(s.AvailableClients) == 0 {
-			s.ClientDone <- struct{}{}
-			return -1
-		}
-		clientId := s.AvailableClients[0]
-		s.AvailableClients = s.AvailableClients[1:]
-		return clientId
-	default:
-		return -1
-	}
-}
-
-/*
-Returns the mutex token after a worker finishes. If the worker exited with code 2
-(height not reached), the client script index is re-prepended to AvailableClients for a later retry.
-On any other exit, the slot is dropped (each script fires at most once per iter).
-Called by TestEngine.Run from a goroutine waiting on the worker's done-channel.
-*/
-func (s *ByzzFuzzScheduler) ClientRequestDone(client, exitCode int) {
-	if exitCode == 2 {
-		s.AvailableClients = append([]int{client}, s.AvailableClients...)
-	}
-	s.ClientDone <- struct{}{}
+func (s *ByzzFuzzScheduler) ApplyFault(f *faults.Fault) error {
+	return nil
 }
 
 /*
@@ -499,9 +667,5 @@ Network recovery happens after Recovery_Time param seconds (e.g.: 60 or 30 secon
 */
 func (s *ByzzFuzzScheduler) OnRecoveryStart() {
 	s.Log.Println("Network heal started, releasing held (dropped) messages")
-	s.networkFaults.Reset()
-}
-
-func (s *ByzzFuzzScheduler) SetNetworkManager(networkManager *network.Manager) {
-	s.NetworkManager = networkManager
+	s.networkFaults.Clear()
 }

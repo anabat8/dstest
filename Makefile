@@ -79,12 +79,16 @@ BLOCKBUDGET ?= 10
 # aptos.yml template vars
 STEPS 			     ?= 2300
 SEED                 ?= 42
-PARAM_C              ?= 1
+PARAM_C              ?= 2
 PARAM_D              ?= 1
 PARAM_R              ?= 6
 RECOVERYSECONDS      ?= 30
 # Note: CLIENT_REQUESTS is not currently read by ByzzFuzz Scheduler.
 CLIENT_REQUESTS      ?= 0
+
+# path to evolutionary testing fault plan
+# if left empty, the scheduler will use randomized sampling
+EVOFAULTPLAN ?=
 
 # Seeded bugs to add to aptos-build
 # BUG1 causes QC to require n votes instead of 2f+1.
@@ -152,7 +156,7 @@ $(VENV_PY):
 .PHONY: setup
 setup: $(VENV_PY)
 	$(PIP) install --upgrade pip
-	$(PIP) install pyyaml cryptography matplotlib pandas
+	$(PIP) install pyyaml cryptography matplotlib pandas deap
 
 # -----------------------------
 # Builds
@@ -265,7 +269,7 @@ config:
 	echo "  Steps: $(STEPS)"; \
 	echo "  Seed: $(SEED)"; \
 	echo "  ClientRequests: $(CLIENT_REQUESTS)"; \
-	echo "  Params: {\"c\": $(PARAM_C), \"d\": $(PARAM_D), \"r\": $(PARAM_R), \"recovery_seconds\": $(RECOVERYSECONDS), \"liveness_timeout\": $(LIVENESSTIMEOUT), \"block_budget\": $(BLOCKBUDGET)}"; \
+	echo "  Params: {\"c\": $(PARAM_C), \"d\": $(PARAM_D), \"r\": $(PARAM_R), \"recovery_seconds\": $(RECOVERYSECONDS), \"liveness_timeout\": $(LIVENESSTIMEOUT), \"block_budget\": $(BLOCKBUDGET), \"evo_fault_plan\": \"$(EVOFAULTPLAN)\"}"; \
 	echo ""; \
 	echo "NetworkConfig:"; \
 	echo "  BaseReplicaPort: $(BASE_PORT)"; \

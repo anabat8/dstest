@@ -88,11 +88,6 @@ func (te *TestEngine) Run() error {
 
 		te.Scheduler.Init(te.Config)
 
-		// Check if scheduler needs access to NetworkManager, and provide it if so
-		if s, ok := te.Scheduler.(interface{ SetNetworkManager(*network.Manager) }); ok {
-			s.SetNetworkManager(te.NetworkManager)
-		}
-
 		for j := 0; j < te.Iterations; j++ {
 			te.Log.Printf("Starting iteration %d\n", j+1)
 
