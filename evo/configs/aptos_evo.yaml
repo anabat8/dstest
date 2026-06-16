@@ -1,0 +1,47 @@
+strategies:
+  - byzzfuzz
+  - evo_partition
+
+benchmarks:
+  - aptos
+  - bug1
+  - bug3
+
+block_height_max: 10
+
+fitness:
+  - execution_time
+  - qc
+
+max_parallel_workers: 4
+
+population_size: 20
+mu: 10 # Parent count (μ) for (μ+λ) selection in DEAP.
+total_num_tests: 200 #0 # for evo, it's 2000/20=100 generations
+
+max_partition_duration: 2000
+
+num_nodes: 6
+# other configs, eg. transactions ...
+
+pByz: 0
+
+network_faults:
+  - round: 2
+    partition: [0, 0, 0, 1, 1, 1]
+  - round: 3
+    partition: [0, 0, 1, 1, 1, 1]
+  
+process_faults:
+  - round: 2
+    receivers: [3, 4, 5]
+    msg_type: VoteMsg
+    mutation_name: syncinfo_qc_parent_swap_with_commit_id
+    mutation_method: as
+    seed: 12345
+  - round: 3
+    receivers: [1, 2]
+    msg_type: ProposalMsg
+    mutation_name: proposal_large_timestamp_future
+    mutation_method: ss
+    seed: 12344

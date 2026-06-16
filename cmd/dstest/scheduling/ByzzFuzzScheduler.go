@@ -16,6 +16,7 @@ import (
 	"github.com/egeberkaygulcan/dstest/cmd/dstest/faults"
 	"github.com/egeberkaygulcan/dstest/cmd/dstest/network"
 	"github.com/egeberkaygulcan/dstest/cmd/dstest/network/aptos"
+	"gopkg.in/yaml.v3"
 )
 
 type ReplicaID int
@@ -194,7 +195,95 @@ func (s *RandomSampler) SampleProcessFaults() []ProcFaultSpec {
 /* 				Evolutionary Sampler				 */
 /* ************************************************* */
 
-type EvoNetworkSampler struct {
+// In case of the evolutionary sampler, all values are read from the evo fault plan config
+type EvoSampler struct {
+	faultPlanPath string
+}
+
+func NewEvoSampler(path string) *EvoSampler {
+	return &EvoSampler{faultPlanPath: path}
+}
+
+func (e *EvoSampler) SampleNetworkFaults() []NetworkFaultSpec {
+	var plan struct {
+		NetworkFaults []EvoNetworkFaultSpec `yaml:"network_faults"`
+	}
+	ReadEvoPlan(e.faultPlanPath, &plan)
+
+	faults := make([]NetworkFaultSpec, 0, len(plan.NetworkFaults))
+	for _, f := range plan.NetworkFaults {
+		of := make(map[ReplicaID]int, len(f.Partition))
+		seenBlocks := make(map[int]struct{})
+
+		for node, block := range f.Partition {
+			of[ReplicaID(node)] = block
+			seenBlocks[block] = struct{}{}
+		}
+
+		faults = append(faults, NetworkFaultSpec{
+			Round: aptos.Round(f.Round),
+			Partition: Partition{
+				blocks: len(seenBlocks),
+				of:     of,
+			},
+		})
+	}
+	return faults
+}
+
+func (e *EvoSampler) SamplePByz() ReplicaID {
+	var plan EvoPByz
+	ReadEvoPlan(e.faultPlanPath, &plan)
+	return ReplicaID(plan.PByz)
+}
+
+func (e *EvoSampler) SampleProcessFaults() []ProcFaultSpec {
+	var plan struct {
+		ProcessFaults []EvoProcessFaultSpec `yaml:"process_faults"`
+	}
+	ReadEvoPlan(e.faultPlanPath, &plan)
+	procFaults := make([]ProcFaultSpec, 0, len(plan.ProcessFaults))
+	for _, f := range plan.ProcessFaults {
+		receivers := make(map[ReplicaID]struct{}, len(f.Receivers))
+		for _, receiver := range f.Receivers {
+			receivers[ReplicaID(receiver)] = struct{}{}
+		}
+		procFaults = append(procFaults, ProcFaultSpec{
+			Round:     aptos.Round(f.Round),
+			Receivers: receivers,
+			Seed:      f.Seed,
+		})
+	}
+	return procFaults
+}
+
+func ReadEvoPlan(path string, out any) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		panic(fmt.Errorf("read evo fault plan %s: %w", path, err))
+	}
+
+	if err := yaml.Unmarshal(data, out); err != nil {
+		panic(fmt.Errorf("unmarshal evo fault plan %s: %w", path, err))
+	}
+}
+
+type EvoPByz struct {
+	PByz int `yaml:"pByz"`
+}
+
+type EvoNetworkFaultSpec struct {
+	Round     int   `yaml:"round"`
+	Partition []int `yaml:"partition"`
+}
+
+type EvoProcessFaultSpec struct {
+	Round          int    `yaml:"round"`
+	Receivers      []int  `yaml:"receivers"`
+	MsgType        string `yaml:"msg_type"`
+	MutationName   string `yaml:"mutation_name"`
+	MutationMethod string `yaml:"mutation_method"`
+	Seed           int64  `yaml:"seed"`
 }
 
 /* ************************************************* */
@@ -249,15 +338,15 @@ func randomSubsetOf(s []int, rng *rand.Rand) map[ReplicaID]struct{} {
 	return out
 }
 
-func isProcFault(round aptos.Round, receiver ReplicaID, faults []ProcFaultSpec) (int64, bool) {
+func isProcFault(round aptos.Round, receiver ReplicaID, faults []ProcFaultSpec) (*ProcFaultSpec, bool) {
 	for _, f := range faults {
 		if f.Round == round {
 			if _, ok := f.Receivers[receiver]; ok {
-				return f.Seed, true
+				return &f, true
 			}
 		}
 	}
-	return 0, false
+	return nil, false
 }
 
 /* ************************************************* */
@@ -449,7 +538,7 @@ type ByzzFuzzScheduler struct {
 	*Clients
 	Sampler
 
-	Mutator network.Mutator
+	Mutator Mutator
 	Log     *log.Logger
 
 	rng    *rand.Rand
@@ -470,7 +559,6 @@ var _ Scheduler = &ByzzFuzzScheduler{}
 
 func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 	s.Config = config
-	s.Mutator = network.NewAptosMutator(aptos.CollectValidatorKeysByAuthor())
 
 	seed := int64(config.SchedulerConfig.Seed)
 	s.rng = rand.New(rand.NewSource(seed))
@@ -485,8 +573,9 @@ func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 	path := config.SchedulerConfig.Params["evo_fault_plan"].(string)
 
 	if path != "" {
-		// init evo sampler
-
+		s.Sampler = NewEvoSampler(path)
+		keys, addrs := aptos.CollectValidatorKeysByAuthor()
+		s.Mutator = NewAptosEvoMutator(keys, addrs, path)
 	} else {
 		replicaIds := make([]int, s.Config.ProcessConfig.NumReplicas)
 		for i := range replicaIds {
@@ -500,6 +589,7 @@ func (s *ByzzFuzzScheduler) Init(config *config.Config) {
 			Rng:        s.rng,
 			ReplicaIds: replicaIds,
 		}
+		s.Mutator = NewAptosMutator(aptos.CollectValidatorKeysByAuthor())
 	}
 
 	s.MutationWriter = NewMutationWriter()
@@ -597,7 +687,7 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 			Index:        index,
 		}
 	} else if sender == s.pByz {
-		seedProcFault, ok := isProcFault(round, receiver, s.procFaults)
+		procFault, ok := isProcFault(round, receiver, s.procFaults)
 		if !ok {
 			// send original message (without mutation)
 			s.Log.Printf("Sending message from %d to %d in round %d with msg id %d\n", sender, receiver, round, chosenMsg.MessageId)
@@ -608,7 +698,7 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 		}
 
 		ogMsg := c.String()
-		mutation, err := s.Mutator.Mutate(c, seedProcFault) //msg is mutated in place
+		mutation, err := s.Mutator.Mutate(c, procFault) //msg is mutated in place
 		s.Log.Printf(
 			"Mutating message from %d to %d in round %d with msg id %d\n and mutation %s",
 			sender, receiver, round, chosenMsg.MessageId, mutation.Name,

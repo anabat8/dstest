@@ -10,11 +10,11 @@ SchedulerConfig:
   Steps: 2300
   Seed: 42
   ClientRequests: 0
-  Params: {"c": 1, "d": 1, "r": 6, "recovery_seconds": 30, "liveness_timeout": 60, "block_budget": 10}
+  Params: {"c": 1, "d": 1, "r": 6, "recovery_seconds": 30, "liveness_timeout": 60, "block_budget": 10, "evo_fault_plan": "/Users/anabatrineanu/repos/aptos-dstest/dstest/evo/configs/aptos_evo.yaml"}
 
 NetworkConfig:
-  BaseReplicaPort: 8000
-  BaseInterceptorPort: 10000
+  BaseReplicaPort: 9000
+  BaseInterceptorPort: 11000
   Protocol: "aptostcp"
   MessageType: Aptos
 
@@ -24,7 +24,7 @@ FaultConfig:
 ProcessConfig:
   NumReplicas: 6
   Timeout: 150
-  OutputDir:  output/aptos-b3-c1d1/20260612_154936
+  OutputDir:  output/aptos-b3-c1d1/20260616_114616
   ReplicaScript: aptos/aptos_server.sh
   # NOTE: each ClientScripts entry must have a different clientId
   # NOTE: the scripts are executed in the given order.

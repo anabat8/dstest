@@ -88,7 +88,7 @@ CLIENT_REQUESTS      ?= 0
 
 # path to evolutionary testing fault plan
 # if left empty, the scheduler will use randomized sampling
-EVOFAULTPLAN ?=
+EVOFAULTPLAN ?= $(abspath evo/configs/aptos_evo.yaml)
 
 # Seeded bugs to add to aptos-build
 # BUG1 causes QC to require n votes instead of 2f+1.
