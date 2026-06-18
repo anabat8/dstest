@@ -81,20 +81,26 @@ func NewAptosEvoMutator(keysByAuthor map[aptos.AccountAddress]*aptos.SK, ordered
 }
 
 /*
-FindMutation function matches the current process fault to the evolutionary process fault plan.
-If there is a match (round, set of receivers and seed are the same), then it will try to apply
-the specific fault mutation defined in the plan. This means that the current message processed
-`cMsg` should match the one defined in the fault plan, for this current process fault.
-Moreover, if they match, the specific mutation method defined in the plan (so not a random one)
-will be applied to cMsg.
+FindMutation tries to match the current process fault to one concrete process-fault entry
+from the evolutionary fault plan.
+The process fault `pf` tells us that this message `cMsg` is eligible for an evolutionary
+mutation: same round, same receiver set, and same seed. However, `cMsg` must also have
+the same message type requested by the plan entry (`epf.MsgType`). If those fields match,
+FindMutation builds the list of mutations valid for this concrete Aptos message type and
+returns the one named by `epf.MutationName`.
+
+Unlike the randomized AptosMutator, this function does not choose randomly from the valid
+mutation list. The evolutionary plan already chose the mutation, so we only look it up
+and return it.
 */
 func (m *AptosEvoMutator) FindMutation(epf EvoProcessFaultSpec, pf *ProcFaultSpec, cMsg aptos.IConsensusMessage) (*mutation, bool) {
-	i := 0
-	for ri := range pf.Receivers {
-		if ri != ReplicaID(epf.Receivers[i]) {
+	if len(pf.Receivers) != len(epf.Receivers) {
+		return nil, false
+	}
+	for _, receiver := range epf.Receivers {
+		if _, ok := pf.Receivers[ReplicaID(receiver)]; !ok {
 			return nil, false
 		}
-		i++
 	}
 
 	if ReplicaID(epf.Round) != ReplicaID(pf.Round) {
@@ -156,6 +162,15 @@ func (m *AptosEvoMutator) FindMutation(epf EvoProcessFaultSpec, pf *ProcFaultSpe
 	return &muts[idx], true
 }
 
+/*
+Mutate applies the evolutionary mutation selected by the fault plan.
+
+It reads the process-fault entries from the evo plan, searches for the entry that matches the current
+process fault and message via FindMutation, and then executes that mutation's function on `cMsg`.
+The message is mutated in place.
+
+If no plan entry matches, no mutation is applied. An empty mutation is returned.
+*/
 func (e *AptosEvoMutator) Mutate(cMsg aptos.IConsensusMessage, procFault *ProcFaultSpec) (mutation, error) {
 	var plan struct {
 		ProcessFaults []EvoProcessFaultSpec `yaml:"process_faults"`
