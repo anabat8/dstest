@@ -1,10 +1,11 @@
 strategies:
   - byzzfuzz
-  - evo_partition
+  - evo_aptos
 
 benchmarks:
   - aptos
   - bug1
+  - bug2
   - bug3
 
 block_height_max: 10
@@ -24,6 +25,11 @@ max_partition_duration: 2000
 num_nodes: 6
 # other configs, eg. transactions ...
 
+# Byzzfuzz initial params; during mutations these can change
+c: 2
+d: 1
+r: 6
+
 pByz: 0
 
 network_faults:
@@ -33,15 +39,11 @@ network_faults:
     partition: [0, 0, 1, 1, 1, 1]
   
 process_faults:
-  - round: 2
+  - round: 4
     receivers: [3, 4, 5]
     msg_type: VoteMsg
-    mutation_name: syncinfo_qc_parent_swap_with_commit_id
-    mutation_method: as
-    seed: 12345
+    seed: 10
   - round: 3
     receivers: [1, 2]
     msg_type: ProposalMsg
-    mutation_name: proposal_large_timestamp_future
-    mutation_method: ss
-    seed: 12344
+    seed: 42

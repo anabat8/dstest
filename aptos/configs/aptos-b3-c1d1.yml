@@ -24,7 +24,7 @@ FaultConfig:
 ProcessConfig:
   NumReplicas: 6
   Timeout: 150
-  OutputDir:  output/aptos-b3-c1d1/20260616_114616
+  OutputDir:  output/aptos-b3-c1d1/20260618_164102
   ReplicaScript: aptos/aptos_server.sh
   # NOTE: each ClientScripts entry must have a different clientId
   # NOTE: the scripts are executed in the given order.

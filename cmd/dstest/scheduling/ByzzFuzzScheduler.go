@@ -278,12 +278,10 @@ type EvoNetworkFaultSpec struct {
 }
 
 type EvoProcessFaultSpec struct {
-	Round          int    `yaml:"round"`
-	Receivers      []int  `yaml:"receivers"`
-	MsgType        string `yaml:"msg_type"`
-	MutationName   string `yaml:"mutation_name"`
-	MutationMethod string `yaml:"mutation_method"`
-	Seed           int64  `yaml:"seed"`
+	Round     int    `yaml:"round"`
+	Receivers []int  `yaml:"receivers"`
+	MsgType   string `yaml:"msg_type"`
+	Seed      int64  `yaml:"seed"`
 }
 
 /* ************************************************* */
@@ -710,13 +708,23 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 			}
 		}
 
+		mutatedMsg := c.String()
+
+		// This can happen in the evolutionary mode, when the procFault does not match any in the evo fault plan
+		if mutation.Name == "" {
+			return SchedulerDecision{
+				DecisionType: SendMessage,
+				Index:        index,
+			}
+		}
+
 		s.WriteMutation([]string{
 			fmt.Sprintf("%d", sender),
 			fmt.Sprintf("%d", receiver),
 			fmt.Sprintf("%d", timestamp),
 			fmt.Sprintf("%d", round),
 			ogMsg,
-			c.String(),
+			mutatedMsg,
 			mutation.Name,
 			string(mutation.Method),
 			fmt.Sprintf("%d", chosenMsg.MessageId),

@@ -2,7 +2,6 @@ package scheduling
 
 import (
 	"fmt"
-	"slices"
 
 	aptos "github.com/egeberkaygulcan/dstest/cmd/dstest/network/aptos"
 	"golang.org/x/exp/rand"
@@ -59,7 +58,11 @@ func (m *AptosMutator) Mutate(cMsg aptos.IConsensusMessage, procFault *ProcFault
 		return mutation{}, fmt.Errorf("unsupported consensus message type: %T", cMsg)
 	}
 
-	return pickMutation(muts, seed), nil
+	chosen := pickMutation(muts, seed)
+	if chosen.fn != nil {
+		chosen.fn()
+	}
+	return chosen, nil
 }
 
 /*
@@ -87,11 +90,11 @@ The process fault `pf` tells us that this message `cMsg` is eligible for an evol
 mutation: same round, same receiver set, and same seed. However, `cMsg` must also have
 the same message type requested by the plan entry (`epf.MsgType`). If those fields match,
 FindMutation builds the list of mutations valid for this concrete Aptos message type and
-returns the one named by `epf.MutationName`.
+selects one based on the given `epf.Seed`.
 
 Unlike the randomized AptosMutator, this function does not choose randomly from the valid
-mutation list. The evolutionary plan already chose the mutation, so we only look it up
-and return it.
+mutation list. The evolutionary plan provides the msgType and seed which indicate what mutation
+should be chosen.
 */
 func (m *AptosEvoMutator) FindMutation(epf EvoProcessFaultSpec, pf *ProcFaultSpec, cMsg aptos.IConsensusMessage) (*mutation, bool) {
 	if len(pf.Receivers) != len(epf.Receivers) {
@@ -103,7 +106,7 @@ func (m *AptosEvoMutator) FindMutation(epf EvoProcessFaultSpec, pf *ProcFaultSpe
 		}
 	}
 
-	if ReplicaID(epf.Round) != ReplicaID(pf.Round) {
+	if aptos.Round(epf.Round) != pf.Round {
 		return nil, false
 	}
 
@@ -152,14 +155,8 @@ func (m *AptosEvoMutator) FindMutation(epf EvoProcessFaultSpec, pf *ProcFaultSpe
 	default:
 		return nil, false
 	}
-	muts = append(muts, OmitMutation)
-	idx := slices.IndexFunc(muts, func(m mutation) bool {
-		return m.Name == epf.MutationName
-	})
-	if idx == -1 {
-		return nil, false
-	}
-	return &muts[idx], true
+	mut := pickMutation(muts, epf.Seed)
+	return &mut, true
 }
 
 /*
@@ -211,13 +208,12 @@ const (
 )
 
 /*
-Picks a random mutation from the set of possible mutations available on the corresponding consensus msg type.
+Picks a random mutation from the set of possible mutations available on the corresponding consensus msg type and returns it.
 */
 func pickMutation(mutations []mutation, seed int64) mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	mutations = append(mutations, OmitMutation)
 	chosen := mutations[rng.Intn(len(mutations))]
-	chosen.fn()
 	return chosen
 }
 
