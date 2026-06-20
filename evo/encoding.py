@@ -1,0 +1,678 @@
+import random
+import yaml
+
+
+# ************************************************* #
+# 				 Helpers				            #
+# ************************************************* #
+
+MSG_TYPES = [
+    "ProposalMsg",
+    "OptProposalMsg",
+    "VoteMsg",
+    "CommitMessage",
+    "CommitVote",
+    "CommitDecision",
+    "RoundTimeoutMsg",
+]
+
+def sample_partition(num_nodes):
+    # 2-partition vector of length num_nodes, with both groups non-empty
+    if num_nodes < 2:
+        raise ValueError("num_nodes must be at least 2")
+
+    nodes = list(range(num_nodes))
+    random.shuffle(nodes)
+
+    cut = random.randint(1, num_nodes - 1)
+    group_zero = set(nodes[:cut])
+
+    return [0 if node in group_zero else 1 for node in range(num_nodes)]
+
+
+def sample_receivers(num_nodes, pByz):
+    # Non-empty receiver subset, excluding the Byzantine sender
+    candidates = [node for node in range(num_nodes) if node != pByz]
+    if not candidates:
+        raise ValueError("no valid receivers: num_nodes must be > 1")
+
+    random.shuffle(candidates)
+    receiver_count = random.randint(1, len(candidates))
+
+    return sorted(candidates[:receiver_count])
+
+
+def sample_msg_type(exclude=None):
+    choices = [m for m in MSG_TYPES if m != exclude]
+    return random.choice(choices)
+
+
+# For ProcessFault genes
+# Mutate a process fault mutation by selecting a different seed 
+# for the existing msg_type. A different seed yields a different mutation method.
+def sample_seed(exclude=None):
+    low = 1
+    high = 2**31-1
+    return randint_excluding(low, high, exclude) if exclude is not None else random.randint(low, high)
+    
+
+def sample_round(r):
+    return random.randint(1, r)
+
+
+# When sampling rounds for NetworkFault / ProcessFault genes, they need
+# to be unique across all faults, so that they do not conflict
+# with each other.
+def sample_round_excluding(r, existing_rounds):
+    choices = [
+        round for round in range(1, r+1)
+        if round not in existing_rounds
+    ]
+    if not choices:
+        raise ValueError("not enough rounds to sample unique faults")
+    return random.choice(choices)
+
+
+def randint_excluding(low, high, current):
+    if low == high:
+        return current
+
+    value = random.randint(low, high)
+    while value == current:
+        value = random.randint(low, high)
+    return value
+
+
+# For NetworkFault genes
+# Mutate a 2-partition by flipping a node from one group to the other.
+def flip_one_partition_node(partition):
+    zeros = partition.count(0)
+    ones = partition.count(1)
+
+    # Only flip nodes whose movement keeps both sides non-empty
+    valid_indices = [
+        i for i, value in enumerate(partition)
+        if (value == 0 and zeros > 1) or (value == 1 and ones > 1)
+    ]
+
+    if not valid_indices:
+        return partition[:]
+
+    new_partition = partition[:]
+    idx = random.choice(valid_indices)
+    new_partition[idx] = 1 - new_partition[idx]
+    return new_partition
+
+
+# For ProcessFault genes
+# Given a receiver list of a mutated message, e.g. [1,2,3]
+# decide whether to add a new receiver to the list (if other nodes are available),
+# to drop a current receiver (if that doesn't make the receiver list empty),
+# or to replace a current receiver node id with a different one (which is not the pByz).
+def mutate_receivers(receivers, num_nodes, pByz):
+    candidates = [node for node in range(num_nodes) if node != pByz]
+    current = set(receivers)
+
+    ops = []
+    if len(current) < len(candidates):
+        ops.append("add")
+    if len(current) > 1:
+        ops.append("drop")
+    if current and len(current) < len(candidates):
+        ops.append("replace")
+
+    if not ops:
+        return sorted(current)
+
+    op = random.choice(ops)
+
+    if op == "add":
+        current.add(random.choice([node for node in candidates if node not in current]))
+
+    elif op == "drop":
+        current.remove(random.choice(list(current)))
+
+    elif op == "replace":
+        old = random.choice(list(current))
+        new = random.choice([node for node in candidates if node not in current])
+        current.remove(old)
+        current.add(new)
+
+    return sorted(current)
+
+
+# ************************************************* #
+# 				 Encodings				            #
+# ************************************************* #
+
+class BaseEncoding:
+
+    @staticmethod
+    def sample(config):
+        # return one individual
+        pass
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def mutate(ind, **kwargs):
+        return (ind,)
+
+    @staticmethod
+    def mate(ind1, ind2):
+        return ind1, ind2
+
+    def to_yaml(self):
+        # dump to yaml and pass to the runner function
+        # or to_dict() returns a dictionary
+        pass
+
+
+# ************************************************* #
+# 				 Genes				                #
+# ************************************************* #
+
+class PByzGene:
+    def __init__(self, pByz:int):
+        self.pByz = pByz
+        
+    @staticmethod
+    def sample(config):
+        return PByzGene(random.randrange(int(config["num_nodes"])))
+    
+    def _mutate_self(self, config):
+        num_nodes = int(config["num_nodes"])
+        self.pByz = randint_excluding(0, num_nodes - 1, self.pByz)
+
+    def to_plan_value(self):
+        return self.pByz
+
+
+class NetworkFaultGene:
+    def __init__(self, round:int, partition:list[int]):
+        self.round = round
+        self.partition = partition # 2-partition, only 0/1; at round, msgs crossing the two groups are delayed
+        self.mutation_ops = ["round", "partition"]
+        
+    @staticmethod
+    def sample(config, r, existing_rounds=None):
+        existing_rounds = existing_rounds or set()
+        return NetworkFaultGene(
+            round=sample_round_excluding(r, existing_rounds),
+            partition=sample_partition(int(config["num_nodes"])),
+        )
+    
+    def _mutate_self(self, r, existing_rounds=None):
+        existing_rounds = existing_rounds or set()
+        op = random.choice(self.mutation_ops)
+
+        # If we mutate the round nr, we need to make sure it does not 
+        # conflict with existing rounds selected for an array of NetworkFaultGene.
+        if op == "round":
+            choices = [
+                round for round in range(1, r+1)
+                if round != self.round and round not in existing_rounds
+            ]
+            if choices:
+                self.round = random.choice(choices)
+            else:
+                self.round = r + 1
+
+        elif op == "partition":
+            self.partition = flip_one_partition_node(self.partition)
+    
+    def to_plan_dict(self):
+        return {
+            "round": self.round,
+            "partition": self.partition,
+        }
+    
+    
+class ProcessFaultGene:
+    def __init__(self, round:int, receivers:list[int], msg_type:str, seed:int):
+        self.round = round
+        self.receivers = receivers
+        self.msg_type = msg_type
+        self.seed = seed    # seed selects the concrete mutation for this msg_type
+        
+        self.mutation_ops = ["round", "receivers", "seed"]
+    
+    @staticmethod
+    def sample(config, pByz, r, existing_rounds=None):
+        existing_rounds = existing_rounds or set()
+
+        return ProcessFaultGene(
+            round=sample_round_excluding(r, existing_rounds),
+            receivers=sample_receivers(int(config["num_nodes"]), pByz),
+            msg_type=sample_msg_type(),
+            seed=random.randint(1, 2**31-1),
+        )
+    
+    def _mutate_self(self, config, pByz, r, existing_rounds=None):
+        existing_rounds = existing_rounds or set()
+        op = random.choice(self.mutation_ops)
+        
+        # Mutate the round nr to a different, unique one
+        # which does not conflict with existing process faults.
+        if op == "round":
+            choices = [
+                rnd for rnd in range(1, r+1)
+                if rnd != self.round and rnd not in existing_rounds
+            ]
+            if choices:
+                self.round = random.choice(choices)
+            else:
+                self.round = r + 1
+
+        elif op == "receivers":
+            self.receivers = mutate_receivers(
+                self.receivers,
+                int(config["num_nodes"]),
+                pByz,
+            )
+
+        # Keep msg_type fixed; only change seed which gives a new mutation_name
+        elif op == "seed":
+            self.seed = sample_seed(exclude=self.seed)
+    
+    def to_plan_dict(self):
+        return {
+            "round": self.round,
+            "receivers": self.receivers,
+            "msg_type": self.msg_type,
+            "seed": self.seed,
+        }
+    
+
+# ************************************************* #
+# 				 AptosEncoding				        #
+# ************************************************* #
+
+class AptosEncoding(BaseEncoding):
+    def __init__(
+        self, 
+        pByz:PByzGene, 
+        network_faults:list[NetworkFaultGene], 
+        process_faults:list[ProcessFaultGene],
+        r:int,
+        config=None
+    ):
+        self.pByz = pByz
+        self.network_faults = network_faults
+        self.process_faults = process_faults
+        self.r = r
+        self.config = config
+        self.mutation_ops = ["pByz", "network_faults", "process_faults"]
+    
+    @staticmethod
+    def sample(config):
+        # return one full individual
+        pByz_gene = PByzGene.sample(config)
+        
+        num_network_faults = int(config.get("d", 1))
+        num_process_faults = int(config.get("c", 1))
+        r = int(config["r"])
+        max_unique_rounds = int(config["r"])
+        
+        if num_network_faults > max_unique_rounds:
+            raise ValueError("d/num_network_faults cannot exceed r when network fault rounds are unique")
+
+        if num_process_faults > max_unique_rounds:
+            raise ValueError("c/num_process_faults cannot exceed r when process fault rounds are unique")
+        
+        # When sampling NetworkFaults we need to make sure that rounds are unique
+        # across all genes, else the faults become ambiguous.
+        used_network_rounds = set()
+        network_faults = []
+        for _ in range(num_network_faults):
+            nf = NetworkFaultGene.sample(
+                config,
+                r,
+                existing_rounds=used_network_rounds,
+            )
+            network_faults.append(nf)
+            used_network_rounds.add(nf.round)
+        
+        # When sampling ProcessFaults we need to make sure that we don't sample
+        # duplicated rounds, else the faults become ambiguous.
+        used_process_rounds = set()
+        process_faults = []
+        for _ in range(num_process_faults):
+            pf = ProcessFaultGene.sample(
+                config,
+                pByz_gene.pByz,
+                r,
+                existing_rounds=used_process_rounds,
+            )
+            process_faults.append(pf)
+            used_process_rounds.add(pf.round)
+        
+        ind = AptosEncoding(
+            pByz = pByz_gene,
+            network_faults = network_faults,
+            process_faults = process_faults,
+            r = r,
+            config = config
+        )
+        
+        return ind
+    
+    def to_plan_dict(self):
+        return {
+            "pByz": self.pByz.pByz,
+            "c": len(self.process_faults),
+            "d": len(self.network_faults),
+            "r": self.r,
+            "network_faults": [nf.to_plan_dict() for nf in self.network_faults],
+            "process_faults": [pf.to_plan_dict() for pf in self.process_faults],
+        }
+
+    def to_yaml(self):
+        return yaml.safe_dump(self.to_plan_dict(), sort_keys=False)
+
+    def _network_rounds_except(self, idx):
+        return {
+            nf.round
+            for i, nf in enumerate(self.network_faults)
+            if i != idx
+        }
+    
+    def _process_rounds_except(self, idx):
+        return {
+            pf.round
+            for i, pf in enumerate(self.process_faults)
+            if i != idx
+        }
+    
+    def _valid_network_swap_pairs(self, other):
+        pairs = []
+
+        for i, nf1 in enumerate(self.network_faults):
+            self_rounds_except_i = self._network_rounds_except(i)
+
+            for j, nf2 in enumerate(other.network_faults):
+                other_rounds_except_j = other._network_rounds_except(j)
+
+                if nf2.round in self_rounds_except_i:
+                    continue
+                if nf1.round in other_rounds_except_j:
+                    continue
+
+                pairs.append((i, j))
+
+        return pairs
+
+    # Makes sure we don't swap with a pf that leads to
+    # duplicated rounds across all pfs in an individual
+    # or which leads to the pByz being in a receiver list
+    def _valid_process_swap_pairs(self, other):
+        pairs = []
+
+        for i, pf1 in enumerate(self.process_faults):
+            self_rounds_except_i = self._process_rounds_except(i)
+
+            for j, pf2 in enumerate(other.process_faults):
+                other_rounds_except_j = other._process_rounds_except(j)
+
+                if pf2.round in self_rounds_except_i:
+                    continue
+                if pf1.round in other_rounds_except_j:
+                    continue
+                if self.pByz.pByz in pf2.receivers:
+                    continue
+                if other.pByz.pByz in pf1.receivers:
+                    continue
+
+                pairs.append((i, j))
+
+        return pairs
+    
+    def _repair_receivers_after_pbyz_change(self):
+        num_nodes = int(self.config["num_nodes"])
+        pByz = self.pByz.pByz
+
+        for pf in self.process_faults:
+            pf.receivers = sorted([receiver for receiver in pf.receivers if receiver != pByz])
+            if not pf.receivers:
+                pf.receivers = sample_receivers(num_nodes, pByz)
+    
+    """ Possible mutations:
+    - change pByz
+    - change one network fault round
+    - change one network fault partition
+    - replace a nf with another non-conflicting one
+    - change one process fault round
+    - change one process fault receivers
+    - change one process fault mutation
+    - replace a pf with another non-conflicting one
+    """
+    @staticmethod
+    def mutate(ind):
+        available_ops = ["pByz", "network_faults", "process_faults"]
+        op = random.choice(available_ops)
+        
+        if op == "pByz":
+            ind.pByz._mutate_self(ind.config)
+            ind._repair_receivers_after_pbyz_change()
+        
+        elif op == "network_faults":
+            current_rounds = {nf.round for nf in ind.network_faults}    
+            ops = ["add"]
+            
+            if ind.network_faults:
+                ops.extend(["mutate", "replace", "remove"])
+            
+            op = random.choice(ops)
+            
+            if op == "add":
+                if len(current_rounds) == ind.r:
+                    ind.r += 1
+                ind.network_faults.append(NetworkFaultGene.sample(
+                    ind.config,
+                    ind.r,
+                    existing_rounds=current_rounds
+                ))
+            
+            elif op == "remove":
+                idx = random.randrange(len(ind.network_faults))
+                del ind.network_faults[idx]
+            
+            # Mutate a part of the network fault
+            elif op == "mutate":
+                idx = random.randrange(len(ind.network_faults)) 
+                ind.network_faults[idx]._mutate_self(
+                    ind.r,
+                    existing_rounds=ind._network_rounds_except(idx),
+                )
+                if ind.network_faults[idx].round == ind.r + 1:
+                    ind.r+=1
+            
+            # Replace the whole network fault with a new one
+            elif op == "replace":
+                idx = random.randrange(len(ind.network_faults))
+                ind.network_faults[idx] = NetworkFaultGene.sample(
+                    ind.config,
+                    ind.r,
+                    existing_rounds=ind._network_rounds_except(idx),
+                 )
+                
+        elif op == "process_faults":
+            current_rounds = {nf.round for nf in ind.process_faults}                
+            ops = ["add"]
+            
+            if ind.process_faults:
+                ops.extend(["mutate", "replace", "remove"])
+            
+            op = random.choice(ops)
+            
+            if op == "add":
+                if len(current_rounds) == ind.r:
+                    ind.r += 1
+                ind.process_faults.append(ProcessFaultGene.sample(
+                    ind.config,
+                    ind.pByz.pByz,
+                    ind.r,
+                    existing_rounds=current_rounds,
+                ))
+            
+            elif op == "remove":
+                idx = random.randrange(len(ind.process_faults))
+                del ind.process_faults[idx]
+                
+            # Mutate a part of the process fault
+            elif op == "mutate":
+                idx = random.randrange(len(ind.process_faults))
+                ind.process_faults[idx]._mutate_self(
+                    ind.config,
+                    ind.pByz.pByz,
+                    ind.r,
+                    existing_rounds=ind._process_rounds_except(idx)
+                )
+                # If round was selected to be mutated and all rounds previous rounds were used,
+                # we need to increase R param
+                if ind.process_faults[idx].round == ind.r + 1:
+                    ind.r+=1
+                
+            # Replace the whole process fault with a new one
+            elif op == "replace":
+                idx = random.randrange(len(ind.process_faults))
+                ind.process_faults[idx] = ProcessFaultGene.sample(
+                    ind.config,
+                    ind.pByz.pByz,
+                    ind.r,
+                    existing_rounds=ind._process_rounds_except(idx),
+                )
+                
+        return (ind,)
+
+    """Mating of two individuals:
+    ind1(pByz1, nf1, pf1)
+    ind2(pByz2, nf2, pf2)
+    
+    Possible matings are:
+        - Swap pByz1 with pByz2
+        - Swap nf1[i] with nf2[j]
+        - Swap pf1[i] witih pf2[j]
+    Before swapping we need to make sure that invariants are respected.
+    """
+    @staticmethod
+    def mate(ind1, ind2):
+        available_ops = []
+
+        if ind1.pByz.pByz != ind2.pByz.pByz:
+            available_ops.append("pByz")
+
+        network_pairs = ind1._valid_network_swap_pairs(ind2)
+        if network_pairs:
+            available_ops.append("network_faults")
+
+        process_pairs = ind1._valid_process_swap_pairs(ind2)
+        if process_pairs:
+            available_ops.append("process_faults")
+
+        # If nothing is possible, return unchanged parents
+        if not available_ops:
+            return ind1, ind2
+
+        op = random.choice(available_ops)
+        
+        # Swap the byzantine process between individuals
+        if op == "pByz":
+            ind1.pByz, ind2.pByz = ind2.pByz, ind1.pByz
+            ind1._repair_receivers_after_pbyz_change()
+            ind2._repair_receivers_after_pbyz_change()
+            
+        # Swap nf1[i] with nf2[j]
+        elif op == "network_faults":
+            i, j = random.choice(network_pairs)
+            ind1.network_faults[i], ind2.network_faults[j] = (
+                ind2.network_faults[j],
+                ind1.network_faults[i],
+            )
+            # every round must stay between [1,r]
+            ind1.r = max(ind1.r, ind1.network_faults[i].round)
+            ind2.r = max(ind2.r, ind2.network_faults[j].round)
+
+        # Swap pf1[i] with pf2[j]
+        elif op == "process_faults":
+            i, j = random.choice(process_pairs)
+            ind1.process_faults[i], ind2.process_faults[j] = (
+                ind2.process_faults[j],
+                ind1.process_faults[i],
+            )
+            ind1.r = max(ind1.r, ind1.process_faults[i].round)
+            ind2.r = max(ind2.r, ind2.process_faults[j].round)
+        
+        return ind1, ind2
+    
+    # For making sure invariants are respected across mutations/crossovers.
+    # For an individual:
+    #   - Round nr in all nf genes are unique
+    #   - Round nr in all pf genes are unique
+    #   - Round nr is in [1, r]
+    #   - We have 2-partition with non-empty sets
+    #   - We have non-empty pf receivers
+    #   - PByz does not appear in any pf receivers
+    #   - The msg_type of a pf is valid and appears in the catalog
+    def validate(self):
+        assert len({nf.round for nf in self.network_faults}) == len(self.network_faults)
+        assert len({pf.round for pf in self.process_faults}) == len(self.process_faults)
+        assert self.r >= 1
+        num_nodes = int(self.config["num_nodes"])
+        assert 0 <= self.pByz.pByz < num_nodes
+
+        for nf in self.network_faults:
+            assert len(nf.partition) == int(self.config["num_nodes"])
+            assert set(nf.partition) <= {0, 1}
+            assert 0 in nf.partition and 1 in nf.partition
+            assert(nf.round <= self.r)
+            assert(nf.round >= 1)
+
+        # nonempty, unique, receivers with valid node ids that do not contain pbyz
+        for pf in self.process_faults:
+            assert pf.receivers
+            assert len(pf.receivers) == len(set(pf.receivers))
+            assert all(isinstance(receiver, int) for receiver in pf.receivers)
+            assert all(0 <= receiver < num_nodes for receiver in pf.receivers)
+            assert self.pByz.pByz not in pf.receivers
+            assert(pf.round <= self.r)
+            assert(pf.round >= 1)
+            assert pf.msg_type in MSG_TYPES
+            assert isinstance(pf.seed, int)
+
+
+if __name__ == "__main__":
+    config = {"num_nodes": 6, "r": 6, "c": 2, "d": 1}
+    
+    inds = []
+    for i in range(4):
+        ind = AptosEncoding.sample(config)
+        inds.append(ind)
+        print(f"======== individual {i} ======== ")
+        print(ind.to_yaml())
+        
+    # test mutation
+    ind = inds[0]
+    print("**** before mutation ****")
+    print(ind.to_yaml())
+    AptosEncoding.mutate(ind)
+    print("**** after mutation ****")
+    print(ind.to_yaml())
+    ind.validate()
+    
+    # test crossover
+    ind1, ind2 = inds[0], inds[1]
+    print("**** before crossover ****")
+    print("ind1:")
+    print(ind1.to_yaml())
+    print("ind2:")
+    print(ind2.to_yaml())
+    AptosEncoding.mate(ind1, ind2)
+    print("**** after crossover ****")
+    print("ind1:")
+    print(ind1.to_yaml())
+    print("ind2:")
+    print(ind2.to_yaml())   
+    ind1.validate()
+    ind2.validate()
