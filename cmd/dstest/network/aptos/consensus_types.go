@@ -34,6 +34,7 @@ func DebugUnmarshal(logf func(string, ...any), name string, data []byte, v any) 
 type IConsensusMessage interface {
 	GetRound() Round
 	GetTimestamp() uint64
+	GetEpoch() uint64
 	fmt.Stringer
 }
 
@@ -53,6 +54,10 @@ func (m ProposalMsg) GetRound() Round {
 
 func (m ProposalMsg) GetTimestamp() uint64 {
 	return m.Proposal.BlockData.TimestampUsecs
+}
+
+func (m ProposalMsg) GetEpoch() uint64 {
+	return m.Proposal.BlockData.Epoch
 }
 
 func (m ProposalMsg) String() string {
@@ -76,6 +81,10 @@ func (m OptProposalMsg) GetRound() Round {
 
 func (m OptProposalMsg) GetTimestamp() uint64 {
 	return m.BlockData.TimestampUsecs
+}
+
+func (m OptProposalMsg) GetEpoch() uint64 {
+	return m.BlockData.Epoch
 }
 
 func (m OptProposalMsg) String() string {
@@ -104,6 +113,10 @@ func (v VoteMsg) GetTimestamp() uint64 {
 	return v.Vote.VoteData.Proposed.TimestampUsecs
 }
 
+func (v VoteMsg) GetEpoch() uint64 {
+	return v.Vote.VoteData.Proposed.Epoch
+}
+
 func (v VoteMsg) String() string {
 	return "VoteMsg:\n" +
 		indent(v.Vote.String(), "    ") + "\n" +
@@ -127,6 +140,10 @@ func (c CommitVote) GetRound() Round {
 
 func (c CommitVote) GetTimestamp() uint64 {
 	return c.LedgerInfo.CommitInfo.TimestampUsecs
+}
+
+func (c CommitVote) GetEpoch() uint64 {
+	return c.LedgerInfo.CommitInfo.Epoch
 }
 
 func (c CommitVote) String() string {
@@ -162,6 +179,16 @@ func (c CommitMessage) GetTimestamp() uint64 {
 	}
 	if c.Decision != nil {
 		return c.Decision.GetTimestamp()
+	}
+	return 0
+}
+
+func (c CommitMessage) GetEpoch() uint64 {
+	if c.Vote != nil {
+		return c.Vote.GetEpoch()
+	}
+	if c.Decision != nil {
+		return c.Decision.GetEpoch()
 	}
 	return 0
 }
@@ -204,6 +231,10 @@ func (r RoundTimeoutMsg) GetTimestamp() uint64 {
 	return r.RoundTimeout.Timeout.QuorumCert.VoteData.Proposed.TimestampUsecs
 }
 
+func (r RoundTimeoutMsg) GetEpoch() uint64 {
+	return r.RoundTimeout.Timeout.Epoch
+}
+
 func (r RoundTimeoutMsg) String() string {
 	return "RoundTimeoutMsg:\n" +
 		indent(r.RoundTimeout.String(), "    ") + "\n" +
@@ -223,6 +254,10 @@ func (c CommitDecision) GetRound() Round {
 
 func (c CommitDecision) GetTimestamp() uint64 {
 	return c.LedgerInfo.V0.LedgerInfo.CommitInfo.TimestampUsecs
+}
+
+func (c CommitDecision) GetEpoch() uint64 {
+	return c.LedgerInfo.V0.LedgerInfo.CommitInfo.Epoch
 }
 
 func (c CommitDecision) String() string {

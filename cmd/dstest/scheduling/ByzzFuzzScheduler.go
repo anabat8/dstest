@@ -419,7 +419,7 @@ func (m *MutationWriter) NextIteration(config *config.Config, iteration int) {
 		m.File = f
 		m.Writer = csv.NewWriter(f)
 		m.Writer.Write([]string{
-			"sender_id", "receiver_id", "timestamp", "round",
+			"sender_id", "receiver_id", "epoch", "timestamp", "round",
 			"message", "mutated_message", "mutation_name", "mutation_method", "message_id",
 		})
 	}
@@ -667,6 +667,7 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 	}
 
 	round := c.GetRound()
+	epoch := c.GetEpoch()
 	timestamp := c.GetTimestamp()
 	sender := ReplicaID(chosenMsg.Sender)
 	receiver := ReplicaID(chosenMsg.Receiver)
@@ -721,6 +722,7 @@ func (s *ByzzFuzzScheduler) Next(messages []*network.Message, faults []*faults.F
 		s.WriteMutation([]string{
 			fmt.Sprintf("%d", sender),
 			fmt.Sprintf("%d", receiver),
+			fmt.Sprintf("%d", epoch),
 			fmt.Sprintf("%d", timestamp),
 			fmt.Sprintf("%d", round),
 			ogMsg,

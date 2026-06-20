@@ -297,6 +297,9 @@ config:
 	done; \
 	} > $(CONFIG)
 	@cp $(CONFIG) $(OUTPUT_DIR)/aptos.yml
+	@if [ -n "$(EVOFAULTPLAN)" ]; then \
+		cp "$(EVOFAULTPLAN)" "$(OUTPUT_DIR)/aptos_evo.yaml"; \
+	fi
 
 # -----------------------------
 # Clean + run
