@@ -1,0 +1,22 @@
+# Per individual values
+c: 2
+d: 1
+r: 6
+
+pByz: 0
+
+network_faults:
+  - round: 2
+    partition: [0, 0, 0, 1, 1, 1]
+  - round: 3
+    partition: [0, 0, 1, 1, 1, 1]
+  
+process_faults:
+  - round: 4
+    receivers: [3, 4, 5]
+    msg_type: VoteMsg
+    seed: 10
+  - round: 3
+    receivers: [1, 2]
+    msg_type: ProposalMsg
+    seed: 42

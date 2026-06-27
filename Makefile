@@ -77,6 +77,7 @@ LIVENESSTIMEOUT ?= 60
 BLOCKBUDGET ?= 10
 
 # aptos.yml template vars
+ITERATIONS			 ?= 100
 STEPS 			     ?= 2300
 SEED                 ?= 42
 PARAM_C              ?= 2
@@ -260,7 +261,7 @@ config:
 	echo "TestConfig:"; \
 	echo "  Name: $(TEST_NAME)"; \
 	echo "  Experiments: 1"; \
-	echo "  Iterations: 100"; \
+	echo "  Iterations: $(ITERATIONS)"; \
 	echo "  WaitDuration: 50"; \
 	echo "  StartupDuration: 10"; \
 	echo ""; \
@@ -298,7 +299,7 @@ config:
 	} > $(CONFIG)
 	@cp $(CONFIG) $(OUTPUT_DIR)/aptos.yml
 	@if [ -n "$(EVOFAULTPLAN)" ]; then \
-		cp "$(EVOFAULTPLAN)" "$(OUTPUT_DIR)/aptos_evo.yaml"; \
+		cp "$(EVOFAULTPLAN)" "$(OUTPUT_DIR)/individual_fault_plan.yaml"; \
 	fi
 
 # -----------------------------

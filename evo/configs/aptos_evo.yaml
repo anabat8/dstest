@@ -1,49 +1,33 @@
 strategies:
-  - byzzfuzz
+  #- byzzfuzz
   - evo_aptos
 
 benchmarks:
-  - aptos
-  - bug1
-  - bug2
+  #- aptos
+  #- bug1
+  #- bug2
   - bug3
-
-block_height_max: 10
 
 fitness:
   - execution_time
-  - qc
+  #- qc
 
-max_parallel_workers: 4
-
-population_size: 20
-mu: 10 # Parent count (μ) for (μ+λ) selection in DEAP.
-total_num_tests: 200 #0 # for evo, it's 2000/20=100 generations
-
+max_parallel_workers: 1
+population_size: 4  # population of (λ) individuals
+mu: 2               # Parent count (μ) for (μ+λ) selection in DEAP
+total_num_tests: 8  #0 # for evo, it's 2000/20=100 generations
 max_partition_duration: 2000
+seed: 42
 
-num_nodes: 6
-# other configs, eg. transactions ...
-
-# Byzzfuzz initial params; during mutations these can change
-c: 2
-d: 1
-r: 6
-
-pByz: 0
-
-network_faults:
-  - round: 2
-    partition: [0, 0, 0, 1, 1, 1]
-  - round: 3
-    partition: [0, 0, 1, 1, 1, 1]
-  
-process_faults:
-  - round: 4
-    receivers: [3, 4, 5]
-    msg_type: VoteMsg
-    seed: 10
-  - round: 3
-    receivers: [1, 2]
-    msg_type: ProposalMsg
-    seed: 42
+dstest:
+  num_nodes: 6
+  num_client_accounts: 2
+  # Byzzfuzz initial params; during mutations these can change
+  c: 2
+  d: 1
+  r: 6
+  iterations: 1
+  block_height_max: 10
+  steps: 2300
+  recovery_seconds: 30
+  liveness_timeout: 60

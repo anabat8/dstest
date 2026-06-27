@@ -126,3 +126,6 @@ cmd/dstest/main*
 
 # Ignore aptos client built binary
 cmd/aptos_client/main
+
+# Ignore
+evo/logs
