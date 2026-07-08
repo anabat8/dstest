@@ -14,9 +14,9 @@ network_faults:
 process_faults:
   - round: 4
     receivers: [3, 4, 5]
-    msg_type: VoteMsg
-    seed: 10
+    msg_type: ProposalMsg
+    seed: 40
   - round: 3
     receivers: [1, 2]
-    msg_type: ProposalMsg
+    msg_type: VoteMsg
     seed: 42

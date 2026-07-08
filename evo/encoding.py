@@ -360,10 +360,10 @@ class AptosEncoding(BaseEncoding):
     
     def to_plan_dict(self):
         return {
-            "pByz": self.pByz.pByz,
             "c": len(self.process_faults),
             "d": len(self.network_faults),
             "r": self.r,
+            "pByz": self.pByz.pByz,
             "network_faults": [nf.to_plan_dict() for nf in self.network_faults],
             "process_faults": [pf.to_plan_dict() for pf in self.process_faults],
         }
@@ -428,6 +428,9 @@ class AptosEncoding(BaseEncoding):
 
         return pairs
     
+    # Whenever pByz is mutated, we need to update all sets of
+    # receivers in process faults to not include the newly 
+    # selected pByz
     def _repair_receivers_after_pbyz_change(self):
         num_nodes = int(self.config["num_nodes"])
         pByz = self.pByz.pByz
@@ -442,10 +445,14 @@ class AptosEncoding(BaseEncoding):
     - change one network fault round
     - change one network fault partition
     - replace a nf with another non-conflicting one
+    - add an entirely new non-conflicting nf
+    - remove an existing nf
     - change one process fault round
     - change one process fault receivers
     - change one process fault mutation
     - replace a pf with another non-conflicting one
+    - add an entirely new non-conflicting pf
+    - remove an existing pf
     """
     @staticmethod
     def mutate(ind):
@@ -606,15 +613,16 @@ class AptosEncoding(BaseEncoding):
         
         return ind1, ind2
     
-    # For making sure invariants are respected across mutations/crossovers.
-    # For an individual:
-    #   - Round nr in all nf genes are unique
-    #   - Round nr in all pf genes are unique
-    #   - Round nr is in [1, r]
-    #   - We have 2-partition with non-empty sets
-    #   - We have non-empty pf receivers
-    #   - PByz does not appear in any pf receivers
-    #   - The msg_type of a pf is valid and appears in the catalog
+    """ For making sure invariants are respected across mutations/crossovers.
+    For an individual:
+      - Round nr in all nf genes are unique
+      - Round nr in all pf genes are unique
+      - Round nr is in [1, r]
+      - We have 2-partition with non-empty sets
+      - We have non-empty pf receivers
+      - PByz does not appear in any pf receivers
+      - The msg_type of a pf is valid and appears in the catalog
+    """
     def validate(self):
         assert len({nf.round for nf in self.network_faults}) == len(self.network_faults)
         assert len({pf.round for pf in self.process_faults}) == len(self.process_faults)

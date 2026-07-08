@@ -9,7 +9,7 @@ benchmarks:
   - bug3
 
 fitness:
-  - execution_time
+  - time_fitness
   #- qc
 
 max_parallel_workers: 1

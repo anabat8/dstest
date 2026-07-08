@@ -7,11 +7,11 @@ import time
 import shutil
 from pathlib import Path
 
+from fitness import TestFitness
+
 THIS_FILE = Path(__file__).resolve()
 EVO_DIR = THIS_FILE.parent
 DSTEST_ROOT = EVO_DIR.parent
-
-ITER_DIR_RE = re.compile(r"_(\d+)$")
 
 BENCHMARK_BUG_FLAGS = {
     "aptos": {"BUG1": "false", "BUG2": "false", "BUG3": "false"},
@@ -197,147 +197,16 @@ class MakeTask:
 
 
 # ************************************************* #
-# 				 Parsers for output				    #
-# ************************************************* #
-# For one output run
-
-def count_agreement(path):
-    try:
-        text = path.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        return 0, 0, 0
-
-    heights = {
-        int(m.group(1))
-        for m in re.finditer(r"Disagreement detected at height (\d+)", text)
-    }
-    real_liveness = int(bool(re.search(r"Liveness (failure|violation)", text)))
-    potential_liveness = text.count("Potential liveness timeout")
-    return len(heights), real_liveness, potential_liveness
-
-
-def count_commits(iter_dir):
-    total = 0
-    for path in iter_dir.glob("client_stdout_*.log"):
-        total += path.read_text(errors="ignore").count("committed tx=")
-    return total
-
-
-def max_block_height(iter_dir):
-    path = iter_dir / "blockCommits.csv"
-    try:
-        with path.open(newline="", encoding="utf-8") as f:
-            rows = list(csv.DictReader(f))
-    except FileNotFoundError:
-        return 0.0
-
-    heights = [float(row["height"]) for row in rows if row.get("height")]
-    return max(heights) if heights else 0.0
-
-
-def count_mutations(iter_dir):
-    path = iter_dir / "mutations.csv"
-    try:
-        with path.open(newline="", encoding="utf-8") as f:
-            return max(0, sum(1 for _ in csv.DictReader(f)))
-    except FileNotFoundError:
-        return 0
-
-
-def csv_has_rows(path):
-    try:
-        with path.open(newline="", encoding="utf-8") as f:
-            return any(True for _ in csv.DictReader(f))
-    except FileNotFoundError:
-        return False
-
-
-def is_populated_iter_dir(iter_dir):
-    # A real iteration should at least have block commit rows.
-    # This skips leftover dirs that only contain an empty/header-only mutations.csv.
-    if csv_has_rows(iter_dir / "blockCommits.csv"):
-        return True
-
-    if (iter_dir / "agreement.log").exists():
-        try:
-            if (iter_dir / "agreement.log").read_text(encoding="utf-8").strip():
-                return True
-        except OSError:
-            pass
-
-    if count_commits(iter_dir) > 0:
-        return True
-
-    return False
-
-
-def parse_run_output(output_dir):
-    iter_dirs = [
-        p for p in output_dir.iterdir()
-        if p.is_dir()
-        and ITER_DIR_RE.search(p.name)
-        and is_populated_iter_dir(p)
-    ] if output_dir.exists() else []
-    
-    totals = {
-        "iterations_seen": len(iter_dirs),
-        "commits": 0,
-        "agreement_violations": 0,
-        "real_liveness": 0,
-        "potential_liveness": 0,
-        "max_height": 0.0,
-        "mutations": 0,
-    }
-
-    for iter_dir in iter_dirs:
-        ag, live, potential = count_agreement(iter_dir / "agreement.log")
-        totals["commits"] += count_commits(iter_dir)
-        totals["agreement_violations"] += ag
-        totals["real_liveness"] = max(totals["real_liveness"], live)
-        totals["potential_liveness"] += potential
-        totals["max_height"] = max(totals["max_height"], max_block_height(iter_dir))
-        totals["mutations"] += count_mutations(iter_dir)
-
-    return totals
-
-
-# ************************************************* #
-# 				 Fitness scores				        #
-# ************************************************* #
-
-
-def compute_fitness(metrics, duration_sec, config):
-    if metrics["iterations_seen"] == 0:
-        return -1000.0
-
-    name = config.get("fitness_name", "execution_time")
-
-    if name == "execution_time":
-        return (
-            duration_sec
-            + 2000.0 * metrics["agreement_violations"]
-            + 1000.0 * metrics["real_liveness"]
-            + 100.0 * metrics["potential_liveness"]
-        )
-
-    if name == "qc":
-        raise NotImplementedError("qc fitness is not implemented yet")
-
-    raise ValueError(f"unknown fitness function: {name}")
-
-
-# ************************************************* #
 # 				 Run DSTest and evaluate	        #
 # ************************************************* #
 
 
-def failure_result(log_dir, fault_plan_path, output_dir, duration_sec, phase, returncode):
+def failure_result(log_dir, fault_plan_path, output_dir, phase, returncode):
     result = {
         "fitness": -1000.0,
         "violation": 0,
         "agreement": False,
         "liveness": False,
-        "duration_sec": duration_sec,
         "returncode": returncode,
         "failed_phase": phase,
         "infrastructure_error": True,
@@ -355,16 +224,19 @@ def failure_result(log_dir, fault_plan_path, output_dir, duration_sec, phase, re
     return result
 
 
-# Receives one AptosEncoding individual, creates a unique eval dir that contains the individual's fault plan.
-# We should call: " make node-configs seeds clean config run " in this order. 
-# For each run, this does: setup the localnet, clean, make the config, run and capture the ouput.
-#
-# Each individual directory has: 
-#   - evo_experiment_config.yaml      # global evolutionary config
-#   - individual_fault_plan.yaml      # this individual’s generated plan
-#   - aptos.yml                       # dstest config generated by Makefile
-#
-#
+"""
+Receives one AptosEncoding individual, creates a unique eval dir that contains the individual's fault plan.
+We should call: " make node-configs seeds clean config run " in this order. 
+For each run, this does: setup the localnet, clean, make the config, run and capture the ouput.
+
+Each individual directory has: 
+  - evo_experiment_config.yaml      # global evolutionary config
+  - individual_fault_plan.yaml      # this individual’s generated plan
+  - aptos.yml                       # dstest config generated by Makefile
+  - dstest_output/                  # all dstest captured output
+  - make.log                        # dstest logs from running the make task
+  - result.json                     # evo result, contains fitnesses values and other metrics
+"""
 def run_dstest_and_evaluate(individual, config, log_dir):
     log_dir = Path(log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -378,16 +250,13 @@ def run_dstest_and_evaluate(individual, config, log_dir):
     make_task.prepare(individual, log_dir, fault_plan_path)
 
     output_dir = DSTEST_ROOT / make_task.vars["OUTPUT_BASE"] / make_task.vars["RUN_ID"]
-    
-    start = time.time()
-    
+     
     failed = make_task.ensure_slot_ready()
     if failed is not None:
         return failure_result(
             log_dir,
             fault_plan_path,
             output_dir,
-            time.time() - start,
             failed.target,
             failed.returncode,
         )
@@ -399,7 +268,6 @@ def run_dstest_and_evaluate(individual, config, log_dir):
                 log_dir,
                 fault_plan_path,
                 output_dir,
-                time.time() - start,
                 result.target,
                 result.returncode,
             )
@@ -407,31 +275,30 @@ def run_dstest_and_evaluate(individual, config, log_dir):
     # Blocking, worker waits until make run finishes or hits timeout_sec
     run_result = make_task.run("run")
 
-    duration_sec = time.time() - start
-    metrics = parse_run_output(output_dir)
-    
-    has_semantic_violation = (
-        metrics["agreement_violations"] > 0
-        or metrics["real_liveness"] > 0
-    )
+    evaluation = TestFitness().evaluate(output_dir, config)
+    fitness_name = config["fitness_name"]
+    fitness = evaluation["fitness_values"][fitness_name]
+   
+    metrics = evaluation["metrics"]
+    has_semantic_violation = evaluation["buggy"]
 
     infrastructure_error = (
-        metrics["iterations_seen"] == 0
-        or (run_result.returncode != 0 and not has_semantic_violation)
+        metrics.get("commits", 0) == 0
+        and metrics.get("max_height", 0.0) == 0.0
+        and not has_semantic_violation
     )
 
-    fitness = (
-        -1000.0
-        if infrastructure_error
-        else compute_fitness(metrics, duration_sec, config)
-    )
+    if infrastructure_error:
+        fitness = -1000.0
 
     result = {
         "fitness": fitness,
+        "fitness_name": fitness_name,
+        "fitness_values": evaluation["fitness_values"],
         "violation": int(has_semantic_violation),
+        "buggy": bool(has_semantic_violation),
         "agreement": bool(metrics["agreement_violations"]),
         "liveness": bool(metrics["real_liveness"]),
-        "duration_sec": duration_sec,
         "returncode": run_result.returncode,
         "run_returncode": run_result.returncode,
         "infrastructure_error": infrastructure_error,
@@ -440,7 +307,7 @@ def run_dstest_and_evaluate(individual, config, log_dir):
         "evo_experiment_config": evo_config_path,
         **metrics,
     }
-    
+        
     (log_dir / "result.json").write_text(
         json.dumps(result, indent=2, sort_keys=True),
         encoding="utf-8",

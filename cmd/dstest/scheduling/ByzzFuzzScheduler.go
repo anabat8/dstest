@@ -161,7 +161,7 @@ func (s *RandomSampler) SampleNetworkFaults() []NetworkFaultSpec {
 	// no evolutionary fault plan, sample randomly
 	faults := make([]NetworkFaultSpec, s.D)
 	for i := 0; i < s.D; i++ {
-		round := aptos.Round(s.Rng.Intn(s.R))
+		round := aptos.Round(s.Rng.Intn(s.R) + 1)
 		partition := NewPartition(ReplicaIDs(s.ReplicaIds), s.Rng)
 		faults[i] = NetworkFaultSpec{
 			Round:     round,
@@ -178,7 +178,7 @@ func (s *RandomSampler) SamplePByz() ReplicaID {
 func (s *RandomSampler) SampleProcessFaults() []ProcFaultSpec {
 	procFaults := make([]ProcFaultSpec, s.C)
 	for i := 0; i < s.C; i++ {
-		round := aptos.Round(s.Rng.Intn(s.R))
+		round := aptos.Round(s.Rng.Intn(s.R) + 1)
 		procs := randomSubsetOf(s.ReplicaIds, s.Rng)
 		byzzfuzzSeed := s.Rng.Int63()
 

@@ -157,7 +157,7 @@ $(VENV_PY):
 .PHONY: setup
 setup: $(VENV_PY)
 	$(PIP) install --upgrade pip
-	$(PIP) install pyyaml cryptography matplotlib pandas deap
+	$(PIP) install pyyaml cryptography matplotlib pandas deap seaborn scikit-learn
 
 # -----------------------------
 # Builds
