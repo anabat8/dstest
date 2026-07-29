@@ -15,8 +15,8 @@ process_faults:
   - round: 4
     receivers: [3, 4, 5]
     msg_type: ProposalMsg
-    seed: 40
+    mutation_name: proposal_large_timestamp_future
   - round: 3
     receivers: [1, 2]
     msg_type: VoteMsg
-    seed: 42
+    mutation_name: vote_parent_version_shift_up

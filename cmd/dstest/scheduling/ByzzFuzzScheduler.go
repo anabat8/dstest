@@ -248,10 +248,12 @@ func (e *EvoSampler) SampleProcessFaults() []ProcFaultSpec {
 		for _, receiver := range f.Receivers {
 			receivers[ReplicaID(receiver)] = struct{}{}
 		}
+		// evo fault plan does not have a seed, but it has mutation_name used to select the exact mutation for a msg_type
+		// here we initialize an internal dummy seed which will be used to build deterministic mutation functions in the mutator
 		procFaults = append(procFaults, ProcFaultSpec{
 			Round:     aptos.Round(f.Round),
 			Receivers: receivers,
-			Seed:      f.Seed,
+			Seed:      int64(0),
 		})
 	}
 	return procFaults
@@ -278,10 +280,10 @@ type EvoNetworkFaultSpec struct {
 }
 
 type EvoProcessFaultSpec struct {
-	Round     int    `yaml:"round"`
-	Receivers []int  `yaml:"receivers"`
-	MsgType   string `yaml:"msg_type"`
-	Seed      int64  `yaml:"seed"`
+	Round        int    `yaml:"round"`
+	Receivers    []int  `yaml:"receivers"`
+	MsgType      string `yaml:"msg_type"`
+	MutationName string `yaml:"mutation_name"`
 }
 
 /* ************************************************* */
@@ -290,6 +292,9 @@ type EvoProcessFaultSpec struct {
 
 /*
 Set of (round, a subset of P, and a seed)
+  - Randomized mode uses Seed to choose the mutation
+  - Evolutionary mode uses a deterministic dummy Seed;
+    the concrete mutation is selected from the evo plan by mutation_name
 */
 type ProcFaultSpec struct {
 	Round     aptos.Round            // round number in which the faulty process sends mutated messages (or omits them)

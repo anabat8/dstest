@@ -16,6 +16,221 @@ MSG_TYPES = [
     "RoundTimeoutMsg",
 ]
 
+
+MUTATION_CATALOG = {
+    "ProposalMsg": [
+        "proposal_large_timestamp_future",
+        "proposal_short_timestamp_future",
+        "proposal_timestamps_shift_past",
+        "proposal_qc_votedata_swap_with_syncinfo_highest_qc_votedata",
+        "proposal_to_optimistic_proposal",
+        "proposal_parent_swap_executed_state_with_hcc",
+        "proposal_parent_swap_executed_state_with_hoc",
+        "proposal_parent_swap_executed_state_with_hqc",
+        "proposal_parent_executed_state_random_value",
+        "proposal_grandparent_swap_executed_state_with_hcc",
+        "proposal_grandparent_swap_executed_state_with_hoc",
+        "proposal_grandparent_swap_executed_state_with_hqc",
+        "proposal_grandparent_executed_state_random_value",
+        "proposal_parent_inject_next_epoch_state",
+        "proposal_grandparent_id_swap",
+        "proposal_parent_id_swap",
+        "proposal_payload_empty",
+        "syncinfo_hqc_shift_rounds_up",
+        "syncinfo_hqc_shift_rounds_down",
+        "syncinfo_all_qcs_shift_rounds_up",
+        "syncinfo_all_qcs_shift_rounds_down",
+        "syncinfo_all_qcs_shift_epochs_up",
+        "syncinfo_all_qcs_shift_epochs_down",
+        "syncinfo_hqc_timestamp_increase",
+        "syncinfo_all_qcs_downgrade_to_commit_block",
+        "syncinfo_hqc_align_with_hoc",
+        "syncinfo_hoc_align_with_hqc",
+        "syncinfo_hcc_align_with_hoc",
+        "syncinfo_qc_parent_swap_with_commit_id",
+        "syncinfo_qc_executed_state_swap",
+        "syncinfo_h2ctc_round_shift_up",
+        "syncinfo_h2ctc_round_shift_down",
+        "syncinfo_inject_h2ctc_with_hcc_qc",
+        "syncinfo_inject_h2ctc_with_hoc_qc",
+        "syncinfo_h2ctc_drop_to_none",
+        "syncinfo_h2ctc_inner_qc_swap_to_hcc",
+        "syncinfo_h2ctc_inner_qc_swap_to_hoc",
+        "syncinfo_h2ctc_inner_qc_swap_to_hqc",
+        "syncinfo_h2ctc_drop_bitmask_one_bit",
+        "omit_mutation",
+    ],
+    "OptProposalMsg": [
+        "optproposal_large_timestamp_future",
+        "optproposal_short_timestamp_future",
+        "optproposal_timestamps_shift_past",
+        "optproposal_parent_version_shift_up",
+        "optproposal_parent_executed_state_swap_with_syncinfo_hcc_executed_state",
+        "optproposal_parent_executed_state_swap_with_syncinfo_hoc_executed_state",
+        "optproposal_parent_executed_state_swap_with_syncinfo_hqc_executed_state",
+        "optproposal_parent_executed_state_random_value",
+        "optproposal_grandparent_qc_executed_state_swap_with_syncinfo_hcc_executed_state",
+        "optproposal_grandparent_qc_executed_state_swap_with_syncinfo_hoc_executed_state",
+        "optproposal_grandparent_qc_executed_state_swap_with_syncinfo_hqc_executed_state",
+        "optproposal_grandparent_qc_executed_state_random_value",
+        "optproposal_greatgrandparent_id_swap",
+        "optproposal_grandparent_qc_proposed_id_swap",
+        "optproposal_payload_empty",
+        "syncinfo_hqc_shift_rounds_up",
+        "syncinfo_hqc_shift_rounds_down",
+        "syncinfo_all_qcs_shift_rounds_up",
+        "syncinfo_all_qcs_shift_rounds_down",
+        "syncinfo_all_qcs_shift_epochs_up",
+        "syncinfo_all_qcs_shift_epochs_down",
+        "syncinfo_hqc_timestamp_increase",
+        "syncinfo_all_qcs_downgrade_to_commit_block",
+        "syncinfo_hqc_align_with_hoc",
+        "syncinfo_hoc_align_with_hqc",
+        "syncinfo_hcc_align_with_hoc",
+        "syncinfo_qc_parent_swap_with_commit_id",
+        "syncinfo_qc_executed_state_swap",
+        "omit_mutation",
+    ],
+    "VoteMsg": [
+        "vote_parent_version_shift_up",
+        "vote_proposed_version_shift_up",
+        "vote_proposed_timestamp_large_future",
+        "vote_proposed_timestamp_short_future",
+        "vote_timestamps_shift_past",
+        "vote_parent_round_shift_down",
+        "vote_proposed_id_swap",
+        "vote_parent_id_swap",
+        "vote_proposed_executed_state_swap_with_syncinfo_hcc_executed_state",
+        "vote_proposed_executed_state_swap_with_syncinfo_hoc_executed_state",
+        "vote_proposed_executed_state_swap_with_syncinfo_hqc_executed_state",
+        "vote_proposed_executed_state_random_value",
+        "vote_parent_executed_state_swap_with_syncinfo_hcc_executed_state",
+        "vote_parent_executed_state_swap_with_syncinfo_hoc_executed_state",
+        "vote_parent_executed_state_swap_with_syncinfo_hqc_executed_state",
+        "vote_parent_executed_state_random_value",
+        "vote_proposed_inject_next_epoch_state",
+        "vote_parent_inject_next_epoch_state",
+        "vote_ledger_info_commit_info_swap_with_syncinfo_hcc",
+        "attach_timeout_to_vote",
+        "attach_timeout_to_vote_with_hcc_qc",
+        "attach_timeout_to_vote_with_hoc_qc",
+        "syncinfo_hqc_shift_rounds_up",
+        "syncinfo_hqc_shift_rounds_down",
+        "syncinfo_all_qcs_shift_rounds_up",
+        "syncinfo_all_qcs_shift_rounds_down",
+        "syncinfo_all_qcs_shift_epochs_up",
+        "syncinfo_all_qcs_shift_epochs_down",
+        "syncinfo_hqc_timestamp_increase",
+        "syncinfo_all_qcs_downgrade_to_commit_block",
+        "syncinfo_hqc_align_with_hoc",
+        "syncinfo_hoc_align_with_hqc",
+        "syncinfo_hcc_align_with_hoc",
+        "syncinfo_qc_parent_swap_with_commit_id",
+        "syncinfo_qc_executed_state_swap",
+        "syncinfo_h2ctc_round_shift_up",
+        "syncinfo_h2ctc_round_shift_down",
+        "syncinfo_inject_h2ctc_with_hcc_qc",
+        "syncinfo_inject_h2ctc_with_hoc_qc",
+        "syncinfo_h2ctc_drop_to_none",
+        "syncinfo_h2ctc_inner_qc_swap_to_hcc",
+        "syncinfo_h2ctc_inner_qc_swap_to_hoc",
+        "syncinfo_h2ctc_inner_qc_swap_to_hqc",
+        "syncinfo_h2ctc_drop_bitmask_one_bit",
+        "omit_mutation",
+    ],
+    "CommitMessage": [
+        "commit_swap_ack_with_nack",
+        "commit_swap_nack_with_ack",
+        "commit_vote_to_decision_with_full_quorum",
+        "commit_vote_alter_commit_info_version_increment",
+        "commit_vote_alter_commit_info_version_decrement",
+        "commit_vote_alter_commit_info_id",
+        "commit_vote_alter_consensus_data_hash",
+        "commit_vote_alter_commit_info_executed_state_id",
+        "commit_vote_alter_commit_info_inject_next_epoch_state",
+        "commit_vote_alter_commit_info_clear_next_epoch_state",
+        "commit_decision_alter_commit_info_version_increment",
+        "commit_decision_alter_commit_info_version_decrement",
+        "commit_decision_alter_consensus_data_hash",
+        "commit_decision_alter_commit_info_id",
+        "commit_decision_alter_commit_info_executed_state_id",
+        "commit_decision_alter_commit_info_inject_next_epoch_state",
+        "commit_decision_alter_commit_info_clear_next_epoch_state",
+        "commit_decision_drop_bitmask_one_bit",
+        "omit_mutation",
+    ],
+    "CommitVote": [
+        "commit_vote_alter_commit_info_version_increment",
+        "commit_vote_alter_commit_info_version_decrement",
+        "commit_vote_alter_commit_info_id",
+        "commit_vote_alter_consensus_data_hash",
+        "commit_vote_alter_commit_info_executed_state_id",
+        "commit_vote_alter_commit_info_inject_next_epoch_state",
+        "commit_vote_alter_commit_info_clear_next_epoch_state",
+        "omit_mutation",
+    ],
+    "CommitDecision": [
+        "commit_decision_alter_commit_info_version_increment",
+        "commit_decision_alter_commit_info_version_decrement",
+        "commit_decision_alter_consensus_data_hash",
+        "commit_decision_alter_commit_info_id",
+        "commit_decision_alter_commit_info_executed_state_id",
+        "commit_decision_alter_commit_info_inject_next_epoch_state",
+        "commit_decision_alter_commit_info_clear_next_epoch_state",
+        "commit_decision_drop_bitmask_one_bit",
+        "omit_mutation",
+    ],
+    "RoundTimeoutMsg": [
+        "roundtimeout_qc_proposed_timestamp_short_future",
+        "roundtimeout_qc_proposed_timestamp_large_future",
+        "roundtimeout_qc_proposed_timestamp_past",
+        "roundtimeout_change_author",
+        "roundtimeout_change_reason",
+        "roundtimeout_qc_proposed_id_swap",
+        "roundtimeout_qc_grandparent_id_swap",
+        "roundtimeout_qc_proposed_executed_state_swap_with_syncinfo_hcc_executed_state",
+        "roundtimeout_qc_proposed_executed_state_swap_with_syncinfo_hoc_executed_state",
+        "roundtimeout_qc_proposed_executed_state_swap_with_syncinfo_hqc_executed_state",
+        "roundtimeout_qc_proposed_executed_state_random_value",
+        "roundtimeout_qc_proposed_inject_next_epoch_state",
+        "roundtimeout_qc_proposed_clear_next_epoch_state",
+        "roundtimeout_qc_parent_executed_state_swap_with_syncinfo_hcc_executed_state",
+        "roundtimeout_qc_parent_executed_state_swap_with_syncinfo_hoc_executed_state",
+        "roundtimeout_qc_parent_executed_state_swap_with_syncinfo_hqc_executed_state",
+        "roundtimeout_qc_parent_executed_state_random_value",
+        "roundtimeout_qc_parent_inject_next_epoch_state",
+        "roundtimeout_qc_parent_clear_next_epoch_state",
+        "roundtimeout_qc_drop_bitmask_one_bit",
+        "roundtimeout_qc_swap_with_syncinfo_hcc",
+        "roundtimeout_qc_swap_with_syncinfo_hoc",
+        "roundtimeout_qc_swap_with_syncinfo_hqc",
+        "syncinfo_hqc_shift_rounds_up",
+        "syncinfo_hqc_shift_rounds_down",
+        "syncinfo_all_qcs_shift_rounds_up",
+        "syncinfo_all_qcs_shift_rounds_down",
+        "syncinfo_all_qcs_shift_epochs_up",
+        "syncinfo_all_qcs_shift_epochs_down",
+        "syncinfo_hqc_timestamp_increase",
+        "syncinfo_all_qcs_downgrade_to_commit_block",
+        "syncinfo_hqc_align_with_hoc",
+        "syncinfo_hoc_align_with_hqc",
+        "syncinfo_hcc_align_with_hoc",
+        "syncinfo_qc_parent_swap_with_commit_id",
+        "syncinfo_qc_executed_state_swap",
+        "syncinfo_h2ctc_round_shift_up",
+        "syncinfo_h2ctc_round_shift_down",
+        "syncinfo_inject_h2ctc_with_hcc_qc",
+        "syncinfo_inject_h2ctc_with_hoc_qc",
+        "syncinfo_h2ctc_drop_to_none",
+        "syncinfo_h2ctc_inner_qc_swap_to_hcc",
+        "syncinfo_h2ctc_inner_qc_swap_to_hoc",
+        "syncinfo_h2ctc_inner_qc_swap_to_hqc",
+        "syncinfo_h2ctc_drop_bitmask_one_bit",
+        "omit_mutation",
+    ],
+}
+
+
 def sample_partition(num_nodes):
     # 2-partition vector of length num_nodes, with both groups non-empty
     if num_nodes < 2:
@@ -48,12 +263,11 @@ def sample_msg_type(exclude=None):
 
 
 # For ProcessFault genes
-# Mutate a process fault mutation by selecting a different seed 
-# for the existing msg_type. A different seed yields a different mutation method.
-def sample_seed(exclude=None):
-    low = 1
-    high = 2**31-1
-    return randint_excluding(low, high, exclude) if exclude is not None else random.randint(low, high)
+# Mutate a process fault mutation by selecting a different mutation name 
+# for the existing msg_type.
+def sample_mutation_name(msg_type, exclude=None):
+    choices = [m for m in MUTATION_CATALOG[msg_type] if m != exclude]
+    return random.choice(choices)
     
 
 def sample_round(r):
@@ -230,23 +444,24 @@ class NetworkFaultGene:
     
     
 class ProcessFaultGene:
-    def __init__(self, round:int, receivers:list[int], msg_type:str, seed:int):
+    def __init__(self, round:int, receivers:list[int], msg_type:str, mutation_name:str):
         self.round = round
         self.receivers = receivers
         self.msg_type = msg_type
-        self.seed = seed    # seed selects the concrete mutation for this msg_type
+        self.mutation_name = mutation_name    # the concrete mutation for this msg_type
         
-        self.mutation_ops = ["round", "receivers", "seed"]
+        self.mutation_ops = ["round", "receivers", "mutation_name"]
     
     @staticmethod
     def sample(config, pByz, r, existing_rounds=None):
         existing_rounds = existing_rounds or set()
+        msg_type = sample_msg_type()
 
         return ProcessFaultGene(
             round=sample_round_excluding(r, existing_rounds),
             receivers=sample_receivers(int(config["num_nodes"]), pByz),
-            msg_type=sample_msg_type(),
-            seed=random.randint(1, 2**31-1),
+            msg_type=msg_type,
+            mutation_name=sample_mutation_name(msg_type),
         )
     
     def _mutate_self(self, config, pByz, r, existing_rounds=None):
@@ -272,16 +487,19 @@ class ProcessFaultGene:
                 pByz,
             )
 
-        # Keep msg_type fixed; only change seed which gives a new mutation_name
-        elif op == "seed":
-            self.seed = sample_seed(exclude=self.seed)
+        # Keep msg_type fixed; only get a new mutation_name
+        elif op == "mutation_name":
+            self.mutation_name = sample_mutation_name(
+                self.msg_type,
+                exclude=self.mutation_name,
+            )
     
     def to_plan_dict(self):
         return {
             "round": self.round,
             "receivers": self.receivers,
             "msg_type": self.msg_type,
-            "seed": self.seed,
+            "mutation_name": self.mutation_name,
         }
     
 
@@ -449,7 +667,7 @@ class AptosEncoding(BaseEncoding):
     - remove an existing nf
     - change one process fault round
     - change one process fault receivers
-    - change one process fault mutation
+    - change one process fault mutation name (keep msg_type fixed)
     - replace a pf with another non-conflicting one
     - add an entirely new non-conflicting pf
     - remove an existing pf
@@ -558,17 +776,13 @@ class AptosEncoding(BaseEncoding):
     ind2(pByz2, nf2, pf2)
     
     Possible matings are:
-        - Swap pByz1 with pByz2
         - Swap nf1[i] with nf2[j]
-        - Swap pf1[i] witih pf2[j]
+        - Swap pf1[i] with pf2[j]
     Before swapping we need to make sure that invariants are respected.
     """
     @staticmethod
     def mate(ind1, ind2):
         available_ops = []
-
-        if ind1.pByz.pByz != ind2.pByz.pByz:
-            available_ops.append("pByz")
 
         network_pairs = ind1._valid_network_swap_pairs(ind2)
         if network_pairs:
@@ -583,15 +797,9 @@ class AptosEncoding(BaseEncoding):
             return ind1, ind2
 
         op = random.choice(available_ops)
-        
-        # Swap the byzantine process between individuals
-        if op == "pByz":
-            ind1.pByz, ind2.pByz = ind2.pByz, ind1.pByz
-            ind1._repair_receivers_after_pbyz_change()
-            ind2._repair_receivers_after_pbyz_change()
             
         # Swap nf1[i] with nf2[j]
-        elif op == "network_faults":
+        if op == "network_faults":
             i, j = random.choice(network_pairs)
             ind1.network_faults[i], ind2.network_faults[j] = (
                 ind2.network_faults[j],
@@ -622,6 +830,7 @@ class AptosEncoding(BaseEncoding):
       - We have non-empty pf receivers
       - PByz does not appear in any pf receivers
       - The msg_type of a pf is valid and appears in the catalog
+      - The mutation_name of a pf is valid and appears in the catalog of possible mutations for this msg_type
     """
     def validate(self):
         assert len({nf.round for nf in self.network_faults}) == len(self.network_faults)
@@ -647,7 +856,7 @@ class AptosEncoding(BaseEncoding):
             assert(pf.round <= self.r)
             assert(pf.round >= 1)
             assert pf.msg_type in MSG_TYPES
-            assert isinstance(pf.seed, int)
+            assert pf.mutation_name in MUTATION_CATALOG[pf.msg_type]
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ package scheduling
 
 import (
 	"fmt"
+	"slices"
 
 	aptos "github.com/egeberkaygulcan/dstest/cmd/dstest/network/aptos"
 	"golang.org/x/exp/rand"
@@ -87,14 +88,14 @@ func NewAptosEvoMutator(keysByAuthor map[aptos.AccountAddress]*aptos.SK, ordered
 FindMutation tries to match the current process fault to one concrete process-fault entry
 from the evolutionary fault plan.
 The process fault `pf` tells us that this message `cMsg` is eligible for an evolutionary
-mutation: same round, same receiver set, and same seed. However, `cMsg` must also have
+mutation: same round and same receiver set. However, `cMsg` must also have
 the same message type requested by the plan entry (`epf.MsgType`). If those fields match,
 FindMutation builds the list of mutations valid for this concrete Aptos message type and
-selects one based on the given `epf.Seed`.
+selects the one based on the given `epf.MutationName`.
 
 Unlike the randomized AptosMutator, this function does not choose randomly from the valid
-mutation list. The evolutionary plan provides the msgType and seed which indicate what mutation
-should be chosen.
+mutation list. The evolutionary plan provides the msgType and mutationName which indicate exactly
+what mutation should be chosen.
 */
 func (m *AptosEvoMutator) FindMutation(epf EvoProcessFaultSpec, pf *ProcFaultSpec, cMsg aptos.IConsensusMessage) (*mutation, bool) {
 	if len(pf.Receivers) != len(epf.Receivers) {
@@ -110,12 +111,8 @@ func (m *AptosEvoMutator) FindMutation(epf EvoProcessFaultSpec, pf *ProcFaultSpe
 		return nil, false
 	}
 
-	if epf.Seed != pf.Seed {
-		return nil, false
-	}
-
 	var muts []mutation
-	seed := epf.Seed
+	seed := pf.Seed
 	switch v := cMsg.(type) {
 	case *aptos.ProposalMsg:
 		if epf.MsgType != "ProposalMsg" {
@@ -155,8 +152,16 @@ func (m *AptosEvoMutator) FindMutation(epf EvoProcessFaultSpec, pf *ProcFaultSpe
 	default:
 		return nil, false
 	}
-	mut := pickMutation(muts, epf.Seed)
-	return &mut, true
+
+	muts = append(muts, OmitMutation)
+	idx := slices.IndexFunc(muts, func(m mutation) bool {
+		return m.Name == epf.MutationName
+	})
+	if idx == -1 {
+		return nil, false
+	}
+
+	return &muts[idx], true
 }
 
 /*
