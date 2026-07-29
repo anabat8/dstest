@@ -34,14 +34,15 @@ type FaultManager interface {
 }
 
 type TestEngine struct {
-	Config           *config.Config
-	Scheduler        scheduling.Scheduler
-	NetworkManager   *network.Manager
-	ProcessManager   *process.ProcessManager
-	FaultManager     FaultManager
-	Log              *log.Logger
-	AptosMonitor     *aptos.AgreementMonitor
-	AptosFundingTask *aptos.FundingTask
+	Config              *config.Config
+	Scheduler           scheduling.Scheduler
+	NetworkManager      *network.Manager
+	ProcessManager      *process.ProcessManager
+	FaultManager        FaultManager
+	Log                 *log.Logger
+	AptosMonitor        *aptos.AgreementMonitor
+	AptosMetricsMonitor *aptos.MetricsMonitor
+	AptosFundingTask    *aptos.FundingTask
 
 	Experiments   int
 	Iterations    int
@@ -122,6 +123,7 @@ func (te *TestEngine) Run() error {
 
 			te.StartFundingAptosClientAccounts()
 			te.StartAptosAgreementMonitor(j)
+			te.StartAptosMetricsMonitor(j)
 
 			schedule := make([]Action, 0)
 			for s := 0; s < te.Steps; {
@@ -210,6 +212,10 @@ func (te *TestEngine) Run() error {
 				te.Log.Println("Stopping agreement monitor...")
 				te.AptosMonitor.Stop()
 			}
+			if te.AptosMetricsMonitor != nil {
+				te.Log.Println("Stopping aptos metrics monitor...")
+				te.AptosMetricsMonitor.Stop()
+			}
 			te.Log.Println("Shutting down ProcessManager...")
 			te.ProcessManager.Shutdown()
 			te.Log.Println("Shutting down NetworkManager...")
@@ -273,6 +279,25 @@ func (te *TestEngine) StartAptosAgreementMonitor(iter int) {
 		te.Log.Printf("Aptos Consensus Agreement monitor disabled (start failed): %s\n", err)
 	} else {
 		te.AptosMonitor = m
+	}
+}
+
+func (te *TestEngine) StartAptosMetricsMonitor(iter int) {
+	if te.Config.NetworkConfig.Protocol != "aptostcp" {
+		return
+	}
+	m, err := aptos.StartMetricsMonitor(
+		te.Config.ProcessConfig.OutputDir,
+		te.Config.TestConfig.Name,
+		te.Config.SchedulerConfig.Type,
+		iter,
+		te.Config.ProcessConfig.NumReplicas,
+		te.Config.NetworkConfig.BaseReplicaPort,
+	)
+	if err != nil {
+		te.Log.Printf("Aptos Consensus Metrics monitor disabled (start failed): %s\n", err)
+	} else {
+		te.AptosMetricsMonitor = m
 	}
 }
 
