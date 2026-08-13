@@ -168,7 +168,10 @@ def plot_buggy_vs_unbuggy(df, fitness_names):
     )
 
     for ax, fitness in zip(axes.ravel(), fitness_names):
-        sub = df.dropna(subset=[fitness]).copy()
+        sub = df[
+            (df["optimized_fitness"].isna())
+            | (df["optimized_fitness"] == fitness)
+        ].dropna(subset=[fitness]).copy()
         sub["label"] = sub["buggy"].map({False: "No violation", True: "Violation"})
         order = ["No violation", "Violation"]
         palette = {
@@ -465,6 +468,9 @@ def main():
             "time_fitness",
             "round_stress_fitness",
             "block_height_skew_fitness",
+            "round_timeout_count_fitness",
+            "vote_fragmentation_fitness",
+            "quorum_store_fitness",
         ],
         help="Fitness value names to plot.",
     )

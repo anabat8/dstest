@@ -2,7 +2,8 @@ import copy
 import csv
 import threading
 import random
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+from queue import Empty, Queue
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -29,6 +30,7 @@ class EvaluationTask:
     config_combo_id: str    # for each thread
     generation: int         # for byzzfuzz(random), it's just the batch number
     individual_id: int      # in each generation
+    slot_id: int
     individual: Any
     config: dict[str, Any]  # other config stuff
 
@@ -126,6 +128,7 @@ def evaluate_task_worker(task: EvaluationTask):
         task.individual,
         task.config,
         log_dir,
+        task.slot_id,
     )
     return {
         "config_combo_id": task.config_combo_id,
@@ -135,26 +138,54 @@ def evaluate_task_worker(task: EvaluationTask):
     }
 
 
-def evaluate_batch(pool, config, generation, individuals):
-    futures = []
+def collect_finished_futures(done, pending, slots, results):
+    for future in done:
+        ind, slot_id = pending.pop(future)
+        try:
+            result = future.result()
+        finally:
+            slots.put(slot_id)
+
+        results.append(result)
+
+        if ind is not None:
+            ind.fitness.values = (result["fitness"],)
+            ind.eval_result = result
+
+
+def evaluate_batch(pool, slots, config, generation, individuals):
+    pending = {}
+    results = []
+
     for individual_id, ind in enumerate(individuals, start=1):
+        while True:
+            try:
+                slot_id = slots.get_nowait()
+                break
+            except Empty:
+                if not pending:
+                    slot_id = slots.get()
+                    break
+                
+                done, _ = wait(pending.keys(), return_when=FIRST_COMPLETED)
+                collect_finished_futures(done, pending, slots, results)
+
         task = EvaluationTask(
             config_combo_id=config["config_combo_id"],
             generation=generation,
             individual_id=individual_id,
+            slot_id=slot_id,
             individual=ind,
             config=config,
         )
-        future = pool.submit(evaluate_task_worker, task)
-        futures.append((future, ind))
 
-    results = []
-    for future, ind in futures:
-        result = future.result()
-        results.append(result)
-        if ind is not None:
-            ind.fitness.values = (result["fitness"],)
-            ind.eval_result = result
+        future = pool.submit(evaluate_task_worker, task)
+        pending[future] = (ind, slot_id)
+
+    while pending:
+        done, _ = wait(pending.keys(), return_when=FIRST_COMPLETED)
+        collect_finished_futures(done, pending, slots, results)
+
     return results
 
 
@@ -194,7 +225,7 @@ def write_batch_stats(config, batch_id, results):
 # ************************************************* #
 
 
-def run_random_batches(config, pool):
+def run_random_batches(config, pool, slots):
     population_size = int(config["population_size"])
     total_num_tests = int(config["total_num_tests"])
     completed = 0
@@ -203,7 +234,7 @@ def run_random_batches(config, pool):
     while completed < total_num_tests:
         batch_size = min(population_size, total_num_tests - completed)
         individuals = [None for _ in range(batch_size)]
-        results = evaluate_batch(pool, config, batch_id, individuals)
+        results = evaluate_batch(pool, slots, config, batch_id, individuals)
         write_batch_stats(config, batch_id, results)
         completed += batch_size
         batch_id += 1
@@ -214,7 +245,7 @@ def run_random_batches(config, pool):
 # ************************************************* #
 
 
-def run_evolution(config, pool, encoding_cls):
+def run_evolution(config, pool, slots, encoding_cls):
     # encoding_cls: a subclass of BaseEncoding
     population_size = int(config["population_size"])
     mu = int(config["mu"])
@@ -229,7 +260,7 @@ def run_evolution(config, pool, encoding_cls):
     toolbox.register("select", tools.selBest)
 
     population = toolbox.population(n=population_size)
-    evaluate_batch(pool, config, 0, population)
+    evaluate_batch(pool, slots, config, 0, population)
     write_population_stats(config, 0, population)
     population = toolbox.select(population, mu)
 
@@ -243,7 +274,7 @@ def run_evolution(config, pool, encoding_cls):
         )
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         if invalid_ind:
-            evaluate_batch(pool, config, generation, invalid_ind)
+            evaluate_batch(pool, slots, config, generation, invalid_ind)
         combined_population = population + offspring
         write_population_stats(config, generation, combined_population)
         population = toolbox.select(combined_population, mu)
@@ -253,16 +284,16 @@ def run_evolution(config, pool, encoding_cls):
 # 	        Run threads				                #
 # ************************************************* #
 
-def runner_thread_main(config, pool):
+def runner_thread_main(config, pool, slots):
     strategy = config["strategy"]
     init_fitness_csv(config)
     print(f"[{config['config_combo_id']}] start strategy={strategy}", flush=True)
 
     if strategy == "byzzfuzz":
-        run_random_batches(config, pool)
+        run_random_batches(config, pool, slots)
     else:
         encoding_cls = get_encoding_cls(config)
-        run_evolution(config, pool, encoding_cls)
+        run_evolution(config, pool, slots, encoding_cls)
 
     print(f"[{config['config_combo_id']}] done", flush=True)
 
@@ -281,12 +312,18 @@ def main():
 
     max_workers = int(base_config.get("max_parallel_workers", 1))
     threads = []
+    
+    run_slots = int(base_config.get("run_slots", max_workers))
+    slots = Queue()
+
+    for slot_id in range(run_slots):
+        slots.put(slot_id)
 
     with ProcessPoolExecutor(max_workers=max_workers) as pool:
         for run_config in run_configs:
             thread = threading.Thread(
                 target=runner_thread_main,
-                args=(run_config, pool),
+                args=(run_config, pool, slots),
             )
             thread.start()
             threads.append(thread)

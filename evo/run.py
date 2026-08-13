@@ -75,7 +75,7 @@ class MakeTask:
         return re.sub(r"[^A-Za-z0-9_.-]+", "-", str(value)).strip("-")
 
     
-    def prepare(self, individual, log_dir, fault_plan_path):
+    def prepare(self, individual, log_dir, fault_plan_path, slot_id=0):
         benchmark = self.config.get("benchmark", "aptos")
         if benchmark not in BENCHMARK_BUG_FLAGS:
             raise ValueError(f"unknown benchmark: {benchmark}")
@@ -83,8 +83,14 @@ class MakeTask:
         bug_flags = BENCHMARK_BUG_FLAGS[benchmark]
 
         run_id = self.safe_name(f"{self.config['config_combo_id']}-{log_dir.name}")
-        run_tag = str(self.config.get("run_tag", "-evo-s0"))
+        
+        run_tag_prefix = str(self.config.get("run_tag_prefix", self.config.get("run_tag", "-evo")))
+        run_tag = f"{run_tag_prefix}-s{slot_id}"
 
+        base_run_offset = int(self.config.get("run_offset", 0))
+        run_offset_stride = int(self.config.get("run_offset_stride", 1000))
+        run_offset = base_run_offset + slot_id * run_offset_stride
+        
         if individual is None:
             c = int(self.dstest_param(self.config, "c", 0))
             d = int(self.dstest_param(self.config, "d", 0))
@@ -98,7 +104,7 @@ class MakeTask:
         self.vars = {
             "RUN_ID": run_id,
             "RUN_TAG": run_tag,
-            "RUN_OFFSET": int(self.config.get("run_offset", 0)),
+            "RUN_OFFSET": run_offset,
             "TEST_NAME": self.safe_name(f"{benchmark}-{self.config['strategy']}"),
             "OUTPUT_BASE": str((log_dir / "dstest_output").resolve().relative_to(DSTEST_ROOT)),
             "CONFIG": str((log_dir / "aptos.yml").resolve()),
@@ -201,7 +207,7 @@ class MakeTask:
 # ************************************************* #
 
 
-def failure_result(log_dir, fault_plan_path, output_dir, phase, returncode):
+def failure_result(log_dir, fault_plan_path, output_dir, phase, returncode, slot_id=None, run_tag=None, run_offset=None):
     result = {
         "fitness": -1000.0,
         "violation": 0,
@@ -219,6 +225,9 @@ def failure_result(log_dir, fault_plan_path, output_dir, phase, returncode):
         "potential_liveness": 0,
         "max_height": 0.0,
         "mutations": 0,
+        "slot_id": slot_id,
+        "run_tag": run_tag,
+        "run_offset": run_offset,
     }
     (log_dir / "result.json").write_text(json.dumps(result, indent=2, sort_keys=True), encoding="utf-8")
     return result
@@ -237,7 +246,7 @@ Each individual directory has:
   - make.log                        # dstest logs from running the make task
   - result.json                     # evo result, contains fitnesses values and other metrics
 """
-def run_dstest_and_evaluate(individual, config, log_dir):
+def run_dstest_and_evaluate(individual, config, log_dir, slot_id=0):
     log_dir = Path(log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -247,7 +256,7 @@ def run_dstest_and_evaluate(individual, config, log_dir):
     timeout_sec = int(config.get("subprocess_timeout_sec", 900))
 
     make_task = MakeTask(config, timeout_sec, make_log)
-    make_task.prepare(individual, log_dir, fault_plan_path)
+    make_task.prepare(individual, log_dir, fault_plan_path, slot_id)
 
     output_dir = DSTEST_ROOT / make_task.vars["OUTPUT_BASE"] / make_task.vars["RUN_ID"]
      
@@ -259,6 +268,9 @@ def run_dstest_and_evaluate(individual, config, log_dir):
             output_dir,
             failed.target,
             failed.returncode,
+            slot_id,
+            make_task.vars["RUN_TAG"],
+            make_task.vars["RUN_OFFSET"],
         )
 
     for target in ("clean", "config"):
@@ -270,6 +282,9 @@ def run_dstest_and_evaluate(individual, config, log_dir):
                 output_dir,
                 result.target,
                 result.returncode,
+                slot_id,
+                make_task.vars["RUN_TAG"],
+                make_task.vars["RUN_OFFSET"],
             )
 
     # Blocking, worker waits until make run finishes or hits timeout_sec
@@ -305,6 +320,9 @@ def run_dstest_and_evaluate(individual, config, log_dir):
         "output_dir": str(output_dir),
         "fault_plan": fault_plan_path,
         "evo_experiment_config": evo_config_path,
+        "slot_id": slot_id,
+        "run_tag": make_task.vars["RUN_TAG"],
+        "run_offset": make_task.vars["RUN_OFFSET"],
         **metrics,
     }
         

@@ -1,0 +1,41 @@
+TestConfig:
+  Name: aptos-localnet
+  Experiments: 1
+  Iterations: 100
+  WaitDuration: 50
+  StartupDuration: 10
+
+SchedulerConfig:
+  Type: "byzzfuzz"
+  Steps: 2300
+  Seed: 42
+  ClientRequests: 0
+  Params: {"c": 2, "d": 1, "r": 6, "recovery_seconds": 30, "liveness_timeout": 60, "block_budget": 10, "evo_fault_plan": "/Users/anabatrineanu/repos/aptos-dstest/dstest/evo/configs/aptos_evo.yaml"}
+
+NetworkConfig:
+  BaseReplicaPort: 9000
+  BaseInterceptorPort: 11000
+  Protocol: "aptostcp"
+  MessageType: Aptos
+
+FaultConfig:
+  Faults: []
+
+ProcessConfig:
+  NumReplicas: 6
+  Timeout: 150
+  OutputDir:  output/aptos-evo-s1/20260813_080741
+  ReplicaScript: aptos/aptos_server.sh
+  # NOTE: each ClientScripts entry must have a different clientId
+  # NOTE: the scripts are executed in the given order.
+  ClientScripts:
+    - aptos/aptos_client.sh 0 0 2 2
+    - aptos/aptos_client.sh 1 3 2 3
+  CleanScript: aptos/aptos_clean.sh
+  ReplicaParams:
+    - "0 /tmp/aptos-dstest-evo-s1"
+    - "1 /tmp/aptos-dstest-evo-s1"
+    - "2 /tmp/aptos-dstest-evo-s1"
+    - "3 /tmp/aptos-dstest-evo-s1"
+    - "4 /tmp/aptos-dstest-evo-s1"
+    - "5 /tmp/aptos-dstest-evo-s1"
