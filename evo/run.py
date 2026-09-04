@@ -210,6 +210,8 @@ class MakeTask:
 def failure_result(log_dir, fault_plan_path, output_dir, phase, returncode, slot_id=None, run_tag=None, run_offset=None):
     result = {
         "fitness": -1000.0,
+        "raw_fitness": -1000.0,
+        "violation_bonus": 0.0,
         "violation": 0,
         "agreement": False,
         "liveness": False,
@@ -237,6 +239,10 @@ def failure_result(log_dir, fault_plan_path, output_dir, phase, returncode, slot
 Receives one AptosEncoding individual, creates a unique eval dir that contains the individual's fault plan.
 We should call: " make node-configs seeds clean config run " in this order. 
 For each run, this does: setup the localnet, clean, make the config, run and capture the ouput.
+
+Selection fitness score is computed by summing the raw fitness score with a violation bonus (applied if
+the evolutionary execution resulted in an agreement/liveness violation).
+Violation bonus is configurable and specified in aptos_evo.yaml.
 
 Each individual directory has: 
   - evo_experiment_config.yaml      # global evolutionary config
@@ -292,7 +298,7 @@ def run_dstest_and_evaluate(individual, config, log_dir, slot_id=0):
 
     evaluation = TestFitness().evaluate(output_dir, config)
     fitness_name = config["fitness_name"]
-    fitness = evaluation["fitness_values"][fitness_name]
+    raw_fitness = evaluation["fitness_values"][fitness_name]
    
     metrics = evaluation["metrics"]
     has_semantic_violation = evaluation["buggy"]
@@ -304,10 +310,22 @@ def run_dstest_and_evaluate(individual, config, log_dir, slot_id=0):
     )
 
     if infrastructure_error:
-        fitness = -1000.0
+        raw_fitness = -1000.0
+        applied_violation_bonus = 0.0
+    else:
+        applied_violation_bonus = (
+            float(config.get("violation_bonus", 0.0))
+            if individual is not None and has_semantic_violation
+            else 0.0
+        )
+
+    selection_fitness = raw_fitness + applied_violation_bonus
 
     result = {
-        "fitness": fitness,
+        # DEAP consumes this adjusted score when selecting parents
+        "fitness": selection_fitness,
+        "raw_fitness": raw_fitness,
+        "violation_bonus": applied_violation_bonus,
         "fitness_name": fitness_name,
         "fitness_values": evaluation["fitness_values"],
         "violation": int(has_semantic_violation),

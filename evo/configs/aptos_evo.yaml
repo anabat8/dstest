@@ -4,16 +4,16 @@ strategies:
 
 benchmarks:
   #- aptos
-  - bug1
-  #- bug2
+  #- bug1
+  - bug2
   #- bug3
 
 fitness:
-  - time_fitness
+  #- time_fitness
   #- round_stress_fitness
   #- block_height_skew_fitness
   #- round_timeout_count_fitness
-  #- vote_fragmentation_fitness
+  - vote_fragmentation_fitness
   #- quorum_store_fitness
 
 max_parallel_workers: 2
@@ -22,10 +22,11 @@ run_tag_prefix: "-evo"
 run_offset: 0
 run_offset_stride: 1000
 
-population_size: 4   # population of (λ) individuals
-mu: 2                # Parent count (μ) for (μ+λ) selection in DEAP
-total_num_tests: 100 # for evo, it's 100/4=25 generations with 4 individuals each
+population_size: 20   # population of (λ) individuals
+mu: 10                # Parent count (μ) for (μ+λ) selection in DEAP
+total_num_tests: 200  # for evo, it's nr_tests/lambda=x generations with lambda individuals each
 
+violation_bonus: 100.0
 max_partition_duration: 2000
 seed: 42
 

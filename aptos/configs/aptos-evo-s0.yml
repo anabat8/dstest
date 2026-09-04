@@ -24,7 +24,7 @@ FaultConfig:
 ProcessConfig:
   NumReplicas: 6
   Timeout: 150
-  OutputDir:  output/aptos-evo-s0/20260813_080734
+  OutputDir:  output/aptos-evo-s0/20260904_115217
   ReplicaScript: aptos/aptos_server.sh
   # NOTE: each ClientScripts entry must have a different clientId
   # NOTE: the scripts are executed in the given order.

@@ -411,7 +411,6 @@ class VoteFragmentationFitness(FitnessFunction):
         }
         
 
-
 """
 This fitness function rewards executions that maximize mismatch between available batches 
 and ordered blocks / delay between dissemination and commit.
