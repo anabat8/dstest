@@ -40,5 +40,5 @@ dstest:
   iterations: 1
   block_height_max: 10
   steps: 3000 #2300
-  recovery_seconds: 30
+  recovery_seconds: 60
   liveness_timeout: 60

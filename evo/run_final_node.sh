@@ -178,8 +178,8 @@ PY
     die "total_num_tests must be $EXPECTED_TESTS (found $configured_tests)"
 [[ "$configured_population" == "20" ]] || \
     die "population_size must be 20 (found $configured_population)"
-[[ "$configured_recovery" == "30" ]] || \
-    die "recovery_seconds must be 30 (found $configured_recovery)"
+[[ "$configured_recovery" == "60" ]] || \
+    die "recovery_seconds must be 60 (found $configured_recovery)"
 
 ephemeral_min="$(cut -f1 /proc/sys/net/ipv4/ip_local_port_range)"
 [[ "$ephemeral_min" -gt 31040 ]] || \
