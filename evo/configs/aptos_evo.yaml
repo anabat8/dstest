@@ -20,7 +20,7 @@ max_parallel_workers: 4
 run_slots: 4
 run_tag_prefix: "-evo"
 run_offset: 0
-run_offset_stride: 10000
+run_offset_stride: 7000
 
 population_size: 20   # population of (λ) individuals
 mu: 10                # Parent count (μ) for (μ+λ) selection in DEAP
