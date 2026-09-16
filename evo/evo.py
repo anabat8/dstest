@@ -2,6 +2,7 @@ import copy
 import csv
 import threading
 import random
+import hashlib
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from queue import Empty, Queue
 from dataclasses import dataclass
@@ -107,6 +108,11 @@ def make_encoding_config(config):
 # 	        Helpers 				                #
 # ************************************************* #
 
+def derive_scheduler_seed(campaign_seed: int, test_index: int) -> int:
+    value = f"{campaign_seed}:{test_index}".encode("ascii")
+    digest = hashlib.sha256(value).digest()
+    return int.from_bytes(digest[:8], "big") & ((1 << 63) - 1)
+
 
 def sample_individual(config, encoding_cls):
     ind = encoding_cls.sample(make_encoding_config(config))
@@ -156,6 +162,7 @@ def collect_finished_futures(done, pending, slots, results):
 def evaluate_batch(pool, slots, config, generation, individuals):
     pending = {}
     results = []
+    population_size = int(config["population_size"])
 
     for individual_id, ind in enumerate(individuals, start=1):
         while True:
@@ -170,13 +177,27 @@ def evaluate_batch(pool, slots, config, generation, individuals):
                 done, _ = wait(pending.keys(), return_when=FIRST_COMPLETED)
                 collect_finished_futures(done, pending, slots, results)
 
+        test_index = generation * population_size + (individual_id - 1)
+
+        task_config = copy.deepcopy(config)
+        task_config["test_index"] = test_index
+
+        if config["strategy"] == "byzzfuzz":
+            task_config["scheduler_seed"] = derive_scheduler_seed(
+                int(config.get("seed", 42)),
+                test_index,
+            )
+        else:
+            # Keep the scheduler seed fixed during evolutionary campaigns
+            task_config["scheduler_seed"] = int(config.get("seed", 42))
+        
         task = EvaluationTask(
             config_combo_id=config["config_combo_id"],
             generation=generation,
             individual_id=individual_id,
             slot_id=slot_id,
             individual=ind,
-            config=config,
+            config=task_config,
         )
 
         future = pool.submit(evaluate_task_worker, task)

@@ -24,7 +24,7 @@ run_offset_stride: 1000
 
 population_size: 20   # population of (λ) individuals
 mu: 10                # Parent count (μ) for (μ+λ) selection in DEAP
-total_num_tests: 200  # for evo, it's nr_tests/lambda=x generations with lambda individuals each
+total_num_tests: 1000  # for evo, it's nr_tests/lambda=x generations with lambda individuals each
 
 violation_bonus: 100.0
 max_partition_duration: 2000

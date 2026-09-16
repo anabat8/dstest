@@ -117,7 +117,12 @@ class MakeTask:
             "BLOCKBUDGET": int(self.dstest_param(self.config, "block_height_max", 10)),
             "RECOVERYSECONDS": int(self.dstest_param(self.config, "recovery_seconds", 30)),
             "LIVENESSTIMEOUT": int(self.dstest_param(self.config, "liveness_timeout", 60)),
-            "SEED": int(self.config.get("seed", 42)),
+            "SEED": int(
+                self.config.get(
+                    "scheduler_seed",
+                    self.config.get("seed", 42),
+                )
+            ),
             "NUM_REPLICAS": int(self.dstest_param(self.config, "num_nodes", 6)),
             "NUM_CLIENT_ACCOUNTS": int(self.dstest_param(self.config, "num_client_accounts", 2)),
             "ITERATIONS": int(self.dstest_param(self.config, "iterations", 1)),
@@ -207,7 +212,21 @@ class MakeTask:
 # ************************************************* #
 
 
-def failure_result(log_dir, fault_plan_path, output_dir, phase, returncode, slot_id=None, run_tag=None, run_offset=None):
+def failure_result(
+    log_dir,
+    fault_plan_path,
+    output_dir,
+    phase,
+    returncode,
+    slot_id=None,
+    run_tag=None,
+    run_offset=None,
+    config=None,
+):
+    config = config or {}
+    campaign_seed = int(config.get("seed", 42))
+    scheduler_seed = int(config.get("scheduler_seed", campaign_seed))
+    
     result = {
         "fitness": -1000.0,
         "raw_fitness": -1000.0,
@@ -230,7 +249,11 @@ def failure_result(log_dir, fault_plan_path, output_dir, phase, returncode, slot
         "slot_id": slot_id,
         "run_tag": run_tag,
         "run_offset": run_offset,
+        "campaign_seed": campaign_seed,
+        "scheduler_seed": scheduler_seed,
+        "test_index": config.get("test_index"),
     }
+    
     (log_dir / "result.json").write_text(json.dumps(result, indent=2, sort_keys=True), encoding="utf-8")
     return result
 
@@ -277,6 +300,7 @@ def run_dstest_and_evaluate(individual, config, log_dir, slot_id=0):
             slot_id,
             make_task.vars["RUN_TAG"],
             make_task.vars["RUN_OFFSET"],
+            config=config,
         )
 
     for target in ("clean", "config"):
@@ -291,6 +315,7 @@ def run_dstest_and_evaluate(individual, config, log_dir, slot_id=0):
                 slot_id,
                 make_task.vars["RUN_TAG"],
                 make_task.vars["RUN_OFFSET"],
+                config=config,
             )
 
     # Blocking, worker waits until make run finishes or hits timeout_sec
@@ -341,6 +366,9 @@ def run_dstest_and_evaluate(individual, config, log_dir, slot_id=0):
         "slot_id": slot_id,
         "run_tag": make_task.vars["RUN_TAG"],
         "run_offset": make_task.vars["RUN_OFFSET"],
+        "campaign_seed": int(config.get("seed", 42)),
+        "scheduler_seed": int(make_task.vars["SEED"]),
+        "test_index": config.get("test_index"),
         **metrics,
     }
         
