@@ -97,7 +97,7 @@ func (worker *Worker) RunWorker() {
 
 	worker.Log.Println("Running worker with: " + worker.RunScript + " " + worker.Params)
 
-	worker.Cmd = exec.Command("/bin/sh", strings.Fields(worker.RunScript+" "+worker.Params)...)
+	worker.Cmd = exec.Command("/bin/bash", strings.Fields(worker.RunScript+" "+worker.Params)...)
 	worker.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	worker.Cmd.Stdout = worker.Stdout
