@@ -169,11 +169,11 @@ build-aptos:
 
 .PHONY: build-dstest
 build-dstest:
-	cd $(DSTEST_ROOT)/cmd/dstest && go build -o main .
+	cd $(DSTEST_ROOT)/cmd/dstest && go build -ldflags="-compressdwarf=false" -o main .
 
 .PHONY: build-aptos-client
 build-aptos-client:
-	cd $(DSTEST_ROOT)/cmd/aptos_client && go build -o main .
+	cd $(DSTEST_ROOT)/cmd/aptos_client && go build -ldflags="-compressdwarf=false" -o main .
 
 .PHONY: build
 build: build-aptos build-dstest build-aptos-client
