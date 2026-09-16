@@ -16,11 +16,11 @@ fitness:
   - vote_fragmentation_fitness
   #- quorum_store_fitness
 
-max_parallel_workers: 2
-run_slots: 2
+max_parallel_workers: 4
+run_slots: 4
 run_tag_prefix: "-evo"
 run_offset: 0
-run_offset_stride: 1000
+run_offset_stride: 10000
 
 population_size: 20   # population of (λ) individuals
 mu: 10                # Parent count (μ) for (μ+λ) selection in DEAP
