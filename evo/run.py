@@ -4,7 +4,7 @@ import json
 import re
 import subprocess
 import time
-import shutil
+import yaml
 from pathlib import Path
 
 from fitness import TestFitness
@@ -35,13 +35,12 @@ def write_fault_plan(individual, log_dir):
     return str(path.resolve())
 
 
-def copy_evo_experiment_config(log_dir):
-    src = EVO_DIR / "configs" / "aptos_evo.yaml"
+def write_evo_experiment_config(log_dir, config):
     dst = log_dir / "evo_experiment_config.yaml"
-
-    if src.exists():
-        shutil.copy2(src, dst)
-
+    dst.write_text(
+        yaml.safe_dump(config, sort_keys=False),
+        encoding="utf-8",
+    )
     return str(dst.resolve())
 
 # ************************************************* #
@@ -281,7 +280,7 @@ def run_dstest_and_evaluate(individual, config, log_dir, slot_id=0):
 
     make_log = log_dir / "make.log"
     fault_plan_path = write_fault_plan(individual, log_dir)
-    evo_config_path = copy_evo_experiment_config(log_dir)
+    evo_config_path = write_evo_experiment_config(log_dir, config)
     timeout_sec = int(config.get("subprocess_timeout_sec", 900))
 
     make_task = MakeTask(config, timeout_sec, make_log)

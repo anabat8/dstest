@@ -1,3 +1,4 @@
+import argparse
 import copy
 import csv
 import threading
@@ -41,9 +42,93 @@ class EvaluationTask:
 # ************************************************* #
 
 
-def load_config():
+def positive_int(value):
+    parsed = int(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("value must be greater than zero")
+    return parsed
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Run Aptos DSTest evolutionary or randomized campaigns."
+    )
+
+    parser.add_argument(
+        "--strategy",
+        choices=["evo_aptos", "byzzfuzz"],
+        help="Testing strategy. Overrides strategies in the YAML config.",
+    )
+    parser.add_argument(
+        "--benchmark",
+        choices=["aptos", "bug1", "bug2", "bug3"],
+        help="Aptos implementation to test. Overrides benchmarks in the YAML config.",
+    )
+    parser.add_argument(
+        "--fitness",
+        choices=[
+            "time_fitness",
+            "round_stress_fitness",
+            "block_height_skew_fitness",
+            "round_timeout_count_fitness",
+            "vote_fragmentation_fitness",
+            "quorum_store_fitness",
+        ],
+        help="Fitness reported or optimized by this campaign.",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        help="Campaign seed.",
+    )
+    parser.add_argument(
+        "--total-num-tests",
+        type=positive_int,
+        help="Number of test executions.",
+    )
+    parser.add_argument(
+        "--max-parallel-workers",
+        type=positive_int,
+        help="Maximum number of concurrent worker processes.",
+    )
+    parser.add_argument(
+        "--run-slots",
+        type=positive_int,
+        help="Number of isolated runtime slots.",
+    )
+
+    return parser.parse_args()
+
+
+def load_config(args=None):
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+        config = yaml.safe_load(f) or {}
+
+    if args is None:
+        return config
+
+    if args.strategy is not None:
+        config["strategies"] = [args.strategy]
+
+    if args.benchmark is not None:
+        config["benchmarks"] = [args.benchmark]
+
+    if args.fitness is not None:
+        config["fitness"] = [args.fitness]
+
+    if args.seed is not None:
+        config["seed"] = args.seed
+
+    if args.total_num_tests is not None:
+        config["total_num_tests"] = args.total_num_tests
+
+    if args.max_parallel_workers is not None:
+        config["max_parallel_workers"] = args.max_parallel_workers
+
+    if args.run_slots is not None:
+        config["run_slots"] = args.run_slots
+
+    return config
 
 
 # Iterates through the config file and builds all combinations of run configs between 
@@ -325,7 +410,8 @@ def runner_thread_main(config, pool, slots):
 # The pool is in charge of scheduling tasks
 # Each task runs one individual and returns a fitness value
 def main():
-    base_config = load_config()
+    args = parse_args()
+    base_config = load_config(args)
     random.seed(int(base_config.get("seed", 42)))
     run_timestamp = datetime.now().strftime("%Y_%m_%d_%Hh%Mm_%Ss")
     run_configs = build_run_configs(base_config, run_timestamp)
