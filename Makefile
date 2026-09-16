@@ -309,7 +309,7 @@ config:
 
 clean:
 	@chmod +x $(APTOS_DIR)/aptos_clean.sh $(APTOS_DIR)/aptos_server.sh || true
-	BASE_DIR=$(BASE_DIR) bash $(APTOS_DIR)/aptos_clean.sh $(BASE_DIR) || true
+	BASE_DIR=$(BASE_DIR) bash $(APTOS_DIR)/aptos_clean.sh $(BASE_DIR)
 	@# DO NOT delete dsTest outputs here (keep all runs)
 
 # Only run this when you explicitly want to wipe all previous runs
