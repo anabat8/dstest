@@ -116,6 +116,7 @@ class MakeTask:
             "BLOCKBUDGET": int(self.dstest_param(self.config, "block_height_max", 10)),
             "RECOVERYSECONDS": int(self.dstest_param(self.config, "recovery_seconds", 30)),
             "LIVENESSTIMEOUT": int(self.dstest_param(self.config, "liveness_timeout", 60)),
+            "PROCESSTIMEOUT": int(self.dstest_param(self.config, "process_timeout", 600)),
             "SEED": int(
                 self.config.get(
                     "scheduler_seed",

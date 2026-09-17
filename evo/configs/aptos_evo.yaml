@@ -42,3 +42,4 @@ dstest:
   steps: 3000 #2300
   recovery_seconds: 60
   liveness_timeout: 60
+  process_timeout: 600

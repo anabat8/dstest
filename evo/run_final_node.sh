@@ -40,6 +40,7 @@ EXPECTED_WORKERS=3
 EXPECTED_SLOTS=3
 EXPECTED_STRIDE=7000
 EXPECTED_PREFIX="-evo"
+EXPECTED_PROCESS_TIMEOUT=600
 
 case "$NODE_INDEX" in
     0|1|2|3) BENCHMARK="aptos" ;;
@@ -146,7 +147,7 @@ command -v go >/dev/null || die "go is not on PATH"
 command -v sha256sum >/dev/null || die "sha256sum is not installed"
 
 read -r configured_workers configured_slots configured_stride configured_prefix \
-    configured_tests configured_population configured_recovery < <(
+    configured_tests configured_population configured_recovery configured_process_timeout < <(
     "$PYTHON" - "$CONFIG" <<'PY'
 import sys
 import yaml
@@ -162,6 +163,7 @@ print(
     config["total_num_tests"],
     config["population_size"],
     config["dstest"]["recovery_seconds"],
+    config["dstest"]["process_timeout"],
 )
 PY
 )
@@ -180,6 +182,8 @@ PY
     die "population_size must be 20 (found $configured_population)"
 [[ "$configured_recovery" == "60" ]] || \
     die "recovery_seconds must be 60 (found $configured_recovery)"
+[[ "$configured_process_timeout" == "$EXPECTED_PROCESS_TIMEOUT" ]] || \
+    die "process_timeout must be $EXPECTED_PROCESS_TIMEOUT (found $configured_process_timeout)"
 
 ephemeral_min="$(cut -f1 /proc/sys/net/ipv4/ip_local_port_range)"
 [[ "$ephemeral_min" -gt 31040 ]] || \

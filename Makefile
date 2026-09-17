@@ -87,6 +87,7 @@ PARAM_C              ?= 2
 PARAM_D              ?= 1
 PARAM_R              ?= 6
 RECOVERYSECONDS      ?= 30
+PROCESSTIMEOUT       ?= 600
 # Note: CLIENT_REQUESTS is not currently read by ByzzFuzz Scheduler.
 CLIENT_REQUESTS      ?= 0
 
@@ -286,7 +287,7 @@ config:
 	echo ""; \
 	echo "ProcessConfig:"; \
 	echo "  NumReplicas: $(NUM_REPLICAS)"; \
-	echo "  Timeout: 150"; \
+	echo "  Timeout: $(PROCESSTIMEOUT)"; \
 	echo "  OutputDir:  $(OUTPUT_DIR)"; \
 	echo "  ReplicaScript: aptos/aptos_server.sh"; \
 	echo "  # NOTE: each ClientScripts entry must have a different clientId"; \
