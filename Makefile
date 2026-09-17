@@ -51,8 +51,11 @@ FN_NET_BASE  ?= $(shell expr 6200 + $(RUN_OFFSET))
 # number of client accounts to generate and pre-fund (reusable)
 NUM_CLIENT_ACCOUNTS ?= 2
 
-# logs output directory
-RUN_ID ?= $(shell date +"%Y%m%d_%H%M%S")
+# Evaluate the default once so every recipe line in a make invocation uses the
+# same output directory, including invocations that cross a second boundary.
+ifndef RUN_ID
+RUN_ID := $(shell date +"%Y%m%d_%H%M%S")
+endif
 OUTPUT_BASE ?= output/aptos$(RUN_TAG)
 OUTPUT_DIR ?= $(OUTPUT_BASE)/$(RUN_ID)
 
