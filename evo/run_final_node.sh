@@ -36,8 +36,8 @@ CONFIG="$SCRIPT_DIR/configs/aptos_evo.yaml"
 STATE_ROOT="${FINAL_STATE_ROOT:-/mydata/final_state/node${NODE_INDEX}}"
 ARCHIVE_ROOT="${FINAL_ARCHIVE_ROOT:-/mydata/final_archives/node${NODE_INDEX}}"
 EXPECTED_TESTS=1000
-EXPECTED_WORKERS=4
-EXPECTED_SLOTS=4
+EXPECTED_WORKERS=3
+EXPECTED_SLOTS=3
 EXPECTED_STRIDE=7000
 EXPECTED_PREFIX="-evo"
 
@@ -205,8 +205,8 @@ if pgrep -af '[p]ython.*evo.py|[c]md/dstest/main.* run|[.]/main run' >/dev/null;
     die "another campaign is active on this node"
 fi
 
-echo "Preparing four isolated runtime slots for $BENCHMARK..."
-for slot in 0 1 2 3; do
+echo "Preparing three isolated runtime slots for $BENCHMARK..."
+for slot in 0 1 2; do
     run_offset=$((slot * EXPECTED_STRIDE))
     make -C "$DSTEST_ROOT" \
         "${BUG_FLAGS[@]}" \
@@ -356,7 +356,7 @@ for entry in "${CAMPAIGNS[@]}"; do
 done
 
 echo "All assigned campaigns completed. Cleaning runtime slots..."
-for slot in 0 1 2 3; do
+for slot in 0 1 2; do
     make -C "$DSTEST_ROOT" \
         RUN_TAG="-evo-s${slot}" \
         RUN_OFFSET="$((slot * EXPECTED_STRIDE))" \

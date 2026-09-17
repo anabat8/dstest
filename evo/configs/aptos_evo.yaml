@@ -16,8 +16,8 @@ fitness:
   - vote_fragmentation_fitness
   #- quorum_store_fitness
 
-max_parallel_workers: 4
-run_slots: 4
+max_parallel_workers: 3
+run_slots: 3
 run_tag_prefix: "-evo"
 run_offset: 0
 run_offset_stride: 7000

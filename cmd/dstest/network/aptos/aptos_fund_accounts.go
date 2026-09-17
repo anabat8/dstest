@@ -83,6 +83,9 @@ func StartFundingClientAccounts(baseReplicaPort int, baseDir string, numValidato
 
 const validatorRESTProbeInterval = 500 * time.Millisecond
 
+// Concurrent local networks can expose REST before every validator has caught up.
+const aptosFundingCommitTimeout = 180 * time.Second
+
 func waitForValidatorRestEndpoints(baseReplicaPort int, numValidators int, timeout time.Duration) error {
 	client := &http.Client{Timeout: 2 * time.Second}
 	deadline := time.Now().Add(timeout)
@@ -188,7 +191,7 @@ func fundClientAccounts(baseReplicaPort int, baseDir string, numValidators int) 
 		if err := nc.PollForTransactions(
 			hashes,
 			aptos.PollPeriod(500*time.Millisecond),
-			aptos.PollTimeout(60*time.Second),
+			aptos.PollTimeout(aptosFundingCommitTimeout),
 		); err != nil {
 			return fmt.Errorf("wait for fund commits on node %d: %w", nodeIdx, err)
 		}
