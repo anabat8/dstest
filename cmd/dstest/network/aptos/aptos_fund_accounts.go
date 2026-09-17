@@ -18,7 +18,9 @@ in its local state.
 */
 import (
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"sync/atomic"
 	"time"
 
@@ -27,6 +29,7 @@ import (
 
 type FundingTask struct {
 	done    chan struct{}
+	err     error
 	stopped atomic.Bool
 }
 
@@ -37,6 +40,12 @@ func (t *FundingTask) IsDone() bool {
 	default:
 		return false
 	}
+}
+
+// Wait blocks until account funding finishes and returns its result.
+func (t *FundingTask) Wait() error {
+	<-t.done
+	return t.err
 }
 
 /*
@@ -55,17 +64,53 @@ func StartFundingClientAccounts(baseReplicaPort int, baseDir string, numValidato
 	t := &FundingTask{done: make(chan struct{})}
 	go func() {
 		defer close(t.done)
-		err := fundClientAccounts(baseReplicaPort, baseDir, numValidators)
+		logger.Printf("Waiting for Aptos validator REST endpoints before funding client accounts\n")
+		t.err = waitForValidatorRestEndpoints(baseReplicaPort, numValidators, 120*time.Second)
+		if t.err == nil {
+			t.err = fundClientAccounts(baseReplicaPort, baseDir, numValidators)
+		}
 		if t.stopped.Load() {
 			return
 		}
-		if err != nil {
-			logger.Printf("Aptos client funding failed: %s\n", err)
+		if t.err != nil {
+			logger.Printf("Aptos client funding failed: %s\n", t.err)
 			return
 		}
 		logger.Printf("Aptos client accounts funded successfully\n")
 	}()
 	return t
+}
+
+const validatorRESTProbeInterval = 500 * time.Millisecond
+
+func waitForValidatorRestEndpoints(baseReplicaPort int, numValidators int, timeout time.Duration) error {
+	client := &http.Client{Timeout: 2 * time.Second}
+	deadline := time.Now().Add(timeout)
+
+	for {
+		pendingPorts := make([]int, 0, numValidators)
+		for nodeIdx := 0; nodeIdx < numValidators; nodeIdx++ {
+			port := baseReplicaPort + nodeIdx*10
+			response, err := client.Get(fmt.Sprintf("http://localhost:%d/v1", port))
+			ready := false
+			if err == nil {
+				_, _ = io.Copy(io.Discard, response.Body)
+				_ = response.Body.Close()
+				ready = response.StatusCode >= http.StatusOK && response.StatusCode < http.StatusMultipleChoices
+			}
+			if !ready {
+				pendingPorts = append(pendingPorts, port)
+			}
+		}
+
+		if len(pendingPorts) == 0 {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("validator REST endpoints not ready within %s; pending ports: %v", timeout, pendingPorts)
+		}
+		time.Sleep(min(validatorRESTProbeInterval, time.Until(deadline)))
+	}
 }
 
 const AmountPerAccount = 1000000000 // 10 APT

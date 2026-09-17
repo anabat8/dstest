@@ -87,8 +87,6 @@ func (te *TestEngine) Run() error {
 	for i := 0; i < te.Experiments; i++ {
 		te.Log.Printf("Starting experiment %d...\n", i+1)
 
-		te.Scheduler.Init(te.Config)
-
 		for j := 0; j < te.Iterations; j++ {
 			te.Log.Printf("Starting iteration %d\n", j+1)
 
@@ -122,8 +120,20 @@ func (te *TestEngine) Run() error {
 			time.Sleep(time.Duration(te.Config.TestConfig.StartupDuration) * time.Second)
 
 			te.StartFundingAptosClientAccounts()
+			if err := te.waitForAptosClientFunding(); err != nil {
+				te.Log.Printf("Stopping iteration because Aptos client funding failed: %s\n", err)
+				te.ProcessManager.Shutdown()
+				te.NetworkManager.Shutdown()
+				wg.Wait()
+				return fmt.Errorf("Aptos client funding failed: %w", err)
+			}
 			te.StartAptosAgreementMonitor(j)
 			te.StartAptosMetricsMonitor(j)
+			if j == 0 {
+				te.Scheduler.Init(te.Config)
+			} else {
+				te.Scheduler.NextIteration()
+			}
 
 			schedule := make([]Action, 0)
 			for s := 0; s < te.Steps; {
@@ -134,26 +144,23 @@ func (te *TestEngine) Run() error {
 					break
 				}
 				actions := te.NetworkManager.GetActions()
-				funded := te.AptosFundingTask == nil || te.AptosFundingTask.IsDone()
-				if funded {
-					sc := te.Scheduler.GetClientRequest()
-					if sc >= 0 {
-						done := te.ProcessManager.RunClient(sc)
+				sc := te.Scheduler.GetClientRequest()
+				if sc >= 0 {
+					done := te.ProcessManager.RunClient(sc)
 
-						// add sc back to available scripts
-						if s, ok := te.Scheduler.(interface{ ClientRequestDone(id, exitCode int) }); ok {
-							go func() {
-								exitCode := <-done
-								s.ClientRequestDone(sc, exitCode)
-							}()
-						}
-
-						schedule = append(schedule, Action{
-							Sender:   -1,
-							Receiver: -1,
-							Name:     fmt.Sprintf("ClientRequest_%d_%d", s, sc),
-						})
+					// add sc back to available scripts
+					if s, ok := te.Scheduler.(interface{ ClientRequestDone(id, exitCode int) }); ok {
+						go func() {
+							exitCode := <-done
+							s.ClientRequestDone(sc, exitCode)
+						}()
 					}
+
+					schedule = append(schedule, Action{
+						Sender:   -1,
+						Receiver: -1,
+						Name:     fmt.Sprintf("ClientRequest_%d_%d", s, sc),
+					})
 				}
 				// TODO - Get fault from scheduler
 				var faultContext faults.FaultContext = NewEngineFaultContext(te)
@@ -239,7 +246,6 @@ func (te *TestEngine) Run() error {
 			}
 
 			te.Log.Println("Iteration complete.")
-			te.Scheduler.NextIteration()
 		}
 		te.Scheduler.Reset()
 	}
@@ -259,6 +265,23 @@ func (te *TestEngine) StartFundingAptosClientAccounts() {
 		te.Config.ProcessConfig.NumReplicas,
 		te.Log,
 	)
+}
+
+func (te *TestEngine) waitForAptosClientFunding() error {
+	if te.AptosFundingTask == nil {
+		return nil
+	}
+
+	// Deliver consensus traffic without injecting faults so the funding
+	// transactions can commit before the measured execution begins.
+	for !te.AptosFundingTask.IsDone() {
+		for _, action := range te.NetworkManager.GetActions() {
+			te.NetworkManager.SendMessage(action.MessageId)
+		}
+		time.Sleep(te.SleepDuration)
+	}
+
+	return te.AptosFundingTask.Wait()
 }
 
 func (te *TestEngine) StartAptosAgreementMonitor(iter int) {
