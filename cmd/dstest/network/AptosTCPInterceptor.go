@@ -584,9 +584,15 @@ func (ni *AptosTCPInterceptor) session(
 			// in order to apply scheduling decisions to them
 			// only consensus msgs arrive here
 			awaitSendRequest := make(chan struct{})
+
+			s, r := sender, receiver
+			if !forwardDir {
+				s, r = receiver, sender
+			}
+
 			networkMsg := &Message{
-				Sender:    sender,
-				Receiver:  receiver,
+				Sender:    s,
+				Receiver:  r,
 				Payload:   cmsg.Msg,
 				Type:      Aptos,
 				Name:      "Aptos Consensus Message",

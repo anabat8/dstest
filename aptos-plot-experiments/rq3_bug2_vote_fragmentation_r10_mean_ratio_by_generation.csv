@@ -1,0 +1,9 @@
+benchmark,benchmark_label,fitness_metric,configured_r,generation,x_axis_basis,mean_ea_fitness,mean_randomized_fitness,paired_seed_count,ea_execution_count,randomized_execution_count,mean_ratio
+bug2,Bug 2,vote_fragmentation_fitness,10,0,EA generation / corresponding randomized 20-execution batch,0.0,0.09,5,100,100,0.0
+bug2,Bug 2,vote_fragmentation_fitness,10,1,EA generation / corresponding randomized 20-execution batch,0.0,0.05,5,100,100,0.0
+bug2,Bug 2,vote_fragmentation_fitness,10,2,EA generation / corresponding randomized 20-execution batch,0.0,0.08,5,100,100,0.0
+bug2,Bug 2,vote_fragmentation_fitness,10,3,EA generation / corresponding randomized 20-execution batch,0.01,0.08,5,100,100,0.125
+bug2,Bug 2,vote_fragmentation_fitness,10,4,EA generation / corresponding randomized 20-execution batch,0.0,0.08,5,100,100,0.0
+bug2,Bug 2,vote_fragmentation_fitness,10,5,EA generation / corresponding randomized 20-execution batch,0.0,0.07,5,100,100,0.0
+bug2,Bug 2,vote_fragmentation_fitness,10,6,EA generation / corresponding randomized 20-execution batch,0.0,0.08,5,100,100,0.0
+bug2,Bug 2,vote_fragmentation_fitness,10,7,EA generation / corresponding randomized 20-execution batch,0.0,0.13999999999999999,5,100,100,0.0

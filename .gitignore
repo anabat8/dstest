@@ -126,3 +126,14 @@ cmd/dstest/main*
 
 # Ignore aptos client built binary
 cmd/aptos_client/main
+
+# Ignore
+evo/logs
+
+# Ignore local CloudLab scripts for aptos experiments
+evo/cloudlab-experiments/
+evo/plots
+
+# Ignore thesis report diagrams
+thesis-analysis
+thesis-diagrams

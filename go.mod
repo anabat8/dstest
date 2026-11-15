@@ -6,11 +6,14 @@ require (
 	github.com/aunum/gold v0.0.0-20201022151355-225e849d893f
 	github.com/aunum/log v0.0.0-20200821225356-38d2e2c8b489
 	github.com/fardream/go-bcs v0.9.0
+	github.com/google/uuid v1.6.0
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/pierrec/lz4/v4 v4.1.8
 	github.com/segmentio/fasthash v1.0.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.18.2
+	github.com/supranational/blst v0.3.16
+	golang.org/x/crypto v0.46.0
 	golang.org/x/net v0.47.0
 	gorgonia.org/tensor v0.9.9
 )
@@ -19,11 +22,8 @@ require (
 	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/coder/websocket v1.8.14 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/hasura/go-graphql-client v0.15.1 // indirect
 	github.com/hdevalence/ed25519consensus v0.2.0 // indirect
-	github.com/supranational/blst v0.3.16 // indirect
-	golang.org/x/crypto v0.46.0 // indirect
 )
 
 require (
@@ -92,7 +92,7 @@ require (
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1
 	gorgonia.org/cu v0.9.2 // indirect
 	gorgonia.org/dawson v1.2.0 // indirect
 	gorgonia.org/gorgonia v0.9.9 // indirect

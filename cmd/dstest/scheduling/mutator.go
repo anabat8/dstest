@@ -1,17 +1,19 @@
-package network
+package scheduling
 
 import (
 	"fmt"
+	"slices"
 
 	aptos "github.com/egeberkaygulcan/dstest/cmd/dstest/network/aptos"
 	"golang.org/x/exp/rand"
 )
 
 type Mutator interface {
-	Mutate(msg aptos.IConsensusMessage, seed int64) (mutation, error)
+	Mutate(msg aptos.IConsensusMessage, procFault *ProcFaultSpec) (mutation, error)
 }
 
 /*
+AptosMutator is used for randomized testing.
   - keysByAuthor maps validator addresses to their consensus private keys,
     needed for resigning msgs after mutations
   - orderedAddrs are the validator addresses in genesis registration order
@@ -35,27 +37,159 @@ Mutate function applies a random mutation on the given original message based on
 It returns the name of the mutation applied and an error if the consensus msg type is not supported.
 The payload is mutated in place.
 */
-func (m *AptosMutator) Mutate(cMsg aptos.IConsensusMessage, seed int64) (mutation, error) {
-	var mut mutation
+func (m *AptosMutator) Mutate(cMsg aptos.IConsensusMessage, procFault *ProcFaultSpec) (mutation, error) {
+	var muts []mutation
+	seed := procFault.Seed
 	switch v := cMsg.(type) {
 	case *aptos.ProposalMsg:
-		mut = mutateProposalMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
+		muts = mutateProposalMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
 	case *aptos.OptProposalMsg:
-		mut = mutateOptProposalMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
+		muts = mutateOptProposalMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
 	case *aptos.VoteMsg:
-		mut = mutateVoteMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
+		muts = mutateVoteMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
 	case *aptos.CommitMessage:
-		mut = mutateCommitMessage(v, seed, m.keysByAuthor, m.orderedAddrs)
+		muts = mutateCommitMessage(v, seed, m.keysByAuthor, m.orderedAddrs)
 	case *aptos.CommitVote:
-		mut = mutateCommitVote(v, seed, m.keysByAuthor)
+		muts = mutateCommitVote(v, seed, m.keysByAuthor)
 	case *aptos.CommitDecision:
-		mut = mutateCommitDecision(v, seed, m.keysByAuthor, m.orderedAddrs)
+		muts = mutateCommitDecision(v, seed, m.keysByAuthor, m.orderedAddrs)
 	case *aptos.RoundTimeoutMsg:
-		mut = mutateRoundTimeoutMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
+		muts = mutateRoundTimeoutMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
 	default:
 		return mutation{}, fmt.Errorf("unsupported consensus message type: %T", cMsg)
 	}
 
+	chosen := pickMutation(muts, seed)
+	if chosen.fn != nil {
+		chosen.fn()
+	}
+	return chosen, nil
+}
+
+/*
+AptosEvoMutator contains the same fields as AptosMutator and the path to a predefined fault plan.
+It is used in evolutionary testing.
+*/
+type AptosEvoMutator struct {
+	keysByAuthor map[aptos.AccountAddress]*aptos.SK
+	orderedAddrs []aptos.AccountAddress
+	planPath     string
+}
+
+func NewAptosEvoMutator(keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress, planPath string) *AptosEvoMutator {
+	return &AptosEvoMutator{
+		keysByAuthor: keysByAuthor,
+		orderedAddrs: orderedAddrs,
+		planPath:     planPath,
+	}
+}
+
+/*
+FindMutation tries to match the current process fault to one concrete process-fault entry
+from the evolutionary fault plan.
+The process fault `pf` tells us that this message `cMsg` is eligible for an evolutionary
+mutation: same round and same receiver set. However, `cMsg` must also have
+the same message type requested by the plan entry (`epf.MsgType`). If those fields match,
+FindMutation builds the list of mutations valid for this concrete Aptos message type and
+selects the one based on the given `epf.MutationName`.
+
+Unlike the randomized AptosMutator, this function does not choose randomly from the valid
+mutation list. The evolutionary plan provides the msgType and mutationName which indicate exactly
+what mutation should be chosen.
+*/
+func (m *AptosEvoMutator) FindMutation(epf EvoProcessFaultSpec, pf *ProcFaultSpec, cMsg aptos.IConsensusMessage) (*mutation, bool) {
+	if len(pf.Receivers) != len(epf.Receivers) {
+		return nil, false
+	}
+	for _, receiver := range epf.Receivers {
+		if _, ok := pf.Receivers[ReplicaID(receiver)]; !ok {
+			return nil, false
+		}
+	}
+
+	if aptos.Round(epf.Round) != pf.Round {
+		return nil, false
+	}
+
+	var muts []mutation
+	seed := pf.Seed
+	switch v := cMsg.(type) {
+	case *aptos.ProposalMsg:
+		if epf.MsgType != "ProposalMsg" {
+			return nil, false
+		}
+		muts = mutateProposalMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
+	case *aptos.OptProposalMsg:
+		if epf.MsgType != "OptProposalMsg" {
+			return nil, false
+		}
+		muts = mutateOptProposalMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
+	case *aptos.VoteMsg:
+		if epf.MsgType != "VoteMsg" {
+			return nil, false
+		}
+		muts = mutateVoteMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
+	case *aptos.CommitMessage:
+		if epf.MsgType != "CommitMessage" {
+			return nil, false
+		}
+		muts = mutateCommitMessage(v, seed, m.keysByAuthor, m.orderedAddrs)
+	case *aptos.CommitVote:
+		if epf.MsgType != "CommitVote" {
+			return nil, false
+		}
+		muts = mutateCommitVote(v, seed, m.keysByAuthor)
+	case *aptos.CommitDecision:
+		if epf.MsgType != "CommitDecision" {
+			return nil, false
+		}
+		muts = mutateCommitDecision(v, seed, m.keysByAuthor, m.orderedAddrs)
+	case *aptos.RoundTimeoutMsg:
+		if epf.MsgType != "RoundTimeoutMsg" {
+			return nil, false
+		}
+		muts = mutateRoundTimeoutMsg(v, seed, m.keysByAuthor, m.orderedAddrs)
+	default:
+		return nil, false
+	}
+
+	muts = append(muts, OmitMutation)
+	idx := slices.IndexFunc(muts, func(m mutation) bool {
+		return m.Name == epf.MutationName
+	})
+	if idx == -1 {
+		return nil, false
+	}
+
+	return &muts[idx], true
+}
+
+/*
+Mutate applies the evolutionary mutation selected by the fault plan.
+
+It reads the process-fault entries from the evo plan, searches for the entry that matches the current
+process fault and message via FindMutation, and then executes that mutation's function on `cMsg`.
+The message is mutated in place.
+
+If no plan entry matches, no mutation is applied. An empty mutation is returned.
+*/
+func (e *AptosEvoMutator) Mutate(cMsg aptos.IConsensusMessage, procFault *ProcFaultSpec) (mutation, error) {
+	var plan struct {
+		ProcessFaults []EvoProcessFaultSpec `yaml:"process_faults"`
+	}
+	ReadEvoPlan(e.planPath, &plan)
+
+	var mut mutation
+	for _, epf := range plan.ProcessFaults {
+		if m, ok := e.FindMutation(epf, procFault, cMsg); ok {
+			mut = *m
+			break
+		}
+	}
+
+	if mut.fn != nil {
+		mut.fn()
+	}
 	return mut, nil
 }
 
@@ -78,11 +212,13 @@ const (
 	as mutationMethod = "structure_aware"
 )
 
+/*
+Picks a random mutation from the set of possible mutations available on the corresponding consensus msg type and returns it.
+*/
 func pickMutation(mutations []mutation, seed int64) mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	mutations = append(mutations, OmitMutation)
 	chosen := mutations[rng.Intn(len(mutations))]
-	chosen.fn()
 	return chosen
 }
 
@@ -546,7 +682,7 @@ are not immediately discarded by the receiver:
   - BlockProposed.Author == sender
   - BlockProposed.Epoch == receiver_local_epoch
 */
-func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) mutation {
+func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) []mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	resign := func() {
 		if msg.Proposal.BlockData.BlockType.Proposal == nil {
@@ -738,7 +874,7 @@ func mutateProposalMsg(msg *aptos.ProposalMsg, seed int64, keysByAuthor map[apto
 
 	mutations = append(mutations, syncInfoMutations(&msg.SyncInfo, keysByAuthor, orderedAddrs)...)
 	mutations = append(mutations, h2ctcMutations(&msg.SyncInfo, rng, keysByAuthor, orderedAddrs)...)
-	return pickMutation(mutations, seed)
+	return mutations
 }
 
 /*
@@ -762,7 +898,7 @@ are not immediately discarded by the receiver:
   - local_hqc.Round + 1 == BlockData.Round
     and local_hqc.ID == BlockData.Parent.ID (receiver's local stored hqc)
 */
-func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) mutation {
+func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) []mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	mutations := []mutation{
 		// Small-scope mutations
@@ -901,7 +1037,7 @@ func mutateOptProposalMsg(msg *aptos.OptProposalMsg, seed int64, keysByAuthor ma
 	}
 
 	mutations = append(mutations, syncInfoMutations(&msg.SyncInfo, keysByAuthor, orderedAddrs)...)
-	return pickMutation(mutations, seed)
+	return mutations
 }
 
 /*
@@ -921,7 +1057,7 @@ are not immediately discarded by the receiver:
   - VoteData.Proposed.Round == receiver_local_round (after sync_up)
   - Receiver must be the leader for VoteData.Proposed.Round + 1 to process the incoming vote
 */
-func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) mutation {
+func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) []mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	resign := func() {
 		sk := keysByAuthor[msg.Vote.Author]
@@ -1158,7 +1294,7 @@ func mutateVoteMsg(msg *aptos.VoteMsg, seed int64, keysByAuthor map[aptos.Accoun
 
 	mutations = append(mutations, syncInfoMutations(&msg.SyncInfo, keysByAuthor, orderedAddrs)...)
 	mutations = append(mutations, h2ctcMutations(&msg.SyncInfo, rng, keysByAuthor, orderedAddrs)...)
-	return pickMutation(mutations, seed)
+	return mutations
 }
 
 /*
@@ -1173,23 +1309,23 @@ are not immediately discarded by the receiver:
   - For incoming Vote/Decision: CommitMessage.Epoch == receiver_local_epoch
   - For Vote: Vote.Author == network sender
 */
-func mutateCommitMessage(msg *aptos.CommitMessage, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) mutation {
+func mutateCommitMessage(msg *aptos.CommitMessage, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) []mutation {
 	if msg.Decision != nil {
 		return mutateCommitDecision(msg.Decision, seed, keysByAuthor, orderedAddrs)
 	} else if msg.Ack != nil {
-		return pickMutation([]mutation{
+		return []mutation{
 			{"commit_swap_ack_with_nack", as, func() {
 				msg.Ack = nil
 				msg.Nack = &aptos.BcsUnit{}
 			}},
-		}, seed)
+		}
 	} else if msg.Nack != nil {
-		return pickMutation([]mutation{
+		return []mutation{
 			{"commit_swap_nack_with_ack", as, func() {
 				msg.Nack = nil
 				msg.Ack = &aptos.BcsUnit{}
 			}},
-		}, seed)
+		}
 	} else if msg.Vote != nil {
 		rng := rand.New(rand.NewSource(uint64(seed)))
 		mutations := []mutation{
@@ -1204,14 +1340,14 @@ func mutateCommitMessage(msg *aptos.CommitMessage, seed int64, keysByAuthor map[
 			}},
 		}
 		mutations = append(mutations, commitVoteMutations(msg.Vote, rng, keysByAuthor)...)
-		return pickMutation(mutations, seed)
+		return mutations
 	}
-	return mutation{}
+	return []mutation{}
 }
 
-func mutateCommitVote(msg *aptos.CommitVote, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK) mutation {
+func mutateCommitVote(msg *aptos.CommitVote, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK) []mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
-	return pickMutation(commitVoteMutations(msg, rng, keysByAuthor), seed)
+	return commitVoteMutations(msg, rng, keysByAuthor)
 }
 
 /*
@@ -1275,9 +1411,9 @@ func commitVoteMutations(msg *aptos.CommitVote, rng *rand.Rand, keysByAuthor map
 	}
 }
 
-func mutateCommitDecision(msg *aptos.CommitDecision, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) mutation {
+func mutateCommitDecision(msg *aptos.CommitDecision, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) []mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
-	return pickMutation(commitDecisionMutations(msg, rng, keysByAuthor, orderedAddrs), seed)
+	return commitDecisionMutations(msg, rng, keysByAuthor, orderedAddrs)
 }
 
 /*
@@ -1393,7 +1529,7 @@ are not immediately discarded by the receiver:
   - Timeout.QC.VoteData.Proposed.Round (= hqc_round) <= SyncInfo.HQC.VoteData.Proposed.Round
   - Same QC.VoteData invariants apply: Parent.Epoch == Proposed.Epoch; Parent.Round < Proposed.Round; Parent.Ts <= Proposed.Ts;
 */
-func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) mutation {
+func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor map[aptos.AccountAddress]*aptos.SK, orderedAddrs []aptos.AccountAddress) []mutation {
 	rng := rand.New(rand.NewSource(uint64(seed)))
 	resign := func() {
 		sk := keysByAuthor[msg.RoundTimeout.Author]
@@ -1621,7 +1757,7 @@ func mutateRoundTimeoutMsg(msg *aptos.RoundTimeoutMsg, seed int64, keysByAuthor 
 
 	mutations = append(mutations, syncInfoMutations(&msg.SyncInfo, keysByAuthor, orderedAddrs)...)
 	mutations = append(mutations, h2ctcMutations(&msg.SyncInfo, rng, keysByAuthor, orderedAddrs)...)
-	return pickMutation(mutations, seed)
+	return mutations
 }
 
 // Helpers

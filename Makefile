@@ -51,8 +51,11 @@ FN_NET_BASE  ?= $(shell expr 6200 + $(RUN_OFFSET))
 # number of client accounts to generate and pre-fund (reusable)
 NUM_CLIENT_ACCOUNTS ?= 2
 
-# logs output directory
-RUN_ID ?= $(shell date +"%Y%m%d_%H%M%S")
+# Evaluate the default once so every recipe line in a make invocation uses the
+# same output directory, including invocations that cross a second boundary.
+ifndef RUN_ID
+RUN_ID := $(shell date +"%Y%m%d_%H%M%S")
+endif
 OUTPUT_BASE ?= output/aptos$(RUN_TAG)
 OUTPUT_DIR ?= $(OUTPUT_BASE)/$(RUN_ID)
 
@@ -77,14 +80,20 @@ LIVENESSTIMEOUT ?= 60
 BLOCKBUDGET ?= 10
 
 # aptos.yml template vars
+ITERATIONS			 ?= 100
 STEPS 			     ?= 2300
 SEED                 ?= 42
-PARAM_C              ?= 1
+PARAM_C              ?= 2
 PARAM_D              ?= 1
 PARAM_R              ?= 6
 RECOVERYSECONDS      ?= 30
+PROCESSTIMEOUT       ?= 600
 # Note: CLIENT_REQUESTS is not currently read by ByzzFuzz Scheduler.
 CLIENT_REQUESTS      ?= 0
+
+# path to evolutionary testing fault plan
+# if left empty, the scheduler will use randomized sampling
+EVOFAULTPLAN ?= $(abspath evo/configs/aptos_evo.yaml)
 
 # Seeded bugs to add to aptos-build
 # BUG1 causes QC to require n votes instead of 2f+1.
@@ -93,10 +102,12 @@ BUG1 ?= false
 BUG2 ?= false
 # BUG3 causes echo timeout to require strictly more than f+1 timeout voting power.
 BUG3 ?= true
+# BUG4 ignores timeout certificates when advancing to a new round.
+BUG4 ?= false
 
 APTOS_FEATURES := byzzfuzz
-ifneq ($(word 2,$(filter true,$(BUG1) $(BUG2) $(BUG3))),)
-$(error BUG1, BUG2 and BUG3 are mutually exclusive; run one seeded bug at a time)
+ifneq ($(word 2,$(filter true,$(BUG1) $(BUG2) $(BUG3) $(BUG4))),)
+$(error BUG1, BUG2, BUG3 and BUG4 are mutually exclusive; run one seeded bug at a time)
 endif
 ifeq ($(BUG1),true)
 APTOS_FEATURES += seeded-bug1-qc-high
@@ -106,6 +117,9 @@ APTOS_FEATURES += seeded-bug2-qc-low
 endif
 ifeq ($(BUG3),true)
 APTOS_FEATURES += seeded-bug3-echo-timeout-strict
+endif
+ifeq ($(BUG4),true)
+APTOS_FEATURES += seeded-bug4-ignore-timeout-cert
 endif
 
 # -----------------------------
@@ -141,6 +155,7 @@ help:
 	@echo "  BUG1=$(BUG1)"
 	@echo "  BUG2=$(BUG2)"
 	@echo "  BUG3=$(BUG3)"
+	@echo "  BUG4=$(BUG4)"
 	@echo "  APTOS_FEATURES=$(APTOS_FEATURES)"
 
 # -----------------------------
@@ -152,7 +167,7 @@ $(VENV_PY):
 .PHONY: setup
 setup: $(VENV_PY)
 	$(PIP) install --upgrade pip
-	$(PIP) install pyyaml cryptography matplotlib pandas
+	$(PIP) install pyyaml cryptography matplotlib pandas deap seaborn scikit-learn
 
 # -----------------------------
 # Builds
@@ -164,11 +179,11 @@ build-aptos:
 
 .PHONY: build-dstest
 build-dstest:
-	cd $(DSTEST_ROOT)/cmd/dstest && go build -o main .
+	cd $(DSTEST_ROOT)/cmd/dstest && go build -ldflags="-compressdwarf=false" -o main .
 
 .PHONY: build-aptos-client
 build-aptos-client:
-	cd $(DSTEST_ROOT)/cmd/aptos_client && go build -o main .
+	cd $(DSTEST_ROOT)/cmd/aptos_client && go build -ldflags="-compressdwarf=false" -o main .
 
 .PHONY: build
 build: build-aptos build-dstest build-aptos-client
@@ -256,7 +271,7 @@ config:
 	echo "TestConfig:"; \
 	echo "  Name: $(TEST_NAME)"; \
 	echo "  Experiments: 1"; \
-	echo "  Iterations: 100"; \
+	echo "  Iterations: $(ITERATIONS)"; \
 	echo "  WaitDuration: 50"; \
 	echo "  StartupDuration: 10"; \
 	echo ""; \
@@ -265,7 +280,7 @@ config:
 	echo "  Steps: $(STEPS)"; \
 	echo "  Seed: $(SEED)"; \
 	echo "  ClientRequests: $(CLIENT_REQUESTS)"; \
-	echo "  Params: {\"c\": $(PARAM_C), \"d\": $(PARAM_D), \"r\": $(PARAM_R), \"recovery_seconds\": $(RECOVERYSECONDS), \"liveness_timeout\": $(LIVENESSTIMEOUT), \"block_budget\": $(BLOCKBUDGET)}"; \
+	echo "  Params: {\"c\": $(PARAM_C), \"d\": $(PARAM_D), \"r\": $(PARAM_R), \"recovery_seconds\": $(RECOVERYSECONDS), \"liveness_timeout\": $(LIVENESSTIMEOUT), \"block_budget\": $(BLOCKBUDGET), \"evo_fault_plan\": \"$(EVOFAULTPLAN)\"}"; \
 	echo ""; \
 	echo "NetworkConfig:"; \
 	echo "  BaseReplicaPort: $(BASE_PORT)"; \
@@ -278,7 +293,7 @@ config:
 	echo ""; \
 	echo "ProcessConfig:"; \
 	echo "  NumReplicas: $(NUM_REPLICAS)"; \
-	echo "  Timeout: 150"; \
+	echo "  Timeout: $(PROCESSTIMEOUT)"; \
 	echo "  OutputDir:  $(OUTPUT_DIR)"; \
 	echo "  ReplicaScript: aptos/aptos_server.sh"; \
 	echo "  # NOTE: each ClientScripts entry must have a different clientId"; \
@@ -293,6 +308,9 @@ config:
 	done; \
 	} > $(CONFIG)
 	@cp $(CONFIG) $(OUTPUT_DIR)/aptos.yml
+	@if [ -n "$(EVOFAULTPLAN)" ]; then \
+		cp "$(EVOFAULTPLAN)" "$(OUTPUT_DIR)/individual_fault_plan.yaml"; \
+	fi
 
 # -----------------------------
 # Clean + run
@@ -301,7 +319,7 @@ config:
 
 clean:
 	@chmod +x $(APTOS_DIR)/aptos_clean.sh $(APTOS_DIR)/aptos_server.sh || true
-	BASE_DIR=$(BASE_DIR) bash $(APTOS_DIR)/aptos_clean.sh $(BASE_DIR) || true
+	BASE_DIR=$(BASE_DIR) bash $(APTOS_DIR)/aptos_clean.sh $(BASE_DIR)
 	@# DO NOT delete dsTest outputs here (keep all runs)
 
 # Only run this when you explicitly want to wipe all previous runs
