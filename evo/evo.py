@@ -61,7 +61,7 @@ def parse_args():
     )
     parser.add_argument(
         "--benchmark",
-        choices=["aptos", "bug1", "bug2", "bug3"],
+        choices=["aptos", "bug1", "bug2", "bug3", "bug4"],
         help="Aptos implementation to test. Overrides benchmarks in the YAML config.",
     )
     parser.add_argument(

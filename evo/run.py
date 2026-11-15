@@ -14,10 +14,11 @@ EVO_DIR = THIS_FILE.parent
 DSTEST_ROOT = EVO_DIR.parent
 
 BENCHMARK_BUG_FLAGS = {
-    "aptos": {"BUG1": "false", "BUG2": "false", "BUG3": "false"},
-    "bug1": {"BUG1": "true", "BUG2": "false", "BUG3": "false"},
-    "bug2": {"BUG1": "false", "BUG2": "true", "BUG3": "false"},
-    "bug3": {"BUG1": "false", "BUG2": "false", "BUG3": "true"},
+    "aptos": {"BUG1": "false", "BUG2": "false", "BUG3": "false", "BUG4": "false"},
+    "bug1": {"BUG1": "true", "BUG2": "false", "BUG3": "false", "BUG4": "false"},
+    "bug2": {"BUG1": "false", "BUG2": "true", "BUG3": "false", "BUG4": "false"},
+    "bug3": {"BUG1": "false", "BUG2": "false", "BUG3": "true", "BUG4": "false"},
+    "bug4": {"BUG1": "false", "BUG2": "false", "BUG3": "false", "BUG4": "true"},
 }
 
 # ************************************************* #

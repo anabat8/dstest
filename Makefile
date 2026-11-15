@@ -102,10 +102,12 @@ BUG1 ?= false
 BUG2 ?= false
 # BUG3 causes echo timeout to require strictly more than f+1 timeout voting power.
 BUG3 ?= true
+# BUG4 ignores timeout certificates when advancing to a new round.
+BUG4 ?= false
 
 APTOS_FEATURES := byzzfuzz
-ifneq ($(word 2,$(filter true,$(BUG1) $(BUG2) $(BUG3))),)
-$(error BUG1, BUG2 and BUG3 are mutually exclusive; run one seeded bug at a time)
+ifneq ($(word 2,$(filter true,$(BUG1) $(BUG2) $(BUG3) $(BUG4))),)
+$(error BUG1, BUG2, BUG3 and BUG4 are mutually exclusive; run one seeded bug at a time)
 endif
 ifeq ($(BUG1),true)
 APTOS_FEATURES += seeded-bug1-qc-high
@@ -115,6 +117,9 @@ APTOS_FEATURES += seeded-bug2-qc-low
 endif
 ifeq ($(BUG3),true)
 APTOS_FEATURES += seeded-bug3-echo-timeout-strict
+endif
+ifeq ($(BUG4),true)
+APTOS_FEATURES += seeded-bug4-ignore-timeout-cert
 endif
 
 # -----------------------------
@@ -150,6 +155,7 @@ help:
 	@echo "  BUG1=$(BUG1)"
 	@echo "  BUG2=$(BUG2)"
 	@echo "  BUG3=$(BUG3)"
+	@echo "  BUG4=$(BUG4)"
 	@echo "  APTOS_FEATURES=$(APTOS_FEATURES)"
 
 # -----------------------------
