@@ -1,0 +1,1001 @@
+benchmark,benchmark_label,method,method_label,fitness_metric,generation,x_index,x_axis_basis,mean_ea_fitness,mean_randomized_fitness,mean_ratio,mean_fitness_difference,paired_seed_count,ea_valid_executions,randomized_valid_executions,ratio_defined
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,0,0,generation / 20-execution randomized batch,5.7,5.3,1.075471698,0.4,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,1,1,generation / 20-execution randomized batch,5.366666667,5.116666667,1.048859935,0.25,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,2,2,generation / 20-execution randomized batch,5.6,5.133333333,1.090909091,0.4666666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,3,3,generation / 20-execution randomized batch,5.716666667,5.116666667,1.117263844,0.6,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,4,4,generation / 20-execution randomized batch,6.866666667,5.05,1.359735974,1.816666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,5,5,generation / 20-execution randomized batch,6.783333333,5.116666667,1.325732899,1.666666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,6,6,generation / 20-execution randomized batch,7.316666667,5.133333333,1.425324675,2.183333333,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,7,7,generation / 20-execution randomized batch,5.9,5.15,1.145631068,0.75,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,8,8,generation / 20-execution randomized batch,7.283333333,5.366666667,1.357142857,1.916666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,9,9,generation / 20-execution randomized batch,8.083333333,5.333333333,1.515625,2.75,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,10,10,generation / 20-execution randomized batch,7.216666667,5.5,1.312121212,1.716666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,11,11,generation / 20-execution randomized batch,7.1,5.033333333,1.410596026,2.066666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,12,12,generation / 20-execution randomized batch,7.583333333,5.283333333,1.43533123,2.3,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,13,13,generation / 20-execution randomized batch,7.433333333,5.066666667,1.467105263,2.366666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,14,14,generation / 20-execution randomized batch,7.6,5.1,1.490196078,2.5,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,15,15,generation / 20-execution randomized batch,7.316666667,5.266666667,1.389240506,2.05,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,16,16,generation / 20-execution randomized batch,7.4,5.3,1.396226415,2.1,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,17,17,generation / 20-execution randomized batch,7.283333333,5.133333333,1.418831169,2.15,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,18,18,generation / 20-execution randomized batch,7.5,5.3,1.41509434,2.2,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,19,19,generation / 20-execution randomized batch,7.25,5.283333333,1.372239748,1.966666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,20,20,generation / 20-execution randomized batch,7.533333333,5.116666667,1.472312704,2.416666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,21,21,generation / 20-execution randomized batch,7.133333333,5.166666667,1.380645161,1.966666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,22,22,generation / 20-execution randomized batch,7.233333333,5.05,1.432343234,2.183333333,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,23,23,generation / 20-execution randomized batch,7.35,5.233333333,1.404458599,2.116666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,24,24,generation / 20-execution randomized batch,8.3,5.15,1.611650485,3.15,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,25,25,generation / 20-execution randomized batch,6.616666667,5.15,1.284789644,1.466666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,26,26,generation / 20-execution randomized batch,7.8,5.383333333,1.448916409,2.416666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,27,27,generation / 20-execution randomized batch,6.966666667,5.233333333,1.331210191,1.733333333,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,28,28,generation / 20-execution randomized batch,6.15,5.183333333,1.186495177,0.9666666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,29,29,generation / 20-execution randomized batch,7.466666667,4.866666667,1.534246575,2.6,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,30,30,generation / 20-execution randomized batch,7.566666667,5.083333333,1.48852459,2.483333333,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,31,31,generation / 20-execution randomized batch,7.166666667,4.966666667,1.44295302,2.2,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,32,32,generation / 20-execution randomized batch,6.266666667,4.833333333,1.296551724,1.433333333,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,33,33,generation / 20-execution randomized batch,6.566666667,5.2,1.262820513,1.366666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,34,34,generation / 20-execution randomized batch,9.116666667,5.433333333,1.67791411,3.683333333,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,35,35,generation / 20-execution randomized batch,9.5,4.983333333,1.906354515,4.516666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,36,36,generation / 20-execution randomized batch,9.3,5.233333333,1.777070064,4.066666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,37,37,generation / 20-execution randomized batch,8.083333333,5.083333333,1.590163934,3,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,38,38,generation / 20-execution randomized batch,9.733333333,5.116666667,1.90228013,4.616666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,39,39,generation / 20-execution randomized batch,9.333333333,5.083333333,1.836065574,4.25,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,40,40,generation / 20-execution randomized batch,9.2,5.466666667,1.682926829,3.733333333,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,41,41,generation / 20-execution randomized batch,10.28333333,4.75,2.164912281,5.533333333,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,42,42,generation / 20-execution randomized batch,10.13333333,4.916666667,2.061016949,5.216666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,43,43,generation / 20-execution randomized batch,9.983333333,4.866666667,2.051369863,5.116666667,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,44,44,generation / 20-execution randomized batch,8.883333333,5.05,1.759075908,3.833333333,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,45,45,generation / 20-execution randomized batch,8.983333333,5,1.796666667,3.983333333,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,46,46,generation / 20-execution randomized batch,9.366666667,5.216666667,1.795527157,4.15,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,47,47,generation / 20-execution randomized batch,8.9,5.2,1.711538462,3.7,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,48,48,generation / 20-execution randomized batch,7.3,5.116666667,1.426710098,2.183333333,3,60,60,True
+aptos,Original Aptos,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,49,49,generation / 20-execution randomized batch,8.85,5.183333333,1.707395498,3.666666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,0,0,generation / 20-execution randomized batch,3.966666667,4.3,0.9224806202,-0.3333333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,1,1,generation / 20-execution randomized batch,4.166666667,4.533333333,0.9191176471,-0.3666666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,2,2,generation / 20-execution randomized batch,4.616666667,3.95,1.168776371,0.6666666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,3,3,generation / 20-execution randomized batch,7.15,4.933333333,1.449324324,2.216666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,4,4,generation / 20-execution randomized batch,6.85,3.433333333,1.995145631,3.416666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,5,5,generation / 20-execution randomized batch,7.8,3.416666667,2.282926829,4.383333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,6,6,generation / 20-execution randomized batch,7.75,3.916666667,1.978723404,3.833333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,7,7,generation / 20-execution randomized batch,5.966666667,3.816666667,1.563318777,2.15,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,8,8,generation / 20-execution randomized batch,7.483333333,4.283333333,1.747081712,3.2,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,9,9,generation / 20-execution randomized batch,7.85,3.933333333,1.995762712,3.916666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,10,10,generation / 20-execution randomized batch,8.933333333,4.516666667,1.977859779,4.416666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,11,11,generation / 20-execution randomized batch,7.666666667,4.583333333,1.672727273,3.083333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,12,12,generation / 20-execution randomized batch,7.783333333,3.866666667,2.012931034,3.916666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,13,13,generation / 20-execution randomized batch,6.016666667,4.266666667,1.41015625,1.75,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,14,14,generation / 20-execution randomized batch,6.466666667,4.116666667,1.570850202,2.35,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,15,15,generation / 20-execution randomized batch,6.866666667,3.916666667,1.753191489,2.95,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,16,16,generation / 20-execution randomized batch,6.733333333,3.75,1.795555556,2.983333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,17,17,generation / 20-execution randomized batch,6.166666667,4.383333333,1.406844106,1.783333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,18,18,generation / 20-execution randomized batch,7.333333333,3.75,1.955555556,3.583333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,19,19,generation / 20-execution randomized batch,7.1,3.85,1.844155844,3.25,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,20,20,generation / 20-execution randomized batch,7.333333333,3.4,2.156862745,3.933333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,21,21,generation / 20-execution randomized batch,8.083333333,4,2.020833333,4.083333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,22,22,generation / 20-execution randomized batch,7.966666667,4.233333333,1.881889764,3.733333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,23,23,generation / 20-execution randomized batch,6.916666667,4.133333333,1.673387097,2.783333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,24,24,generation / 20-execution randomized batch,7.633333333,4.6,1.65942029,3.033333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,25,25,generation / 20-execution randomized batch,6.833333333,3.7,1.846846847,3.133333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,26,26,generation / 20-execution randomized batch,7.366666667,4.216666667,1.747035573,3.15,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,27,27,generation / 20-execution randomized batch,7.066666667,3.683333333,1.918552036,3.383333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,28,28,generation / 20-execution randomized batch,6.966666667,3.75,1.857777778,3.216666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,29,29,generation / 20-execution randomized batch,7.516666667,3.633333333,2.068807339,3.883333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,30,30,generation / 20-execution randomized batch,9.733333333,4.4,2.212121212,5.333333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,31,31,generation / 20-execution randomized batch,6.5,2.95,2.203389831,3.55,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,32,32,generation / 20-execution randomized batch,7.333333333,3.566666667,2.056074766,3.766666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,33,33,generation / 20-execution randomized batch,7.983333333,4.216666667,1.893280632,3.766666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,34,34,generation / 20-execution randomized batch,7.483333333,4.7,1.592198582,2.783333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,35,35,generation / 20-execution randomized batch,6.4,3.916666667,1.634042553,2.483333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,36,36,generation / 20-execution randomized batch,7.333333333,4.666666667,1.571428571,2.666666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,37,37,generation / 20-execution randomized batch,7.1,4.25,1.670588235,2.85,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,38,38,generation / 20-execution randomized batch,8.2,3.316666667,2.472361809,4.883333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,39,39,generation / 20-execution randomized batch,6,3.5,1.714285714,2.5,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,40,40,generation / 20-execution randomized batch,5.683333333,4.25,1.337254902,1.433333333,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,41,41,generation / 20-execution randomized batch,7.083333333,4.083333333,1.734693878,3,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,42,42,generation / 20-execution randomized batch,7.55,3.35,2.253731343,4.2,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,43,43,generation / 20-execution randomized batch,6.9,3.5,1.971428571,3.4,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,44,44,generation / 20-execution randomized batch,7.833333333,4.483333333,1.747211896,3.35,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,45,45,generation / 20-execution randomized batch,6.816666667,3.566666667,1.911214953,3.25,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,46,46,generation / 20-execution randomized batch,7.833333333,4.283333333,1.828793774,3.55,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,47,47,generation / 20-execution randomized batch,6.8,4.583333333,1.483636364,2.216666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,48,48,generation / 20-execution randomized batch,6.883333333,3.766666667,1.827433628,3.116666667,3,60,60,True
+aptos,Original Aptos,round_stress_fitness,Round stress,round_stress_fitness,49,49,generation / 20-execution randomized batch,5.95,4.566666667,1.302919708,1.383333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,0,0,generation / 20-execution randomized batch,51.23333333,47.48333333,1.078975079,3.75,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,1,1,generation / 20-execution randomized batch,40.73333333,63.51666667,0.6413014957,-22.78333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,2,2,generation / 20-execution randomized batch,85.93333333,37.21666667,2.309001343,48.71666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,3,3,generation / 20-execution randomized batch,94.31666667,55.03333333,1.713809812,39.28333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,4,4,generation / 20-execution randomized batch,116.2333333,38.61666667,3.009926629,77.61666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,5,5,generation / 20-execution randomized batch,114,24.43333333,4.665757162,89.56666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,6,6,generation / 20-execution randomized batch,122.05,50.73333333,2.405716163,71.31666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,7,7,generation / 20-execution randomized batch,129.1166667,37.98333333,3.399297938,91.13333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,8,8,generation / 20-execution randomized batch,131.2833333,43.75,3.000761905,87.53333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,9,9,generation / 20-execution randomized batch,104.1666667,65.33333333,1.594387755,38.83333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,10,10,generation / 20-execution randomized batch,153.1,59.98333333,2.55237566,93.11666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,11,11,generation / 20-execution randomized batch,122.7,56.1,2.187165775,66.6,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,12,12,generation / 20-execution randomized batch,123.6333333,34.65,3.568061568,88.98333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,13,13,generation / 20-execution randomized batch,118.5833333,61.25,1.936054422,57.33333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,14,14,generation / 20-execution randomized batch,116.9333333,39.98333333,2.924551897,76.95,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,15,15,generation / 20-execution randomized batch,119.5166667,34.73333333,3.440978887,84.78333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,16,16,generation / 20-execution randomized batch,99.61666667,31.01666667,3.211714132,68.6,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,17,17,generation / 20-execution randomized batch,97.63333333,39.03333333,2.501280956,58.6,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,18,18,generation / 20-execution randomized batch,104.0666667,41.96666667,2.47974583,62.1,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,19,19,generation / 20-execution randomized batch,121.9833333,43.18333333,2.824778078,78.8,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,20,20,generation / 20-execution randomized batch,118.2166667,26.73333333,4.422069825,91.48333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,21,21,generation / 20-execution randomized batch,117.6166667,43.9,2.67919514,73.71666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,22,22,generation / 20-execution randomized batch,114.6166667,55.96666667,2.047945205,58.65,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,23,23,generation / 20-execution randomized batch,132.7,52.65,2.520417854,80.05,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,24,24,generation / 20-execution randomized batch,116.6666667,53.93333333,2.1631644,62.73333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,25,25,generation / 20-execution randomized batch,106.1666667,43.93333333,2.416540212,62.23333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,26,26,generation / 20-execution randomized batch,140.3166667,44.35,3.163848177,95.96666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,27,27,generation / 20-execution randomized batch,117.45,52.56666667,2.234305644,64.88333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,28,28,generation / 20-execution randomized batch,134.2,35.91666667,3.736426914,98.28333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,29,29,generation / 20-execution randomized batch,137.0333333,36.16666667,3.788940092,100.8666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,30,30,generation / 20-execution randomized batch,127.1333333,48.48333333,2.622206944,78.65,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,31,31,generation / 20-execution randomized batch,132.3833333,28.88333333,4.58338142,103.5,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,32,32,generation / 20-execution randomized batch,98.36666667,43.45,2.263904871,54.91666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,33,33,generation / 20-execution randomized batch,122.3166667,44.21666667,2.766302299,78.1,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,34,34,generation / 20-execution randomized batch,136.5833333,49.45,2.762049208,87.13333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,35,35,generation / 20-execution randomized batch,111.3666667,49.58333333,2.24605042,61.78333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,36,36,generation / 20-execution randomized batch,122.4666667,67.18333333,1.822872736,55.28333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,37,37,generation / 20-execution randomized batch,114.1,43.98333333,2.594164456,70.11666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,38,38,generation / 20-execution randomized batch,113.7666667,30.88333333,3.683756071,82.88333333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,39,39,generation / 20-execution randomized batch,118.8666667,36.45,3.261088249,82.41666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,40,40,generation / 20-execution randomized batch,131.9333333,52.71666667,2.502687322,79.21666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,41,41,generation / 20-execution randomized batch,114.95,52.9,2.172967864,62.05,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,42,42,generation / 20-execution randomized batch,128.05,43.53333333,2.941424196,84.51666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,43,43,generation / 20-execution randomized batch,142.0166667,40.53333333,3.503700658,101.4833333,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,44,44,generation / 20-execution randomized batch,133.3333333,47.91666667,2.782608696,85.41666667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,45,45,generation / 20-execution randomized batch,119.45,38.5,3.102597403,80.95,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,46,46,generation / 20-execution randomized batch,102.6833333,41.78333333,2.457518947,60.9,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,47,47,generation / 20-execution randomized batch,113.0333333,50.83333333,2.223606557,62.2,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,48,48,generation / 20-execution randomized batch,137.75,33.93333333,4.059430255,103.8166667,3,60,60,True
+aptos,Original Aptos,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,49,49,generation / 20-execution randomized batch,154.9833333,55.51666667,2.791654158,99.46666667,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,0,0,generation / 20-execution randomized batch,40.68657255,27.93265743,1.456595122,12.75391512,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,1,1,generation / 20-execution randomized batch,22.3440614,39.88800825,0.5601698952,-17.54394685,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,2,2,generation / 20-execution randomized batch,52.78831538,23.96937758,2.20232316,28.8189378,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,3,3,generation / 20-execution randomized batch,72.67253165,35.21130275,2.063897839,37.4612289,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,4,4,generation / 20-execution randomized batch,90.48499395,24.65551413,3.669969868,65.82947982,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,5,5,generation / 20-execution randomized batch,60.44032572,14.41754527,4.192137052,46.02278045,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,6,6,generation / 20-execution randomized batch,56.09709288,36.68099833,1.529322958,19.41609455,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,7,7,generation / 20-execution randomized batch,103.3823127,19.57045735,5.282570095,83.81185538,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,8,8,generation / 20-execution randomized batch,90.02673068,29.17915775,3.085309434,60.84757293,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,9,9,generation / 20-execution randomized batch,67.2731657,45.00931213,1.49464994,22.26385357,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,10,10,generation / 20-execution randomized batch,74.59157772,43.33199937,1.721397092,31.25957835,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,11,11,generation / 20-execution randomized batch,75.93388142,36.66953822,2.070761867,39.2643432,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,12,12,generation / 20-execution randomized batch,84.51203297,21.8669203,3.864834728,62.64511267,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,13,13,generation / 20-execution randomized batch,96.38325055,40.8689796,2.35834737,55.51427095,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,14,14,generation / 20-execution randomized batch,77.93568427,26.40072477,2.95202821,51.5349595,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,15,15,generation / 20-execution randomized batch,74.71129797,20.4032837,3.661729115,54.30801427,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,16,16,generation / 20-execution randomized batch,90.21355797,20.05512597,4.498279299,70.158432,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,17,17,generation / 20-execution randomized batch,57.9769866,27.30782142,2.12309088,30.66916518,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,18,18,generation / 20-execution randomized batch,84.65163793,28.6541707,2.95425189,55.99746723,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,19,19,generation / 20-execution randomized batch,70.09802305,25.86177883,2.710487299,44.23624422,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,20,20,generation / 20-execution randomized batch,70.31769615,14.99969097,4.687942992,55.31800518,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,21,21,generation / 20-execution randomized batch,82.53685693,26.61068917,3.101642968,55.92616777,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,22,22,generation / 20-execution randomized batch,90.41068513,38.71704455,2.335164943,51.69364058,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,23,23,generation / 20-execution randomized batch,72.48784048,35.33075005,2.051692658,37.15709043,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,24,24,generation / 20-execution randomized batch,79.9204849,38.93916717,2.052444639,40.98131773,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,25,25,generation / 20-execution randomized batch,70.52933308,27.27992853,2.585392883,43.24940455,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,26,26,generation / 20-execution randomized batch,72.9929161,26.28105007,2.777397247,46.71186603,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,27,27,generation / 20-execution randomized batch,69.56198095,36.73671287,1.893527633,32.82526808,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,28,28,generation / 20-execution randomized batch,67.91170282,23.03928108,2.947648521,44.87242173,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,29,29,generation / 20-execution randomized batch,92.3452384,19.33418113,4.776268401,73.01105727,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,30,30,generation / 20-execution randomized batch,72.89392077,31.34646815,2.325426916,41.54745262,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,31,31,generation / 20-execution randomized batch,71.31234302,20.1869341,3.53259899,51.12540892,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,32,32,generation / 20-execution randomized batch,74.92913217,26.88773305,2.786740408,48.04139912,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,33,33,generation / 20-execution randomized batch,93.407926,25.83837877,3.615084632,67.56954723,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,34,34,generation / 20-execution randomized batch,74.06933835,30.14947282,2.45673743,43.91986553,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,35,35,generation / 20-execution randomized batch,79.32229063,33.66975183,2.355891752,45.6525388,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,36,36,generation / 20-execution randomized batch,98.78109867,48.00099937,2.05789671,50.7800993,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,37,37,generation / 20-execution randomized batch,70.63007708,24.34004785,2.901805186,46.29002923,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,38,38,generation / 20-execution randomized batch,85.27069678,17.9524017,4.749821122,67.31829508,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,39,39,generation / 20-execution randomized batch,81.4840599,27.03913722,3.013559909,54.44492268,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,40,40,generation / 20-execution randomized batch,81.61205157,34.43982747,2.36969978,47.1722241,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,41,41,generation / 20-execution randomized batch,80.08634553,36.00757447,2.224152743,44.07877107,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,42,42,generation / 20-execution randomized batch,71.35125857,31.33870147,2.276777761,40.0125571,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,43,43,generation / 20-execution randomized batch,83.50850765,26.6295191,3.135937504,56.87898855,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,44,44,generation / 20-execution randomized batch,89.32768828,30.39383567,2.939006753,58.93385262,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,45,45,generation / 20-execution randomized batch,85.61312892,24.47938808,3.49735576,61.13374083,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,46,46,generation / 20-execution randomized batch,94.03099223,24.3826771,3.856467108,69.64831513,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,47,47,generation / 20-execution randomized batch,84.7326789,36.99536905,2.290359066,47.73730985,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,48,48,generation / 20-execution randomized batch,96.71724317,19.48776287,4.962973114,77.2294803,3,60,60,True
+aptos,Original Aptos,time_fitness,Time,time_fitness,49,49,generation / 20-execution randomized batch,89.84596095,36.5928141,2.455289738,53.25314685,3,60,60,True
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,0,0,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,1,1,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,2,2,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,3,3,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,4,4,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,5,5,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,6,6,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,7,7,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,8,8,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,9,9,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,10,10,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,11,11,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,12,12,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,13,13,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,14,14,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,15,15,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,16,16,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,17,17,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,18,18,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,19,19,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,20,20,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,21,21,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,22,22,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,23,23,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,24,24,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,25,25,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,26,26,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,27,27,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,28,28,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,29,29,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,30,30,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,31,31,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,32,32,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,33,33,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,34,34,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,35,35,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,36,36,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,37,37,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,38,38,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,39,39,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,40,40,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,41,41,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,42,42,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,43,43,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,44,44,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,45,45,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,46,46,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,47,47,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,48,48,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+aptos,Original Aptos,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,49,49,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,0,0,generation / 20-execution randomized batch,5.116666667,5.116666667,1,-8.881784197e-16,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,1,1,generation / 20-execution randomized batch,5.116666667,5.166666667,0.9903225806,-0.05,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,2,2,generation / 20-execution randomized batch,4.95,5.066666667,0.9769736842,-0.1166666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,3,3,generation / 20-execution randomized batch,5.05,4.95,1.02020202,0.1,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,4,4,generation / 20-execution randomized batch,5.05,5.166666667,0.9774193548,-0.1166666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,5,5,generation / 20-execution randomized batch,5.116666667,5.066666667,1.009868421,0.05,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,6,6,generation / 20-execution randomized batch,4.983333333,5.166666667,0.964516129,-0.1833333333,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,7,7,generation / 20-execution randomized batch,5.133333333,5.15,0.996763754,-0.01666666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,8,8,generation / 20-execution randomized batch,5.216666667,5.033333333,1.036423841,0.1833333333,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,9,9,generation / 20-execution randomized batch,5.066666667,5.083333333,0.9967213115,-0.01666666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,10,10,generation / 20-execution randomized batch,4.95,5.116666667,0.9674267101,-0.1666666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,11,11,generation / 20-execution randomized batch,5.25,5.033333333,1.043046358,0.2166666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,12,12,generation / 20-execution randomized batch,5.366666667,4.95,1.084175084,0.4166666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,13,13,generation / 20-execution randomized batch,5.066666667,4.95,1.023569024,0.1166666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,14,14,generation / 20-execution randomized batch,5.116666667,5.116666667,1,0,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,15,15,generation / 20-execution randomized batch,5.466666667,5.283333333,1.034700315,0.1833333333,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,16,16,generation / 20-execution randomized batch,5.316666667,5.15,1.03236246,0.1666666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,17,17,generation / 20-execution randomized batch,5.3,4.933333333,1.074324324,0.3666666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,18,18,generation / 20-execution randomized batch,5.233333333,5.466666667,0.9573170732,-0.2333333333,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,19,19,generation / 20-execution randomized batch,5.5,5.133333333,1.071428571,0.3666666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,20,20,generation / 20-execution randomized batch,5.533333333,5.05,1.095709571,0.4833333333,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,21,21,generation / 20-execution randomized batch,5.316666667,4.9,1.085034014,0.4166666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,22,22,generation / 20-execution randomized batch,5.75,4.966666667,1.157718121,0.7833333333,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,23,23,generation / 20-execution randomized batch,5.166666667,4.95,1.043771044,0.2166666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,24,24,generation / 20-execution randomized batch,5.333333333,5.033333333,1.059602649,0.3,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,25,25,generation / 20-execution randomized batch,5.733333333,5.183333333,1.106109325,0.55,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,26,26,generation / 20-execution randomized batch,5.166666667,5.083333333,1.016393443,0.08333333333,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,27,27,generation / 20-execution randomized batch,5.483333333,5.066666667,1.082236842,0.4166666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,28,28,generation / 20-execution randomized batch,5.7,4.966666667,1.147651007,0.7333333333,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,29,29,generation / 20-execution randomized batch,5.316666667,5,1.063333333,0.3166666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,30,30,generation / 20-execution randomized batch,5.45,5.033333333,1.082781457,0.4166666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,31,31,generation / 20-execution randomized batch,5.133333333,5.216666667,0.9840255591,-0.08333333333,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,32,32,generation / 20-execution randomized batch,5.533333333,5.066666667,1.092105263,0.4666666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,33,33,generation / 20-execution randomized batch,5.2,5.2,1,0,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,34,34,generation / 20-execution randomized batch,5.366666667,5.066666667,1.059210526,0.3,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,35,35,generation / 20-execution randomized batch,5.3,5.1,1.039215686,0.2,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,36,36,generation / 20-execution randomized batch,5.616666667,4.95,1.134680135,0.6666666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,37,37,generation / 20-execution randomized batch,5.65,5.1,1.107843137,0.55,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,38,38,generation / 20-execution randomized batch,5.166666667,5.116666667,1.009771987,0.05,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,39,39,generation / 20-execution randomized batch,5.166666667,5.116666667,1.009771987,0.05,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,40,40,generation / 20-execution randomized batch,5.5,5.283333333,1.041009464,0.2166666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,41,41,generation / 20-execution randomized batch,5.633333333,4.95,1.138047138,0.6833333333,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,42,42,generation / 20-execution randomized batch,5.4,4.883333333,1.105802048,0.5166666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,43,43,generation / 20-execution randomized batch,5.4,5.033333333,1.072847682,0.3666666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,44,44,generation / 20-execution randomized batch,5.416666667,5.066666667,1.069078947,0.35,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,45,45,generation / 20-execution randomized batch,5.116666667,5.383333333,0.9504643963,-0.2666666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,46,46,generation / 20-execution randomized batch,5.183333333,5.35,0.968847352,-0.1666666667,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,47,47,generation / 20-execution randomized batch,5.533333333,5.183333333,1.067524116,0.35,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,48,48,generation / 20-execution randomized batch,5.083333333,4.85,1.048109966,0.2333333333,3,60,60,True
+bug1,Bug 1,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,49,49,generation / 20-execution randomized batch,5.516666667,5.15,1.071197411,0.3666666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,0,0,generation / 20-execution randomized batch,4.666666667,4.65,1.003584229,0.01666666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,1,1,generation / 20-execution randomized batch,5.1,5.433333333,0.9386503067,-0.3333333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,2,2,generation / 20-execution randomized batch,6.283333333,3.85,1.632034632,2.433333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,3,3,generation / 20-execution randomized batch,5.683333333,3.616666667,1.571428571,2.066666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,4,4,generation / 20-execution randomized batch,9.116666667,4.133333333,2.205645161,4.983333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,5,5,generation / 20-execution randomized batch,7.666666667,4.233333333,1.811023622,3.433333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,6,6,generation / 20-execution randomized batch,9.066666667,3.766666667,2.407079646,5.3,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,7,7,generation / 20-execution randomized batch,6.966666667,4.05,1.720164609,2.916666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,8,8,generation / 20-execution randomized batch,8.233333333,3.65,2.255707763,4.583333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,9,9,generation / 20-execution randomized batch,6.633333333,3.933333333,1.686440678,2.7,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,10,10,generation / 20-execution randomized batch,6.816666667,5.9,1.155367232,0.9166666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,11,11,generation / 20-execution randomized batch,7.083333333,4.65,1.523297491,2.433333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,12,12,generation / 20-execution randomized batch,8.333333333,3.483333333,2.392344498,4.85,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,13,13,generation / 20-execution randomized batch,6.2,4.05,1.530864198,2.15,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,14,14,generation / 20-execution randomized batch,8.15,4.933333333,1.652027027,3.216666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,15,15,generation / 20-execution randomized batch,6.416666667,5.05,1.270627063,1.366666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,16,16,generation / 20-execution randomized batch,6.566666667,4.316666667,1.521235521,2.25,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,17,17,generation / 20-execution randomized batch,7.2,4.316666667,1.667953668,2.883333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,18,18,generation / 20-execution randomized batch,6.966666667,5.15,1.352750809,1.816666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,19,19,generation / 20-execution randomized batch,7.2,3.9,1.846153846,3.3,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,20,20,generation / 20-execution randomized batch,10.06666667,4.4,2.287878788,5.666666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,21,21,generation / 20-execution randomized batch,7.6,3.6,2.111111111,4,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,22,22,generation / 20-execution randomized batch,8.016666667,4.183333333,1.916334661,3.833333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,23,23,generation / 20-execution randomized batch,7.366666667,3.883333333,1.896995708,3.483333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,24,24,generation / 20-execution randomized batch,8.25,4.85,1.701030928,3.4,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,25,25,generation / 20-execution randomized batch,8.283333333,4.333333333,1.911538462,3.95,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,26,26,generation / 20-execution randomized batch,7.566666667,4.066666667,1.860655738,3.5,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,27,27,generation / 20-execution randomized batch,7.85,4.8,1.635416667,3.05,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,28,28,generation / 20-execution randomized batch,9.2,4.016666667,2.290456432,5.183333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,29,29,generation / 20-execution randomized batch,8.05,3.95,2.037974684,4.1,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,30,30,generation / 20-execution randomized batch,9.433333333,4.116666667,2.291497976,5.316666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,31,31,generation / 20-execution randomized batch,7.683333333,4.116666667,1.866396761,3.566666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,32,32,generation / 20-execution randomized batch,6.433333333,4.1,1.569105691,2.333333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,33,33,generation / 20-execution randomized batch,8.9,5.066666667,1.756578947,3.833333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,34,34,generation / 20-execution randomized batch,6.816666667,4.3,1.585271318,2.516666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,35,35,generation / 20-execution randomized batch,7,4.05,1.728395062,2.95,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,36,36,generation / 20-execution randomized batch,7.916666667,4.166666667,1.9,3.75,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,37,37,generation / 20-execution randomized batch,7.716666667,3.9,1.978632479,3.816666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,38,38,generation / 20-execution randomized batch,6.766666667,4.166666667,1.624,2.6,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,39,39,generation / 20-execution randomized batch,6.766666667,4.65,1.455197133,2.116666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,40,40,generation / 20-execution randomized batch,8.883333333,5.65,1.572271386,3.233333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,41,41,generation / 20-execution randomized batch,7.333333333,4.183333333,1.752988048,3.15,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,42,42,generation / 20-execution randomized batch,8.983333333,3.533333333,2.54245283,5.45,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,43,43,generation / 20-execution randomized batch,7.55,5.066666667,1.490131579,2.483333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,44,44,generation / 20-execution randomized batch,6.916666667,5.333333333,1.296875,1.583333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,45,45,generation / 20-execution randomized batch,9.266666667,5,1.853333333,4.266666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,46,46,generation / 20-execution randomized batch,8.2,6.166666667,1.32972973,2.033333333,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,47,47,generation / 20-execution randomized batch,7.566666667,4.316666667,1.752895753,3.25,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,48,48,generation / 20-execution randomized batch,7.466666667,4.05,1.843621399,3.416666667,3,60,60,True
+bug1,Bug 1,round_stress_fitness,Round stress,round_stress_fitness,49,49,generation / 20-execution randomized batch,8.383333333,6.1,1.37431694,2.283333333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,0,0,generation / 20-execution randomized batch,88.91666667,104.5666667,0.8503347147,-15.65,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,1,1,generation / 20-execution randomized batch,74.58333333,131.3333333,0.567893401,-56.75,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,2,2,generation / 20-execution randomized batch,121.5833333,74.7,1.627621598,46.88333333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,3,3,generation / 20-execution randomized batch,215.2333333,79.33333333,2.71302521,135.9,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,4,4,generation / 20-execution randomized batch,189.05,69.06666667,2.737210425,119.9833333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,5,5,generation / 20-execution randomized batch,229.8166667,51.76666667,4.43947199,178.05,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,6,6,generation / 20-execution randomized batch,265.3166667,74.11666667,3.579716663,191.2,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,7,7,generation / 20-execution randomized batch,226.2833333,72.7,3.112563044,153.5833333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,8,8,generation / 20-execution randomized batch,258.4,93.38333333,2.767089059,165.0166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,9,9,generation / 20-execution randomized batch,262.9,101.6,2.587598425,161.3,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,10,10,generation / 20-execution randomized batch,238.5666667,131.9166667,1.80846494,106.65,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,11,11,generation / 20-execution randomized batch,223.2333333,118.4,1.885416667,104.8333333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,12,12,generation / 20-execution randomized batch,216.8,50.28333333,4.311567783,166.5166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,13,13,generation / 20-execution randomized batch,246.2333333,75.71666667,3.252036099,170.5166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,14,14,generation / 20-execution randomized batch,275.1,96.85,2.840474961,178.25,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,15,15,generation / 20-execution randomized batch,187.7833333,86.9,2.160912927,100.8833333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,16,16,generation / 20-execution randomized batch,219.75,88.35,2.487266553,131.4,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,17,17,generation / 20-execution randomized batch,260.6166667,105.0166667,2.481669576,155.6,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,18,18,generation / 20-execution randomized batch,280.9833333,87.41666667,3.214299333,193.5666667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,19,19,generation / 20-execution randomized batch,261.25,63.43333333,4.11849711,197.8166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,20,20,generation / 20-execution randomized batch,254.1333333,111.15,2.28639976,142.9833333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,21,21,generation / 20-execution randomized batch,313.7833333,42.16666667,7.441501976,271.6166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,22,22,generation / 20-execution randomized batch,257.1,98.18333333,2.618570701,158.9166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,23,23,generation / 20-execution randomized batch,254.6,86.81666667,2.932616625,167.7833333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,24,24,generation / 20-execution randomized batch,234.4666667,85.28333333,2.749267149,149.1833333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,25,25,generation / 20-execution randomized batch,240.8166667,84.6,2.846532703,156.2166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,26,26,generation / 20-execution randomized batch,236.6666667,87.33333333,2.709923664,149.3333333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,27,27,generation / 20-execution randomized batch,211.05,86,2.454069767,125.05,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,28,28,generation / 20-execution randomized batch,262.6333333,81.25,3.232410256,181.3833333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,29,29,generation / 20-execution randomized batch,277.4666667,64.65,4.291827791,212.8166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,30,30,generation / 20-execution randomized batch,218.15,82.11666667,2.656586158,136.0333333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,31,31,generation / 20-execution randomized batch,268.8666667,70.7,3.802923149,198.1666667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,32,32,generation / 20-execution randomized batch,254.0666667,83.45,3.044537647,170.6166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,33,33,generation / 20-execution randomized batch,284.95,95.51666667,2.983248997,189.4333333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,34,34,generation / 20-execution randomized batch,244.3333333,72.48333333,3.37088986,171.85,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,35,35,generation / 20-execution randomized batch,261.5333333,50.8,5.148293963,210.7333333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,36,36,generation / 20-execution randomized batch,277.3166667,103.0333333,2.691523779,174.2833333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,37,37,generation / 20-execution randomized batch,299.9166667,65.7,4.564941654,234.2166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,38,38,generation / 20-execution randomized batch,261.85,75.86666667,3.451449912,185.9833333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,39,39,generation / 20-execution randomized batch,223.2,69.75,3.2,153.45,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,40,40,generation / 20-execution randomized batch,248.85,92.28333333,2.696586599,156.5666667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,41,41,generation / 20-execution randomized batch,271.3166667,82.4,3.292677994,188.9166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,42,42,generation / 20-execution randomized batch,203.15,61.56666667,3.299675149,141.5833333,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,43,43,generation / 20-execution randomized batch,249.75,85.98333333,2.904632681,163.7666667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,44,44,generation / 20-execution randomized batch,222.35,99.5,2.234673367,122.85,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,45,45,generation / 20-execution randomized batch,266.3166667,76.81666667,3.466912562,189.5,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,46,46,generation / 20-execution randomized batch,270.8833333,82.26666667,3.292747164,188.6166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,47,47,generation / 20-execution randomized batch,211.8833333,88.01666667,2.407309222,123.8666667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,48,48,generation / 20-execution randomized batch,232.8,67.28333333,3.459995046,165.5166667,3,60,60,True
+bug1,Bug 1,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,49,49,generation / 20-execution randomized batch,285.3333333,143.2,1.99255121,142.1333333,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,0,0,generation / 20-execution randomized batch,52.04777177,69.28945353,0.7511644141,-17.24168177,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,1,1,generation / 20-execution randomized batch,63.99556547,87.15181288,0.7342998768,-23.15624742,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,2,2,generation / 20-execution randomized batch,153.5732823,41.41751792,3.707930605,112.1557644,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,3,3,generation / 20-execution randomized batch,173.2037808,44.67177103,3.877253505,128.5320098,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,4,4,generation / 20-execution randomized batch,185.1911842,42.50732657,4.356688579,142.6838576,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,5,5,generation / 20-execution randomized batch,152.1259051,30.45256515,4.995503805,121.6733399,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,6,6,generation / 20-execution randomized batch,183.0971268,49.06707502,3.731567995,134.0300517,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,7,7,generation / 20-execution randomized batch,183.2945002,46.51670512,3.940401619,136.7777951,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,8,8,generation / 20-execution randomized batch,144.3965782,55.66428513,2.594061485,88.73229302,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,9,9,generation / 20-execution randomized batch,114.3986384,71.38978127,1.602451168,43.00885712,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,10,10,generation / 20-execution randomized batch,117.9757897,82.61720243,1.427980931,35.35858723,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,11,11,generation / 20-execution randomized batch,136.7241668,75.42923883,1.81261496,61.29492793,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,12,12,generation / 20-execution randomized batch,164.5380298,26.7915267,6.141420445,137.7465031,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,13,13,generation / 20-execution randomized batch,157.4800429,41.90913797,3.757654071,115.5709049,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,14,14,generation / 20-execution randomized batch,127.4073729,57.06081067,2.23283496,70.34656222,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,15,15,generation / 20-execution randomized batch,186.7659772,55.84163575,3.344564941,130.9243414,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,16,16,generation / 20-execution randomized batch,170.4057266,53.62051083,3.17799521,116.7852157,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,17,17,generation / 20-execution randomized batch,128.4560423,67.91524725,1.89141684,60.54079508,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,18,18,generation / 20-execution randomized batch,144.6990917,59.09020648,2.448782976,85.6088852,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,19,19,generation / 20-execution randomized batch,199.087123,37.77671275,5.270101829,161.3104102,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,20,20,generation / 20-execution randomized batch,146.5065428,75.46939115,1.941271032,71.03715167,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,21,21,generation / 20-execution randomized batch,136.5445794,21.39585437,6.381824119,115.1487251,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,22,22,generation / 20-execution randomized batch,150.0272861,58.78630878,2.552078693,91.2409773,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,23,23,generation / 20-execution randomized batch,160.8969796,52.18242615,3.083355671,108.7145534,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,24,24,generation / 20-execution randomized batch,174.3247704,47.70008312,3.654600977,126.6246872,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,25,25,generation / 20-execution randomized batch,149.3194871,54.2088473,2.754522454,95.1106398,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,26,26,generation / 20-execution randomized batch,146.222045,54.65455205,2.675386396,91.567493,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,27,27,generation / 20-execution randomized batch,186.8525773,55.25206923,3.381820444,131.6005081,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,28,28,generation / 20-execution randomized batch,158.1540647,49.16465535,3.216824436,108.9894094,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,29,29,generation / 20-execution randomized batch,164.8422466,39.40432743,4.183353893,125.4379191,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,30,30,generation / 20-execution randomized batch,160.0492196,47.06906248,3.400306086,112.9801571,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,31,31,generation / 20-execution randomized batch,180.1842386,44.01341618,4.093848064,136.1708224,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,32,32,generation / 20-execution randomized batch,189.4334482,54.61809892,3.468327386,134.8153493,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,33,33,generation / 20-execution randomized batch,149.9405105,60.6741145,2.47124349,89.26639598,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,34,34,generation / 20-execution randomized batch,117.6023256,42.15415308,2.789815879,75.44817257,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,35,35,generation / 20-execution randomized batch,190.6449173,25.24862875,7.550703809,165.3962885,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,36,36,generation / 20-execution randomized batch,148.3333988,65.08862697,2.278944966,83.24477183,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,37,37,generation / 20-execution randomized batch,171.5631048,42.94258397,3.99517423,128.6205209,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,38,38,generation / 20-execution randomized batch,195.9325153,49.27793365,3.976070033,146.6545816,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,39,39,generation / 20-execution randomized batch,118.0409146,44.24097977,2.668135183,73.79993487,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,40,40,generation / 20-execution randomized batch,200.4947768,55.00324513,3.645144506,145.4915316,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,41,41,generation / 20-execution randomized batch,136.4081592,52.75747923,2.585570068,83.65067995,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,42,42,generation / 20-execution randomized batch,164.5026151,40.59114807,4.052672145,123.911467,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,43,43,generation / 20-execution randomized batch,132.8005118,53.73826645,2.471246667,79.0622454,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,44,44,generation / 20-execution randomized batch,153.5889501,60.63854743,2.532859982,92.9504027,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,45,45,generation / 20-execution randomized batch,148.4642211,50.62959302,2.932360547,97.83462803,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,46,46,generation / 20-execution randomized batch,126.4297222,54.3583408,2.325856903,72.0713814,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,47,47,generation / 20-execution randomized batch,162.8533091,59.93151765,2.717323297,102.9217915,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,48,48,generation / 20-execution randomized batch,198.9315298,39.63686133,5.018851722,159.2946684,3,60,60,True
+bug1,Bug 1,time_fitness,Time,time_fitness,49,49,generation / 20-execution randomized batch,161.0906321,93.93497808,1.714916375,67.15565405,3,60,60,True
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,0,0,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,1,1,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,2,2,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,3,3,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,4,4,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,5,5,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,6,6,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,7,7,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,8,8,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,9,9,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,10,10,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,11,11,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,12,12,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,13,13,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,14,14,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,15,15,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,16,16,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,17,17,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,18,18,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,19,19,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,20,20,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,21,21,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,22,22,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,23,23,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,24,24,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,25,25,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,26,26,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,27,27,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,28,28,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,29,29,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,30,30,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,31,31,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,32,32,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,33,33,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,34,34,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,35,35,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,36,36,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,37,37,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,38,38,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,39,39,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,40,40,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,41,41,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,42,42,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,43,43,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,44,44,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,45,45,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,46,46,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,47,47,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,48,48,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug1,Bug 1,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,49,49,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,0,0,generation / 20-execution randomized batch,7.316666667,6.25,1.170666667,1.066666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,1,1,generation / 20-execution randomized batch,7.2,7.85,0.9171974522,-0.65,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,2,2,generation / 20-execution randomized batch,9.233333333,6.033333333,1.53038674,3.2,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,3,3,generation / 20-execution randomized batch,10,5.6,1.785714286,4.4,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,4,4,generation / 20-execution randomized batch,7.166666667,6.383333333,1.122715405,0.7833333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,5,5,generation / 20-execution randomized batch,7.766666667,5.783333333,1.342939481,1.983333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,6,6,generation / 20-execution randomized batch,7.633333333,5.633333333,1.355029586,2,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,7,7,generation / 20-execution randomized batch,8.083333333,6.166666667,1.310810811,1.916666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,8,8,generation / 20-execution randomized batch,9.183333333,6.516666667,1.409207161,2.666666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,9,9,generation / 20-execution randomized batch,7.833333333,6.616666667,1.183879093,1.216666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,10,10,generation / 20-execution randomized batch,8.116666667,6.233333333,1.302139037,1.883333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,11,11,generation / 20-execution randomized batch,9.3,6.133333333,1.516304348,3.166666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,12,12,generation / 20-execution randomized batch,7.833333333,5.866666667,1.335227273,1.966666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,13,13,generation / 20-execution randomized batch,7.716666667,5.85,1.319088319,1.866666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,14,14,generation / 20-execution randomized batch,6.916666667,5.8,1.192528736,1.116666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,15,15,generation / 20-execution randomized batch,6.233333333,6.2,1.005376344,0.03333333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,16,16,generation / 20-execution randomized batch,5.366666667,6.433333333,0.8341968912,-1.066666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,17,17,generation / 20-execution randomized batch,5.183333333,5.9,0.8785310734,-0.7166666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,18,18,generation / 20-execution randomized batch,5.116666667,5.866666667,0.8721590909,-0.75,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,19,19,generation / 20-execution randomized batch,5.233333333,5.45,0.9602446483,-0.2166666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,20,20,generation / 20-execution randomized batch,5.1,5.766666667,0.8843930636,-0.6666666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,21,21,generation / 20-execution randomized batch,5.05,6.516666667,0.7749360614,-1.466666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,22,22,generation / 20-execution randomized batch,5.533333333,5.933333333,0.9325842697,-0.4,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,23,23,generation / 20-execution randomized batch,5.133333333,6.966666667,0.7368421053,-1.833333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,24,24,generation / 20-execution randomized batch,5.05,5.95,0.8487394958,-0.9,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,25,25,generation / 20-execution randomized batch,5.5,6.183333333,0.8894878706,-0.6833333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,26,26,generation / 20-execution randomized batch,5.116666667,5.783333333,0.8847262248,-0.6666666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,27,27,generation / 20-execution randomized batch,5.166666667,5.85,0.8831908832,-0.6833333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,28,28,generation / 20-execution randomized batch,5.633333333,5.833333333,0.9657142857,-0.2,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,29,29,generation / 20-execution randomized batch,5.066666667,6.183333333,0.8194070081,-1.116666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,30,30,generation / 20-execution randomized batch,5.216666667,5.616666667,0.9287833828,-0.4,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,31,31,generation / 20-execution randomized batch,4.983333333,5.75,0.8666666667,-0.7666666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,32,32,generation / 20-execution randomized batch,5,6.15,0.8130081301,-1.15,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,33,33,generation / 20-execution randomized batch,5.266666667,5.6,0.9404761905,-0.3333333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,34,34,generation / 20-execution randomized batch,5.233333333,5.833333333,0.8971428571,-0.6,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,35,35,generation / 20-execution randomized batch,5.616666667,6.216666667,0.9034852547,-0.6,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,36,36,generation / 20-execution randomized batch,5.25,5.866666667,0.8948863636,-0.6166666667,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,37,37,generation / 20-execution randomized batch,4.916666667,5.466666667,0.8993902439,-0.55,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,38,38,generation / 20-execution randomized batch,4.85,6.45,0.7519379845,-1.6,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,39,39,generation / 20-execution randomized batch,5.283333333,5.733333333,0.9215116279,-0.45,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,40,40,generation / 20-execution randomized batch,5.15,6.633333333,0.7763819095,-1.483333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,41,41,generation / 20-execution randomized batch,5.25,6.583333333,0.7974683544,-1.333333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,42,42,generation / 20-execution randomized batch,5.033333333,6.033333333,0.8342541436,-1,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,43,43,generation / 20-execution randomized batch,5.033333333,6.933333333,0.7259615385,-1.9,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,44,44,generation / 20-execution randomized batch,5.466666667,6,0.9111111111,-0.5333333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,45,45,generation / 20-execution randomized batch,5.133333333,5.866666667,0.875,-0.7333333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,46,46,generation / 20-execution randomized batch,5.616666667,6.05,0.9283746556,-0.4333333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,47,47,generation / 20-execution randomized batch,5.333333333,5.1,1.045751634,0.2333333333,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,48,48,generation / 20-execution randomized batch,5.15,5.9,0.8728813559,-0.75,3,60,60,True
+bug2,Bug 2,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,49,49,generation / 20-execution randomized batch,5.083333333,6.066666667,0.8379120879,-0.9833333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,0,0,generation / 20-execution randomized batch,3.333333333,3.583333333,0.9302325581,-0.25,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,1,1,generation / 20-execution randomized batch,3.45,3.833333333,0.9,-0.3833333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,2,2,generation / 20-execution randomized batch,4.3,3.633333333,1.183486239,0.6666666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,3,3,generation / 20-execution randomized batch,4.166666667,3.816666667,1.091703057,0.35,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,4,4,generation / 20-execution randomized batch,3.866666667,3.483333333,1.110047847,0.3833333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,5,5,generation / 20-execution randomized batch,3.45,3.166666667,1.089473684,0.2833333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,6,6,generation / 20-execution randomized batch,3.816666667,3.5,1.09047619,0.3166666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,7,7,generation / 20-execution randomized batch,3.95,3.666666667,1.077272727,0.2833333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,8,8,generation / 20-execution randomized batch,3.666666667,3.766666667,0.9734513274,-0.1,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,9,9,generation / 20-execution randomized batch,3.95,3.566666667,1.107476636,0.3833333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,10,10,generation / 20-execution randomized batch,3.95,3.683333333,1.07239819,0.2666666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,11,11,generation / 20-execution randomized batch,4.033333333,3.9,1.034188034,0.1333333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,12,12,generation / 20-execution randomized batch,3.5,3.383333333,1.034482759,0.1166666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,13,13,generation / 20-execution randomized batch,4.2,3.6,1.166666667,0.6,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,14,14,generation / 20-execution randomized batch,3.85,3.733333333,1.03125,0.1166666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,15,15,generation / 20-execution randomized batch,3.716666667,3.7,1.004504505,0.01666666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,16,16,generation / 20-execution randomized batch,3.85,3.4,1.132352941,0.45,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,17,17,generation / 20-execution randomized batch,4.15,3.433333333,1.208737864,0.7166666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,18,18,generation / 20-execution randomized batch,3.616666667,3.5,1.033333333,0.1166666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,19,19,generation / 20-execution randomized batch,3.983333333,3.316666667,1.201005025,0.6666666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,20,20,generation / 20-execution randomized batch,4.016666667,3.416666667,1.175609756,0.6,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,21,21,generation / 20-execution randomized batch,4.116666667,3.45,1.193236715,0.6666666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,22,22,generation / 20-execution randomized batch,3.783333333,3.55,1.0657277,0.2333333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,23,23,generation / 20-execution randomized batch,4.066666667,3.616666667,1.124423963,0.45,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,24,24,generation / 20-execution randomized batch,4.066666667,3.65,1.114155251,0.4166666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,25,25,generation / 20-execution randomized batch,4.016666667,3.483333333,1.153110048,0.5333333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,26,26,generation / 20-execution randomized batch,3.883333333,3.566666667,1.088785047,0.3166666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,27,27,generation / 20-execution randomized batch,4.066666667,3.766666667,1.079646018,0.3,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,28,28,generation / 20-execution randomized batch,3.95,3.466666667,1.139423077,0.4833333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,29,29,generation / 20-execution randomized batch,4.383333333,3.316666667,1.32160804,1.066666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,30,30,generation / 20-execution randomized batch,3.85,3.65,1.054794521,0.2,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,31,31,generation / 20-execution randomized batch,4,3.483333333,1.148325359,0.5166666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,32,32,generation / 20-execution randomized batch,3.983333333,3.516666667,1.132701422,0.4666666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,33,33,generation / 20-execution randomized batch,3.783333333,3.4,1.112745098,0.3833333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,34,34,generation / 20-execution randomized batch,3.816666667,3.05,1.25136612,0.7666666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,35,35,generation / 20-execution randomized batch,3.883333333,3.416666667,1.136585366,0.4666666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,36,36,generation / 20-execution randomized batch,3.983333333,3.5,1.138095238,0.4833333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,37,37,generation / 20-execution randomized batch,4.2,3.333333333,1.26,0.8666666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,38,38,generation / 20-execution randomized batch,4.216666667,3.266666667,1.290816327,0.95,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,39,39,generation / 20-execution randomized batch,3.383333333,3.333333333,1.015,0.05,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,40,40,generation / 20-execution randomized batch,3.933333333,3.833333333,1.026086957,0.1,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,41,41,generation / 20-execution randomized batch,3.483333333,3.866666667,0.900862069,-0.3833333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,42,42,generation / 20-execution randomized batch,3.95,3.65,1.082191781,0.3,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,43,43,generation / 20-execution randomized batch,4.033333333,3.316666667,1.216080402,0.7166666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,44,44,generation / 20-execution randomized batch,3.883333333,3.533333333,1.099056604,0.35,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,45,45,generation / 20-execution randomized batch,4.666666667,3.366666667,1.386138614,1.3,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,46,46,generation / 20-execution randomized batch,4.666666667,3.75,1.244444444,0.9166666667,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,47,47,generation / 20-execution randomized batch,3.833333333,3.283333333,1.16751269,0.55,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,48,48,generation / 20-execution randomized batch,3.883333333,3.65,1.063926941,0.2333333333,3,60,60,True
+bug2,Bug 2,round_stress_fitness,Round stress,round_stress_fitness,49,49,generation / 20-execution randomized batch,3.75,3.95,0.9493670886,-0.2,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,0,0,generation / 20-execution randomized batch,22.4,28.16666667,0.7952662722,-5.766666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,1,1,generation / 20-execution randomized batch,26.58333333,44.78333333,0.5935988091,-18.2,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,2,2,generation / 20-execution randomized batch,36.25,27.91666667,1.298507463,8.333333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,3,3,generation / 20-execution randomized batch,49.76666667,31.98333333,1.55601876,17.78333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,4,4,generation / 20-execution randomized batch,35.51666667,28.35,1.252792475,7.166666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,5,5,generation / 20-execution randomized batch,30.58333333,23.61666667,1.294989414,6.966666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,6,6,generation / 20-execution randomized batch,32.38333333,30.58333333,1.058855586,1.8,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,7,7,generation / 20-execution randomized batch,36.95,28.41666667,1.300293255,8.533333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,8,8,generation / 20-execution randomized batch,30.28333333,30.98333333,0.9774072082,-0.7,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,9,9,generation / 20-execution randomized batch,36.8,30.55,1.204582651,6.25,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,10,10,generation / 20-execution randomized batch,30.13333333,31.71666667,0.9500788229,-1.583333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,11,11,generation / 20-execution randomized batch,35.6,33.88333333,1.050664043,1.716666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,12,12,generation / 20-execution randomized batch,31.6,23.2,1.362068966,8.4,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,13,13,generation / 20-execution randomized batch,43.48333333,26.36666667,1.649178255,17.11666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,14,14,generation / 20-execution randomized batch,32.51666667,28.83333333,1.127745665,3.683333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,15,15,generation / 20-execution randomized batch,31.93333333,26.06666667,1.225063939,5.866666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,16,16,generation / 20-execution randomized batch,27.96666667,29.5,0.9480225989,-1.533333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,17,17,generation / 20-execution randomized batch,30.26666667,29.43333333,1.028312571,0.8333333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,18,18,generation / 20-execution randomized batch,42.95,23.46666667,1.830255682,19.48333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,19,19,generation / 20-execution randomized batch,29.9,21.03333333,1.42155309,8.866666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,20,20,generation / 20-execution randomized batch,33.55,21.55,1.556844548,12,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,21,21,generation / 20-execution randomized batch,34.36666667,32,1.073958333,2.366666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,22,22,generation / 20-execution randomized batch,33.7,30.55,1.103109656,3.15,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,23,23,generation / 20-execution randomized batch,29.83333333,34.45,0.8659893566,-4.616666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,24,24,generation / 20-execution randomized batch,23.83333333,31.6,0.7542194093,-7.766666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,25,25,generation / 20-execution randomized batch,28.8,26.45,1.088846881,2.35,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,26,26,generation / 20-execution randomized batch,26.23333333,28.31666667,0.9264273102,-2.083333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,27,27,generation / 20-execution randomized batch,26.05,30.28333333,0.8602091359,-4.233333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,28,28,generation / 20-execution randomized batch,23.28333333,27.71666667,0.8400481058,-4.433333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,29,29,generation / 20-execution randomized batch,28.48333333,23.96666667,1.188456189,4.516666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,30,30,generation / 20-execution randomized batch,20.65,30.1,0.6860465116,-9.45,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,31,31,generation / 20-execution randomized batch,23.46666667,25.38333333,0.9244911359,-1.916666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,32,32,generation / 20-execution randomized batch,32.5,28.23333333,1.151121606,4.266666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,33,33,generation / 20-execution randomized batch,33.48333333,24.01666667,1.394170715,9.466666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,34,34,generation / 20-execution randomized batch,40.21666667,20.58333333,1.953846154,19.63333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,35,35,generation / 20-execution randomized batch,34.31666667,23.16666667,1.481294964,11.15,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,36,36,generation / 20-execution randomized batch,36.31666667,25.3,1.43544137,11.01666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,37,37,generation / 20-execution randomized batch,29.25,21.61666667,1.353122591,7.633333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,38,38,generation / 20-execution randomized batch,25.05,23.93333333,1.046657382,1.116666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,39,39,generation / 20-execution randomized batch,32.88333333,23.8,1.381652661,9.083333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,40,40,generation / 20-execution randomized batch,25.18333333,29.26666667,0.8604783599,-4.083333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,41,41,generation / 20-execution randomized batch,31.71666667,34.63333333,0.9157844081,-2.916666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,42,42,generation / 20-execution randomized batch,38.88333333,25.93333333,1.499357326,12.95,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,43,43,generation / 20-execution randomized batch,31.46666667,30.23333333,1.040793826,1.233333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,44,44,generation / 20-execution randomized batch,30.1,26.98333333,1.115503397,3.116666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,45,45,generation / 20-execution randomized batch,30.15,23.66666667,1.273943662,6.483333333,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,46,46,generation / 20-execution randomized batch,35.86666667,29.85,1.201563372,6.016666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,47,47,generation / 20-execution randomized batch,37.33333333,27.96666667,1.334922527,9.366666667,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,48,48,generation / 20-execution randomized batch,30.5,29.45,1.03565365,1.05,3,60,60,True
+bug2,Bug 2,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,49,49,generation / 20-execution randomized batch,21.88333333,36.15,0.6053480867,-14.26666667,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,0,0,generation / 20-execution randomized batch,17.03889548,19.973247,0.8530859045,-2.934351517,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,1,1,generation / 20-execution randomized batch,20.92548658,34.4589253,0.6072588278,-13.53343872,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,2,2,generation / 20-execution randomized batch,32.11679807,18.78972538,1.709274479,13.32707268,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,3,3,generation / 20-execution randomized batch,47.39527587,20.33426877,2.330807978,27.0610071,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,4,4,generation / 20-execution randomized batch,44.83656372,20.66555107,2.169628266,24.17101265,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,5,5,generation / 20-execution randomized batch,42.62841975,16.43975948,2.593007507,26.18866027,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,6,6,generation / 20-execution randomized batch,29.76728545,18.84142965,1.579884648,10.9258558,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,7,7,generation / 20-execution randomized batch,36.1098212,19.23325975,1.877467557,16.87656145,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,8,8,generation / 20-execution randomized batch,38.74284945,22.90755625,1.691269423,15.8352932,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,9,9,generation / 20-execution randomized batch,35.4394946,23.6331027,1.499570118,11.8063919,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,10,10,generation / 20-execution randomized batch,34.23948057,21.41712593,1.598696327,12.82235463,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,11,11,generation / 20-execution randomized batch,45.31243707,22.48137848,2.015554211,22.83105858,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,12,12,generation / 20-execution randomized batch,29.74335595,15.54468918,1.913409499,14.19866677,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,13,13,generation / 20-execution randomized batch,31.47015903,16.5460083,1.901978922,14.92415073,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,14,14,generation / 20-execution randomized batch,32.47263387,19.97287923,1.62583639,12.49975463,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,15,15,generation / 20-execution randomized batch,21.98901222,18.3690277,1.197070012,3.619984517,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,16,16,generation / 20-execution randomized batch,27.26236485,21.61781372,1.261106475,5.644551133,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,17,17,generation / 20-execution randomized batch,26.62560943,19.21610835,1.385588015,7.409501083,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,18,18,generation / 20-execution randomized batch,26.53395775,16.64599558,1.594014465,9.887962167,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,19,19,generation / 20-execution randomized batch,20.15149585,13.3468096,1.509836167,6.80468625,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,20,20,generation / 20-execution randomized batch,27.05847787,14.39967347,1.879103573,12.6588044,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,21,21,generation / 20-execution randomized batch,31.8245011,24.1510204,1.317729047,7.6734807,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,22,22,generation / 20-execution randomized batch,26.92181675,19.60323862,1.373335155,7.318578133,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,23,23,generation / 20-execution randomized batch,25.89613828,24.40235143,1.061214873,1.49378685,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,24,24,generation / 20-execution randomized batch,28.61423208,22.87897552,1.250678032,5.735256567,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,25,25,generation / 20-execution randomized batch,29.2745582,19.26877757,1.519274282,10.00578063,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,26,26,generation / 20-execution randomized batch,28.75512283,19.36616598,1.484812371,9.38895685,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,27,27,generation / 20-execution randomized batch,31.22110567,21.15601878,1.475755244,10.06508688,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,28,28,generation / 20-execution randomized batch,31.75669813,20.00631088,1.587334033,11.75038725,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,29,29,generation / 20-execution randomized batch,34.68055645,17.20531313,2.015688769,17.47524332,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,30,30,generation / 20-execution randomized batch,28.5964615,21.74745798,1.314933521,6.849003517,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,31,31,generation / 20-execution randomized batch,28.98594602,17.0561903,1.699438474,11.92975572,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,32,32,generation / 20-execution randomized batch,31.6182555,18.6087706,1.699105018,13.0094849,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,33,33,generation / 20-execution randomized batch,34.13568465,17.45669378,1.955449587,16.67899087,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,34,34,generation / 20-execution randomized batch,29.03439115,15.34950425,1.89155237,13.6848869,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,35,35,generation / 20-execution randomized batch,27.19624627,16.17572128,1.681300375,11.02052498,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,36,36,generation / 20-execution randomized batch,23.39430558,16.49578548,1.418198946,6.8985201,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,37,37,generation / 20-execution randomized batch,28.46165475,14.54608367,1.956654135,13.91557108,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,38,38,generation / 20-execution randomized batch,28.744915,17.69408277,1.624549595,11.05083223,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,39,39,generation / 20-execution randomized batch,23.623817,16.4787303,1.433594492,7.1450867,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,40,40,generation / 20-execution randomized batch,25.54071948,22.22230538,1.149328076,3.3184141,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,41,41,generation / 20-execution randomized batch,32.51806697,24.6914533,1.31697663,7.826613667,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,42,42,generation / 20-execution randomized batch,27.40184762,17.2231568,1.590988687,10.17869082,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,43,43,generation / 20-execution randomized batch,26.42792303,22.68789035,1.164847089,3.740032683,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,44,44,generation / 20-execution randomized batch,28.6167145,17.93151123,1.595889723,10.68520327,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,45,45,generation / 20-execution randomized batch,22.66496468,15.34245965,1.477270607,7.322505033,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,46,46,generation / 20-execution randomized batch,28.19082188,19.89368897,1.417073622,8.297132917,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,47,47,generation / 20-execution randomized batch,28.11437483,18.59636873,1.511820681,9.5180061,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,48,48,generation / 20-execution randomized batch,30.68008385,19.53520118,1.57050258,11.14488267,3,60,60,True
+bug2,Bug 2,time_fitness,Time,time_fitness,49,49,generation / 20-execution randomized batch,33.0543139,24.69151038,1.338691453,8.362803517,3,60,60,True
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,0,0,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,1,1,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,2,2,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,3,3,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,4,4,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,5,5,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,6,6,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,7,7,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,8,8,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,9,9,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,10,10,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,11,11,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,12,12,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,13,13,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,14,14,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,15,15,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,16,16,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,17,17,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,18,18,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,19,19,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,20,20,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,21,21,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,22,22,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,23,23,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,24,24,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,25,25,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,26,26,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,27,27,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,28,28,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,29,29,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,30,30,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,31,31,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,32,32,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,33,33,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,34,34,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,35,35,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,36,36,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,37,37,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,38,38,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,39,39,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,40,40,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,41,41,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,42,42,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,43,43,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,44,44,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,45,45,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,46,46,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,47,47,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,48,48,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug2,Bug 2,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,49,49,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,0,0,generation / 20-execution randomized batch,5.087719298,4.912280702,1.035714286,0.1754385965,3,58,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,1,1,generation / 20-execution randomized batch,4.995614035,5.070175439,0.9852941176,-0.07456140351,3,58,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,2,2,generation / 20-execution randomized batch,5.188888889,5.118421053,1.013767495,0.07046783626,3,58,58,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,3,3,generation / 20-execution randomized batch,5,5.124074074,0.9757860499,-0.1240740741,3,60,56,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,4,4,generation / 20-execution randomized batch,5.201754386,4.95,1.050859472,0.251754386,3,59,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,5,5,generation / 20-execution randomized batch,5.225925926,5.115789474,1.02152873,0.1101364522,3,58,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,6,6,generation / 20-execution randomized batch,5.522807018,5.051754386,1.093245355,0.4710526316,3,59,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,7,7,generation / 20-execution randomized batch,5.425438596,5.033333333,1.077901708,0.3921052632,3,58,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,8,8,generation / 20-execution randomized batch,5.411111111,5.105263158,1.059908362,0.3058479532,3,58,58,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,9,9,generation / 20-execution randomized batch,5.57037037,4.966666667,1.121551081,0.6037037037,3,58,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,10,10,generation / 20-execution randomized batch,5.815789474,5.021442495,1.158190994,0.7943469786,3,56,57,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,11,11,generation / 20-execution randomized batch,5.283333333,5.149891068,1.025911668,0.1334422658,3,60,55,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,12,12,generation / 20-execution randomized batch,5.452631579,5.05,1.079729026,0.4026315789,3,59,58,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,13,13,generation / 20-execution randomized batch,5.614912281,5.100103199,1.100940915,0.5148090815,3,58,55,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,14,14,generation / 20-execution randomized batch,5.357894737,5,1.071578947,0.3578947368,3,58,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,15,15,generation / 20-execution randomized batch,5.421052632,5.087719298,1.065517241,0.3333333333,3,58,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,16,16,generation / 20-execution randomized batch,5.471052632,5.05,1.083376759,0.4210526316,3,59,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,17,17,generation / 20-execution randomized batch,5.41754386,5.066666667,1.069252078,0.350877193,3,59,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,18,18,generation / 20-execution randomized batch,5.385964912,5.06754386,1.062835382,0.3184210526,3,59,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,19,19,generation / 20-execution randomized batch,5.29122807,5.087719298,1.04,0.2035087719,3,59,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,20,20,generation / 20-execution randomized batch,5.383333333,5.148039216,1.04570558,0.2352941176,3,60,57,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,21,21,generation / 20-execution randomized batch,5.333333333,5.081578947,1.049542551,0.251754386,3,60,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,22,22,generation / 20-execution randomized batch,5.514717349,5.116666667,1.077794922,0.3980506823,3,57,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,23,23,generation / 20-execution randomized batch,5.567595459,5.083333333,1.095264681,0.4842621259,3,55,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,24,24,generation / 20-execution randomized batch,5.407894737,5.003508772,1.080820477,0.4043859649,3,59,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,25,25,generation / 20-execution randomized batch,5.4,5.153508772,1.047829787,0.2464912281,3,58,57,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,26,26,generation / 20-execution randomized batch,5.435087719,5.05,1.076254994,0.3850877193,3,59,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,27,27,generation / 20-execution randomized batch,5.387719298,4.95,1.088428141,0.4377192982,3,58,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,28,28,generation / 20-execution randomized batch,5.333333333,5.019298246,1.062565537,0.3140350877,3,60,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,29,29,generation / 20-execution randomized batch,5.566666667,5.037719298,1.104997388,0.5289473684,3,59,58,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,30,30,generation / 20-execution randomized batch,5.483333333,5.085087719,1.078316371,0.398245614,3,60,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,31,31,generation / 20-execution randomized batch,5.416666667,5.227777778,1.036131775,0.1888888889,3,60,58,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,32,32,generation / 20-execution randomized batch,5.77962963,5.01754386,1.151884227,0.76208577,3,58,58,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,33,33,generation / 20-execution randomized batch,5.439473684,5.060233918,1.074945106,0.3792397661,3,59,57,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,34,34,generation / 20-execution randomized batch,5.780701754,5.018421053,1.151896522,0.7622807018,3,58,57,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,35,35,generation / 20-execution randomized batch,5.716666667,5.06754386,1.128094167,0.649122807,3,60,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,36,36,generation / 20-execution randomized batch,5.450877193,5.136842105,1.06113388,0.3140350877,3,59,58,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,37,37,generation / 20-execution randomized batch,5.647270955,5.202941176,1.085399731,0.4443297787,3,57,57,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,38,38,generation / 20-execution randomized batch,5.612962963,5.033333333,1.115158205,0.5796296296,3,58,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,39,39,generation / 20-execution randomized batch,5.485964912,5.115789474,1.072359396,0.3701754386,3,59,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,40,40,generation / 20-execution randomized batch,5.501754386,5.157894737,1.066666667,0.3438596491,3,58,56,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,41,41,generation / 20-execution randomized batch,5.489473684,5.273684211,1.040918164,0.2157894737,3,59,58,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,42,42,generation / 20-execution randomized batch,5.538596491,5.119298246,1.081905415,0.4192982456,3,59,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,43,43,generation / 20-execution randomized batch,5.487719298,5.121052632,1.071599863,0.3666666667,3,59,58,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,44,44,generation / 20-execution randomized batch,5.6,5.083333333,1.101639344,0.5166666667,3,60,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,45,45,generation / 20-execution randomized batch,5.56042885,5.116666667,1.086728765,0.4437621832,3,56,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,46,46,generation / 20-execution randomized batch,5.778947368,5.101754386,1.132737276,0.6771929825,3,59,59,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,47,47,generation / 20-execution randomized batch,5.534210526,5.166666667,1.071137521,0.3675438596,3,58,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,48,48,generation / 20-execution randomized batch,5.561111111,4.983333333,1.115942029,0.5777777778,3,58,60,True
+bug3,Bug 3,block_height_skew_fitness,Block-height skew,block_height_skew_fitness,49,49,generation / 20-execution randomized batch,5.483333333,5.136842105,1.067452186,0.3464912281,3,60,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,0,0,generation / 20-execution randomized batch,3.497007224,3.234210526,1.081255285,0.2627966976,3,56,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,1,1,generation / 20-execution randomized batch,3.353508772,3.253508772,1.030736047,0.1,3,59,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,2,2,generation / 20-execution randomized batch,3.45,3.381578947,1.020233463,0.06842105263,3,60,58,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,3,3,generation / 20-execution randomized batch,3.37962963,3.540740741,0.9544979079,-0.1611111111,3,58,56,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,4,4,generation / 20-execution randomized batch,3.157407407,3.433333333,0.9196332255,-0.2759259259,3,58,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,5,5,generation / 20-execution randomized batch,3.242105263,3.202631579,1.01232539,0.03947368421,3,59,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,6,6,generation / 20-execution randomized batch,3.164035088,3.288596491,0.9621232329,-0.1245614035,3,58,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,7,7,generation / 20-execution randomized batch,3.3,3.283333333,1.005076142,0.01666666667,3,60,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,8,8,generation / 20-execution randomized batch,3.133333333,3.590350877,0.872709504,-0.4570175439,3,60,58,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,9,9,generation / 20-execution randomized batch,3.426315789,3.166666667,1.08199446,0.2596491228,3,59,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,10,10,generation / 20-execution randomized batch,3.183333333,3.37748538,0.9425157995,-0.1941520468,3,60,57,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,11,11,generation / 20-execution randomized batch,3.183333333,3.238017429,0.9831118587,-0.05468409586,3,60,55,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,12,12,generation / 20-execution randomized batch,3.253703704,3.25877193,0.9984447435,-0.005068226121,3,58,58,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,13,13,generation / 20-execution randomized batch,3.423684211,3.281733746,1.043254717,0.1419504644,3,59,55,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,14,14,generation / 20-execution randomized batch,3.321052632,3.3,1.006379585,0.02105263158,3,59,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,15,15,generation / 20-execution randomized batch,3.033333333,3.274561404,0.9263327083,-0.2412280702,3,60,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,16,16,generation / 20-execution randomized batch,3.536354776,3.171052632,1.115199016,0.3653021442,3,57,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,17,17,generation / 20-execution randomized batch,3.115789474,3.3,0.9441786284,-0.1842105263,3,58,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,18,18,generation / 20-execution randomized batch,3.25,3.239473684,1.003249391,0.01052631579,3,58,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,19,19,generation / 20-execution randomized batch,3.137719298,3.343859649,0.9383525708,-0.2061403509,3,59,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,20,20,generation / 20-execution randomized batch,3.150877193,3.335294118,0.9447074476,-0.1844169247,3,58,57,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,21,21,generation / 20-execution randomized batch,3.243137255,3.286842105,0.986703088,-0.04370485036,3,57,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,22,22,generation / 20-execution randomized batch,2.883333333,3.266666667,0.8826530612,-0.3833333333,3,60,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,23,23,generation / 20-execution randomized batch,3.416666667,3.103508772,1.100904466,0.3131578947,3,60,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,24,24,generation / 20-execution randomized batch,3.283333333,3.328070175,0.9865577227,-0.04473684211,3,60,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,25,25,generation / 20-execution randomized batch,3.127777778,3.450292398,0.9065254237,-0.3225146199,3,56,57,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,26,26,generation / 20-execution randomized batch,3.35,3.383333333,0.9901477833,-0.03333333333,3,60,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,27,27,generation / 20-execution randomized batch,3.35,3.216666667,1.041450777,0.1333333333,3,60,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,28,28,generation / 20-execution randomized batch,3.257017544,3.290350877,0.9898693682,-0.03333333333,3,59,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,29,29,generation / 20-execution randomized batch,3.435087719,3.260526316,1.053537799,0.1745614035,3,58,58,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,30,30,generation / 20-execution randomized batch,3.316666667,3.373684211,0.983099324,-0.05701754386,3,60,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,31,31,generation / 20-execution randomized batch,3.266666667,3.416666667,0.956097561,-0.15,3,60,58,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,32,32,generation / 20-execution randomized batch,3.374561404,3.242982456,1.040573438,0.1315789474,3,59,58,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,33,33,generation / 20-execution randomized batch,3.216666667,3.406140351,0.9443729075,-0.1894736842,3,60,57,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,34,34,generation / 20-execution randomized batch,3.151851852,3.407017544,0.9251058474,-0.255165692,3,58,57,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,35,35,generation / 20-execution randomized batch,3.190350877,3.103508772,1.027981911,0.08684210526,3,58,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,36,36,generation / 20-execution randomized batch,3.533333333,3.312280702,1.066737288,0.2210526316,3,60,58,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,37,37,generation / 20-execution randomized batch,3.086842105,3.364705882,0.9174181082,-0.2778637771,3,59,57,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,38,38,generation / 20-execution randomized batch,3.444736842,3.233333333,1.065382528,0.2114035088,3,59,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,39,39,generation / 20-execution randomized batch,3.333333333,3.353508772,0.9939837824,-0.0201754386,3,60,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,40,40,generation / 20-execution randomized batch,3.298039216,3.357699805,0.9822317084,-0.05966058938,3,57,56,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,41,41,generation / 20-execution randomized batch,3.222807018,3.414035088,0.943987667,-0.1912280702,3,59,58,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,42,42,generation / 20-execution randomized batch,3.516666667,3.237719298,1.086155513,0.2789473684,3,60,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,43,43,generation / 20-execution randomized batch,3.297987616,3.259649123,1.01176154,0.03833849329,3,56,58,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,44,44,generation / 20-execution randomized batch,3.25877193,3.266666667,0.9975832438,-0.007894736842,3,58,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,45,45,generation / 20-execution randomized batch,3,3.366666667,0.8910891089,-0.3666666667,3,59,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,46,46,generation / 20-execution randomized batch,3.05,3.251754386,0.9379552199,-0.201754386,3,60,59,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,47,47,generation / 20-execution randomized batch,3.231091618,3.416666667,0.9456853516,-0.1855750487,3,57,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,48,48,generation / 20-execution randomized batch,3.414035088,3.15,1.083820663,0.2640350877,3,58,60,True
+bug3,Bug 3,round_stress_fitness,Round stress,round_stress_fitness,49,49,generation / 20-execution randomized batch,3.383333333,3.422807018,0.9884674526,-0.03947368421,3,60,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,0,0,generation / 20-execution randomized batch,125.6377193,136.2526316,0.9220938916,-10.61491228,3,59,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,1,1,generation / 20-execution randomized batch,130.2550682,168.2692982,0.7740869522,-38.01423002,3,57,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,2,2,generation / 20-execution randomized batch,203.6964912,169.277193,1.203330984,34.41929825,3,59,58,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,3,3,generation / 20-execution randomized batch,272.2359649,135.0074074,2.016452061,137.2285575,3,59,56,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,4,4,generation / 20-execution randomized batch,353.8833333,159.75,2.215232134,194.1333333,3,60,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,5,5,generation / 20-execution randomized batch,354.5833333,65.4,5.421763507,289.1833333,3,60,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,6,6,generation / 20-execution randomized batch,341.9763158,107.7394737,3.174104199,234.2368421,3,59,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,7,7,generation / 20-execution randomized batch,351.4552632,134.35,2.61596772,217.1052632,3,59,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,8,8,generation / 20-execution randomized batch,323.5333333,159.4675439,2.028834994,164.0657895,3,59,58,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,9,9,generation / 20-execution randomized batch,265.8166667,137.75,1.929703569,128.0666667,3,60,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,10,10,generation / 20-execution randomized batch,371.3833333,112.8191033,3.291847944,258.56423,3,60,57,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,11,11,generation / 20-execution randomized batch,331.104386,156.2854031,2.118588042,174.8189829,3,58,55,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,12,12,generation / 20-execution randomized batch,346.0938596,100.0368421,3.459663983,246.0570175,3,59,58,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,13,13,generation / 20-execution randomized batch,393.0218324,113.7595459,3.454847056,279.2622864,3,57,55,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,14,14,generation / 20-execution randomized batch,371.3719298,117.85,3.151225539,253.5219298,3,59,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,15,15,generation / 20-execution randomized batch,366.4657895,77.33508772,4.738674259,289.1307018,3,59,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,16,16,generation / 20-execution randomized batch,308.8157895,135.2114035,2.283947814,173.604386,3,59,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,17,17,generation / 20-execution randomized batch,324.5842105,151.6,2.141056798,172.9842105,3,58,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,18,18,generation / 20-execution randomized batch,296.3333333,86.28245614,3.434456396,210.0508772,3,60,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,19,19,generation / 20-execution randomized batch,421.8666667,74.56403509,5.657776784,347.3026316,3,58,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,20,20,generation / 20-execution randomized batch,348.3166667,106.7392157,3.263249261,241.577451,3,60,57,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,21,21,generation / 20-execution randomized batch,351.9070175,127.7877193,2.753840662,224.1192982,3,59,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,22,22,generation / 20-execution randomized batch,322.3508772,133.1833333,2.420354478,189.1675439,3,57,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,23,23,generation / 20-execution randomized batch,413.1,123.1780702,3.353681377,289.9219298,3,60,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,24,24,generation / 20-execution randomized batch,361.0333333,221.9701754,1.626494788,139.0631579,3,60,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,25,25,generation / 20-execution randomized batch,366.9307018,131.394152,2.792595378,235.5365497,3,59,57,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,26,26,generation / 20-execution randomized batch,357.2181287,179.3666667,1.991552473,177.851462,3,57,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,27,27,generation / 20-execution randomized batch,411.5632554,195.8,2.101957382,215.7632554,3,57,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,28,28,generation / 20-execution randomized batch,400.6854776,150.9403509,2.654594847,249.7451267,3,57,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,29,29,generation / 20-execution randomized batch,425.3605263,140.1938596,3.034088136,285.1666667,3,58,58,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,30,30,generation / 20-execution randomized batch,368.4833333,107.5850877,3.425040971,260.8982456,3,60,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,31,31,generation / 20-execution randomized batch,358.8333333,91.98703704,3.900911964,266.8462963,3,60,58,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,32,32,generation / 20-execution randomized batch,326.7877193,119.6587719,2.730996767,207.1289474,3,59,58,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,33,33,generation / 20-execution randomized batch,378.9833333,174.4300195,2.172695586,204.5533138,3,60,57,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,34,34,generation / 20-execution randomized batch,399.6216374,121.6716374,3.284427216,277.95,3,57,57,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,35,35,generation / 20-execution randomized batch,406.229922,79.65614035,5.099794193,326.5737817,3,57,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,36,36,generation / 20-execution randomized batch,393.07846,143.3798246,2.741518629,249.6986355,3,57,58,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,37,37,generation / 20-execution randomized batch,363.9333333,96.21764706,3.782396935,267.7156863,3,60,57,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,38,38,generation / 20-execution randomized batch,372.8833333,118.5333333,3.145809899,254.35,3,60,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,39,39,generation / 20-execution randomized batch,323.4,77.16140351,4.191214588,246.2385965,3,60,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,40,40,generation / 20-execution randomized batch,361.4,101.4668616,3.561753998,259.9331384,3,60,56,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,41,41,generation / 20-execution randomized batch,319.7666667,112.3807018,2.845387702,207.3859649,3,60,58,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,42,42,generation / 20-execution randomized batch,308.9175439,101.1552632,3.053894916,207.7622807,3,59,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,43,43,generation / 20-execution randomized batch,376.854386,86.51842105,4.355770498,290.3359649,3,58,58,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,44,44,generation / 20-execution randomized batch,387.8166667,134.1166667,2.891636635,253.7,3,60,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,45,45,generation / 20-execution randomized batch,430.6062378,119.7666667,3.595376325,310.8395712,3,56,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,46,46,generation / 20-execution randomized batch,414.6745614,115.9868421,3.575186236,298.6877193,3,59,59,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,47,47,generation / 20-execution randomized batch,321.877193,91.15,3.531291201,230.727193,3,59,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,48,48,generation / 20-execution randomized batch,400.9096491,128.1833333,3.12762696,272.7263158,3,59,60,True
+bug3,Bug 3,round_timeout_count_fitness,Round timeouts,round_timeout_count_fitness,49,49,generation / 20-execution randomized batch,355.9291423,172.3631579,2.064995482,183.5659844,3,57,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,0,0,generation / 20-execution randomized batch,120.735305,102.3243888,1.17992696,18.41091621,3,59,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,1,1,generation / 20-execution randomized batch,167.8926811,129.0548684,1.300940315,38.83781273,3,58,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,2,2,generation / 20-execution randomized batch,283.0906062,124.2887673,2.277684559,158.8018389,3,58,58,True
+bug3,Bug 3,time_fitness,Time,time_fitness,3,3,generation / 20-execution randomized batch,270.8258902,96.12980115,2.817293773,174.6960891,3,58,56,True
+bug3,Bug 3,time_fitness,Time,time_fitness,4,4,generation / 20-execution randomized batch,265.4157188,118.7031917,2.235961099,146.7125272,3,58,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,5,5,generation / 20-execution randomized batch,302.4475624,44.49542497,6.797273261,257.9521374,3,59,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,6,6,generation / 20-execution randomized batch,245.0922037,76.67711049,3.196419402,168.4150932,3,60,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,7,7,generation / 20-execution randomized batch,298.4070288,96.44077165,3.09419993,201.9662572,3,57,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,8,8,generation / 20-execution randomized batch,244.1527797,118.3588446,2.062818209,125.7939352,3,59,58,True
+bug3,Bug 3,time_fitness,Time,time_fitness,9,9,generation / 20-execution randomized batch,260.3905158,99.81765667,2.608661879,160.5728592,3,58,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,10,10,generation / 20-execution randomized batch,235.0618378,83.83614656,2.803824453,151.2256912,3,60,57,True
+bug3,Bug 3,time_fitness,Time,time_fitness,11,11,generation / 20-execution randomized batch,225.8798348,109.0863054,2.070652534,116.7935293,3,60,55,True
+bug3,Bug 3,time_fitness,Time,time_fitness,12,12,generation / 20-execution randomized batch,286.8463267,69.70920695,4.114898723,217.1371197,3,60,58,True
+bug3,Bug 3,time_fitness,Time,time_fitness,13,13,generation / 20-execution randomized batch,300.2946682,78.73420504,3.814030612,221.5604632,3,59,55,True
+bug3,Bug 3,time_fitness,Time,time_fitness,14,14,generation / 20-execution randomized batch,254.1964937,92.3257915,2.753255505,161.8707022,3,59,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,15,15,generation / 20-execution randomized batch,284.1838581,53.59146887,5.302781658,230.5923893,3,58,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,16,16,generation / 20-execution randomized batch,248.0971538,105.0738396,2.361169581,143.0233142,3,57,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,17,17,generation / 20-execution randomized batch,286.4126545,109.0998951,2.625233088,177.3127594,3,59,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,18,18,generation / 20-execution randomized batch,256.7137727,63.40968905,4.048494426,193.3040837,3,59,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,19,19,generation / 20-execution randomized batch,260.5699971,50.57885134,5.151757902,209.9911458,3,58,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,20,20,generation / 20-execution randomized batch,235.2660504,78.35572324,3.002538177,156.9103272,3,59,57,True
+bug3,Bug 3,time_fitness,Time,time_fitness,21,21,generation / 20-execution randomized batch,245.7301483,90.46735051,2.716230186,155.2627978,3,56,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,22,22,generation / 20-execution randomized batch,325.0746684,95.62408532,3.399506173,229.450583,3,55,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,23,23,generation / 20-execution randomized batch,250.7486888,88.32775929,2.83884354,162.4209295,3,58,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,24,24,generation / 20-execution randomized batch,278.7227918,170.8072861,1.631796852,107.9155057,3,59,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,25,25,generation / 20-execution randomized batch,230.6458911,98.93555162,2.33127412,131.7103394,3,60,57,True
+bug3,Bug 3,time_fitness,Time,time_fitness,26,26,generation / 20-execution randomized batch,307.4516146,132.7559822,2.315915332,174.6956324,3,60,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,27,27,generation / 20-execution randomized batch,284.8480359,145.9653772,1.951476722,138.8826587,3,59,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,28,28,generation / 20-execution randomized batch,243.0303708,112.2860052,2.164387008,130.7443656,3,59,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,29,29,generation / 20-execution randomized batch,257.0697822,105.297307,2.44137091,151.7724752,3,54,58,True
+bug3,Bug 3,time_fitness,Time,time_fitness,30,30,generation / 20-execution randomized batch,266.7516793,71.90211963,3.709927895,194.8495597,3,59,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,31,31,generation / 20-execution randomized batch,186.4937116,65.07342003,2.865896882,121.4202915,3,59,58,True
+bug3,Bug 3,time_fitness,Time,time_fitness,32,32,generation / 20-execution randomized batch,301.47746,81.99677632,3.676698933,219.4806837,3,58,58,True
+bug3,Bug 3,time_fitness,Time,time_fitness,33,33,generation / 20-execution randomized batch,281.3179674,124.3275994,2.262715349,156.990368,3,60,57,True
+bug3,Bug 3,time_fitness,Time,time_fitness,34,34,generation / 20-execution randomized batch,260.3434777,85.35072076,3.050278608,174.9927569,3,59,57,True
+bug3,Bug 3,time_fitness,Time,time_fitness,35,35,generation / 20-execution randomized batch,251.1306091,55.67582454,4.510586257,195.4547845,3,60,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,36,36,generation / 20-execution randomized batch,213.5786076,107.6044947,1.984848385,105.9741129,3,59,58,True
+bug3,Bug 3,time_fitness,Time,time_fitness,37,37,generation / 20-execution randomized batch,220.2281462,66.96279442,3.288813559,153.2653518,3,58,57,True
+bug3,Bug 3,time_fitness,Time,time_fitness,38,38,generation / 20-execution randomized batch,311.4004811,85.84998077,3.62726326,225.5505003,3,58,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,39,39,generation / 20-execution randomized batch,249.1605557,54.49486951,4.57218373,194.6656862,3,59,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,40,40,generation / 20-execution randomized batch,265.5539997,69.47142216,3.822492638,196.0825776,3,59,56,True
+bug3,Bug 3,time_fitness,Time,time_fitness,41,41,generation / 20-execution randomized batch,285.0607925,82.69778055,3.447018658,202.3630119,3,58,58,True
+bug3,Bug 3,time_fitness,Time,time_fitness,42,42,generation / 20-execution randomized batch,291.6547649,75.91939152,3.841637282,215.7353734,3,56,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,43,43,generation / 20-execution randomized batch,261.3438883,59.06425371,4.424738685,202.2796346,3,59,58,True
+bug3,Bug 3,time_fitness,Time,time_fitness,44,44,generation / 20-execution randomized batch,251.5150634,98.0415674,2.56539211,153.473496,3,60,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,45,45,generation / 20-execution randomized batch,290.6552584,92.59696775,3.138928471,198.0582906,3,57,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,46,46,generation / 20-execution randomized batch,274.9874927,84.74357072,3.244936345,190.2439219,3,57,59,True
+bug3,Bug 3,time_fitness,Time,time_fitness,47,47,generation / 20-execution randomized batch,291.9531166,67.55940685,4.321428062,224.3937097,3,59,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,48,48,generation / 20-execution randomized batch,274.0473242,98.69636228,2.776670972,175.3509619,3,58,60,True
+bug3,Bug 3,time_fitness,Time,time_fitness,49,49,generation / 20-execution randomized batch,324.3244351,130.8094438,2.4793656,193.5149913,3,59,59,True
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,0,0,generation / 20-execution randomized batch,0,0,,0,3,59,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,1,1,generation / 20-execution randomized batch,0,0,,0,3,60,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,2,2,generation / 20-execution randomized batch,0,0,,0,3,59,58,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,3,3,generation / 20-execution randomized batch,0,0,,0,3,60,56,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,4,4,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,5,5,generation / 20-execution randomized batch,0,0,,0,3,59,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,6,6,generation / 20-execution randomized batch,0,0,,0,3,60,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,7,7,generation / 20-execution randomized batch,0,0,,0,3,59,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,8,8,generation / 20-execution randomized batch,0,0,,0,3,58,58,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,9,9,generation / 20-execution randomized batch,0,0,,0,3,57,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,10,10,generation / 20-execution randomized batch,0,0,,0,3,60,57,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,11,11,generation / 20-execution randomized batch,0,0,,0,3,60,55,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,12,12,generation / 20-execution randomized batch,0,0,,0,3,58,58,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,13,13,generation / 20-execution randomized batch,0,0,,0,3,58,55,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,14,14,generation / 20-execution randomized batch,0,0,,0,3,59,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,15,15,generation / 20-execution randomized batch,0,0,,0,3,59,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,16,16,generation / 20-execution randomized batch,0,0,,0,3,59,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,17,17,generation / 20-execution randomized batch,0,0,,0,3,59,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,18,18,generation / 20-execution randomized batch,0,0,,0,3,59,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,19,19,generation / 20-execution randomized batch,0,0,,0,3,59,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,20,20,generation / 20-execution randomized batch,0,0,,0,3,60,57,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,21,21,generation / 20-execution randomized batch,0,0,,0,3,59,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,22,22,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,23,23,generation / 20-execution randomized batch,0,0,,0,3,58,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,24,24,generation / 20-execution randomized batch,0,0,,0,3,60,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,25,25,generation / 20-execution randomized batch,0,0,,0,3,59,57,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,26,26,generation / 20-execution randomized batch,0,0,,0,3,59,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,27,27,generation / 20-execution randomized batch,0,0,,0,3,59,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,28,28,generation / 20-execution randomized batch,0,0,,0,3,58,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,29,29,generation / 20-execution randomized batch,0,0,,0,3,59,58,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,30,30,generation / 20-execution randomized batch,0,0,,0,3,59,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,31,31,generation / 20-execution randomized batch,0,0,,0,3,58,58,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,32,32,generation / 20-execution randomized batch,0,0,,0,3,58,58,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,33,33,generation / 20-execution randomized batch,0,0,,0,3,60,57,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,34,34,generation / 20-execution randomized batch,0,0,,0,3,59,57,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,35,35,generation / 20-execution randomized batch,0,0,,0,3,60,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,36,36,generation / 20-execution randomized batch,0,0,,0,3,60,58,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,37,37,generation / 20-execution randomized batch,0,0,,0,3,59,57,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,38,38,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,39,39,generation / 20-execution randomized batch,0,0,,0,3,57,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,40,40,generation / 20-execution randomized batch,0,0,,0,3,59,56,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,41,41,generation / 20-execution randomized batch,0,0,,0,3,58,58,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,42,42,generation / 20-execution randomized batch,0,0,,0,3,58,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,43,43,generation / 20-execution randomized batch,0,0,,0,3,58,58,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,44,44,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,45,45,generation / 20-execution randomized batch,0,0,,0,3,59,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,46,46,generation / 20-execution randomized batch,0,0,,0,3,59,59,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,47,47,generation / 20-execution randomized batch,0,0,,0,3,58,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,48,48,generation / 20-execution randomized batch,0,0,,0,3,60,60,False
+bug3,Bug 3,vote_fragmentation_fitness,Vote fragmentation,vote_fragmentation_fitness,49,49,generation / 20-execution randomized batch,0,0,,0,3,58,59,False
